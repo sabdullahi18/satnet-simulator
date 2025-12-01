@@ -1,11 +1,11 @@
 # satnet-simulator
-simulator for my FYP
-## plan
-basic simulator, with endpoints able to send packets to each other and a network introducing delay per packet (or per flow). 
-- packets are actually forwarded on the lowest-delay path
+basic simulator for my FYP, with endpoints able to send packets to each other and a network introducing delay per packet. there are many cases to examine:
+- packets are forwarded on the lowest-delay path
 - packets are deliberately delayed
 - packets are randomly assigned to one across N paths (each with a different delay)
 - etc.
+## current implementation
+`count` packets are sent, each with their own uniformly random delay (0.5s-2.0s). ground station A sends forwards packet to router. router finds the best path by choosing smallest delay path. the packet then traverses that path, and reaches destination.
 ## venv
 to activate the venv
 ```
