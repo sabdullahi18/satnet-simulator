@@ -2,41 +2,64 @@ import random
 import simpy
 
 
-class SatelliteLink(object):
-    def __init__(self, env):
-        self.env = env
+class Packet:
+    def __init__(self, id, src, creation_time):
+        self.id = id
+        self.src = src
+        self.creation_time = creation_time
 
-    def transmit(self, packet, source, dest):
-        delay = random.uniform(0.5, 2.0)
-        yield self.env.timeout(delay)
-        dest.receive(packet, source)
+
+class SatellitePath(object):
+    def __init__(self, env, name, delay):
+        self.env = env
+        self.name = name
+        self.delay = delay
+
+    def traverse(self, pkt, dest):
+        yield self.env.timeout(self.delay)
+        pkt_delay = random.uniform(0.5, 2.0)
+        yield self.env.timeout(pkt_delay)
+        dest.receive(pkt, self.name)
+
+
+class SatNetRouter(object):
+    def __init__(self, env, paths):
+        self.env = env
+        self.paths = paths
+
+    def forward(self, pkt, dest):
+        best_path = min(self.paths, key=lambda x: x.delay)
+        print(
+            f"[SatNet Internal] Routing pkt {pkt.id} via {best_path.name} (Delay: {best_path.delay}s)"
+        )
+        self.env.process(best_path.traverse(pkt, dest))
 
 
 class GroundStation(object):
-    def __init__(self, env, name, link):
+    def __init__(self, env, name, router=None):
         self.env = env
         self.name = name
-        self.link = link
+        self.router = router
 
-    def send_packets(self, dest, interval):
-        pkt_id = 0
-        while True:
-            yield self.env.timeout(random.expovariate(1.0 / interval))
-            pkt_id += 1
-            packet = f"Pkt-{pkt_id}"
-            print(f"[{self.env.now:5.2f}s] {self.name} SENT {packet} -> {dest.name}")
-            self.env.process(self.link.transmit(packet, self, dest))
+    def send(self, dest, count):
+        for i in range(count):
+            pkt = Packet(i, self.name, self.env.now)
+            print(f"[{self.env.now:5.2f}s] {self.name} SENT pkt {pkt.id}")
+            self.router.forward(pkt, dest)
+            yield self.env.timeout(1.0)
 
-    def receive(self, packet, source):
+    def receive(self, pkt, path_used):
+        latency = self.env.now - pkt.creation_time
         print(
-            f"[{self.env.now:5.2f}s] {self.name} RECEIVED {packet} (from {source.name})"
+            f"[{self.env.now:5.2f}s] {self.name} RECEIVED pkt {pkt.id} (via {path_used}, latency: {latency:.2f}s)"
         )
 
 
 env = simpy.Environment()
-link = SatelliteLink(env)
-gsA = GroundStation(env, "GS_A", link)
-gsB = GroundStation(env, "GS_B", link)
-env.process(gsA.send_packets(dest=gsB, interval=2.0))
-env.process(gsB.send_packets(dest=gsA, interval=3.0))
-env.run(until=15)
+fast_path = SatellitePath(env, "path_leo_fast", 0.1)
+slow_path = SatellitePath(env, "path_geo_slow", 0.8)
+satnet = SatNetRouter(env, paths=[fast_path, slow_path])
+sender = GroundStation(env, "client", satnet)
+receiver = GroundStation(env, "server")
+env.process(sender.send(dest=receiver, count=10))
+env.run(until=20)
