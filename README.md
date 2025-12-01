@@ -6,3 +6,18 @@ basic simulator, with endpoints able to send packets to each other and a network
 - packets are deliberately delayed
 - packets are randomly assigned to one across N paths (each with a different delay)
 - etc.
+## venv
+to activate the venv
+```
+source venv/bin/activate
+```
+to deactivate, run `deactivate`
+## requirements
+run the command below when new imports are used
+```
+pip freeze > requirements.txt
+```
+to instsall, run 
+```
+pip install -r requirements.txt
+```
