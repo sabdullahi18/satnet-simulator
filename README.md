@@ -5,7 +5,7 @@ basic simulator for my FYP, with endpoints able to send packets to each other an
 - packets are randomly assigned to one across N paths (each with a different delay)
 - etc.
 ## current implementation
-`count` packets are sent, each with their own uniformly random delay (0.5s-2.0s). ground station A sends forwards packet to router. router finds the best path by choosing smallest delay path. the packet then traverses that path, and reaches destination.
+`count` packets are sent, each with their own uniformly random delay (0.5s-2.0s). ground station A sends forwards packet to router. router finds the best path by choosing smallest delay path. the packet then traverses that path, and reaches destination. network adds fixed delay to random packets, random packet chose less than `spike_prob`.
 ## venv
 to activate the venv
 ```
