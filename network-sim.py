@@ -10,15 +10,22 @@ class Packet:
 
 
 class SatellitePath(object):
-    def __init__(self, env, name, delay):
+    def __init__(self, env, name, delay, spike_prob, spike_delay):
         self.env = env
         self.name = name
         self.delay = delay
+        self.spike_prob = spike_prob
+        self.spike_delay = spike_delay
 
     def traverse(self, pkt, dest):
         yield self.env.timeout(self.delay)
-        pkt_delay = random.uniform(0.5, 2.0)
-        yield self.env.timeout(pkt_delay)
+        jitter = random.uniform(0.5, 2.0)
+        yield self.env.timeout(jitter)
+        if random.random() < self.spike_prob:
+            print(
+                f" DELAY EVENT: Packet {pkt.id} delayed by {self.spike_delay}s on {self.name}"
+            )
+            yield self.env.timeout(self.spike_delay)
         dest.receive(pkt, self.name)
 
 
@@ -56,8 +63,8 @@ class GroundStation(object):
 
 
 env = simpy.Environment()
-fast_path = SatellitePath(env, "path_leo_fast", 0.1)
-slow_path = SatellitePath(env, "path_geo_slow", 0.8)
+fast_path = SatellitePath(env, "path_leo_fast", 0.1, spike_prob=0.3, spike_delay=2.0)
+slow_path = SatellitePath(env, "path_geo_slow", 0.8, spike_prob=0.0, spike_delay=0.0)
 satnet = SatNetRouter(env, paths=[fast_path, slow_path])
 sender = GroundStation(env, "client", satnet)
 receiver = GroundStation(env, "server")
