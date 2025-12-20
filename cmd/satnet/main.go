@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
 
 	"satnet-simulator/internal/engine"
 	"satnet-simulator/internal/network"
@@ -11,7 +9,6 @@ import (
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	sim := engine.NewSimulation()
 
 	fastPath := network.SatellitePath{
@@ -32,11 +29,12 @@ func main() {
 		Paths: []network.SatellitePath{fastPath, slowPath},
 	}
 
-	sender := nodes.NewGroundStation("client", satnet)
-	receiver := nodes.NewGroundStation("server", nil) 
+	nodeA := nodes.NewGroundStation("station_A", satnet)
+	nodeB := nodes.NewGroundStation("station_B", satnet)
 
 	fmt.Println("--- Starting SatNet Simulation ---")
-	sender.Send(sim, receiver, 10)
+	nodeA.Send(sim, nodeB, 10)
+	nodeB.Send(sim, nodeA, 10)
 
 	sim.Run(20.0)
 	fmt.Println("--- Simulation Complete ---")
