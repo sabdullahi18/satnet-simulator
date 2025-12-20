@@ -8,9 +8,9 @@ import (
 
 type SatellitePath struct {
 	Name       string
-	Delay      float64 
-	SpikeProb  float64 
-	SpikeDelay float64 
+	Delay      float64
+	SpikeProb  float64
+	SpikeDelay float64
 }
 
 type Destination interface {
@@ -24,8 +24,8 @@ func (p SatellitePath) Traverse(sim *engine.Simulation, pkt Packet, dest Destina
 	totalDelay += jitter
 
 	if rand.Float64() < p.SpikeProb {
-		fmt.Printf(" [!] DELAY EVENT: Packet %d delayed by %.2fs on %s\n", 
-			pkt.ID, p.SpikeDelay, p.Name)
+		fmt.Printf(" [!] DELAY EVENT: Packet %d from %s delayed by %.2fs on %s\n",
+			pkt.ID, pkt.Src, p.SpikeDelay, p.Name)
 		totalDelay += p.SpikeDelay
 	}
 

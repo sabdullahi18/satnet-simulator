@@ -22,8 +22,8 @@ func (r *SatNetRouter) Forward(sim *engine.Simulation, pkt Packet, dest Destinat
 		}
 	}
 
-	fmt.Printf("[SatNet Internal] Routing pkt %d via %s (Base Delay: %.2fs)\n",
-		pkt.ID, bestPath.Name, bestPath.Delay)
+	fmt.Printf("[SatNet Internal] Routing pkt %d from %s via %s (Base Delay: %.2fs)\n",
+		pkt.ID, pkt.Src, bestPath.Name, bestPath.Delay)
 
 	bestPath.Traverse(sim, pkt, dest)
 }
