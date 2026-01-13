@@ -11,11 +11,23 @@ type Contradiction struct {
 	Description string
 	Query1      Query
 	Response1   Response
-	Query2      Query
-	Response2   Response
+	Query2      Query    // Optional: empty for ground truth comparisons
+	Response2   Response // Optional: empty for ground truth comparisons
+	GroundTruth *TransmissionRecord // Set for ground truth contradictions
 }
 
 func (c Contradiction) String() string {
+	if c.GroundTruth != nil {
+		// Ground truth contradiction - only one query involved
+		return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query: %s -> %s\n  Actual: %s",
+			c.Type, c.Description, c.Query1, c.Response1, c.GroundTruth)
+	}
+	if c.Query2.ID == 0 && c.Response2.QueryID == 0 {
+		// Single query contradiction (e.g., physical violation)
+		return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query: %s -> %s",
+			c.Type, c.Description, c.Query1, c.Response1)
+	}
+	// Two-query contradiction
 	return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query1: %s -> %s\n  Query2: %s -> %s",
 		c.Type, c.Description, c.Query1, c.Response1, c.Query2, c.Response2)
 }
@@ -159,8 +171,7 @@ func (v *Verifier) checkAgainstGroundTruth(packetID int, interval TimeInterval, 
 					Description: fmt.Sprintf("Packet %d: network claims shortest_path=%v but actual=%v", packetID, resp.BoolAnswer, truth.IsShortestPath),
 					Query1:      resp.Query,
 					Response1:   resp,
-					Query2:      Query{},
-					Response2:   Response{},
+					GroundTruth: truth,
 				})
 			}
 
@@ -171,8 +182,7 @@ func (v *Verifier) checkAgainstGroundTruth(packetID int, interval TimeInterval, 
 					Description: fmt.Sprintf("Packet %d: network claims path='%s' but actual='%s'", packetID, resp.StringAnswer, truth.PathUsed),
 					Query1:      resp.Query,
 					Response1:   resp,
-					Query2:      Query{},
-					Response2:   Response{},
+					GroundTruth: truth,
 				})
 			}
 
@@ -187,8 +197,7 @@ func (v *Verifier) checkAgainstGroundTruth(packetID int, interval TimeInterval, 
 					Description: fmt.Sprintf("Packet %d: network claims delay=%.4fs but actual=%.4fs (diff=%.4fs)", packetID, resp.FloatAnswer, truth.ActualDelay, delayDiff),
 					Query1:      resp.Query,
 					Response1:   resp,
-					Query2:      Query{},
-					Response2:   Response{},
+					GroundTruth: truth,
 				})
 			}
 		}
