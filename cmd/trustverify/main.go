@@ -20,16 +20,20 @@ func main() {
 	fmt.Println("   SATELLITE NETWORK TRUST VERIFICATION")
 	fmt.Println("==============================================")
 	fmt.Println()
+	fmt.Println("The verifier does NOT have access to ground truth.")
+	fmt.Println("It can only detect lies through INTERNAL CONTRADICTIONS")
+	fmt.Println("in the network's own responses.")
+	fmt.Println()
 
 	// Run multiple scenarios
-	runScenario("HONEST_NETWORK", verification.StrategyHonest, 0.0)
-	runScenario("ALWAYS_LIES_ABOUT_SHORTEST_PATH", verification.StrategyAlwaysClaimShortest, 0.0)
-	runScenario("RANDOM_LIES_30%", verification.StrategyRandomLies, 0.3)
-	runScenario("MINIMIZE_DELAY_LIES", verification.StrategyMinimizeDelay, 0.0)
-	runScenario("SMART_LIAR", verification.StrategySmart, 0.5)
+	runScenario("HONEST_NETWORK", verification.StrategyHonest, 0.0, false)
+	runScenario("ALWAYS_LIES_ABOUT_SHORTEST_PATH", verification.StrategyAlwaysClaimShortest, 0.0, true)
+	runScenario("RANDOM_LIES_30%", verification.StrategyRandomLies, 0.3, true)
+	runScenario("MINIMIZE_DELAY_LIES", verification.StrategyMinimizeDelay, 0.0, true)
+	runScenario("SMART_LIAR", verification.StrategySmart, 0.5, true)
 }
 
-func runScenario(name string, strategy verification.LyingStrategy, lieProb float64) {
+func runScenario(name string, strategy verification.LyingStrategy, lieProb float64, showDebug bool) {
 	fmt.Printf("\n########################################\n")
 	fmt.Printf("# SCENARIO: %s\n", name)
 	fmt.Printf("########################################\n\n")
@@ -37,7 +41,7 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 	// Create simulation
 	sim := engine.NewSimulation()
 
-	// Define satellite paths
+	// Define satellite paths (publicly known information)
 	pathLEO := network.SatellitePath{
 		Name:       "path_leo_fast",
 		Delay:      0.1,  // 100ms base delay (LEO)
@@ -55,26 +59,27 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 	paths := []network.SatellitePath{pathLEO, pathGEO}
 
 	// Create verifiable router with RANDOM path selection
-	// This is key: we randomly choose paths to test if network reports correctly
 	router := network.NewVerifiableRouter(paths, network.StrategyRandom)
 
 	// Create oracle (network's interface that may lie)
 	shortestPath, shortestDelay := router.GetShortestPath()
 	oracle := verification.NewNetworkOracle(strategy, lieProb, shortestPath, shortestDelay)
 
-	// Set up path info for verifier
+	// Set up path info for verifier (publicly known)
 	pathInfos := []verification.PathInfo{
 		{Name: pathLEO.Name, BaseDelay: pathLEO.Delay, IsShortest: true},
 		{Name: pathGEO.Name, BaseDelay: pathGEO.Delay, IsShortest: false},
 	}
 
-	// Create verifier BEFORE transmission so it can record ground truth
+	// Create verifier
 	verifier := verification.NewVerifier(oracle, pathInfos, 0.05, 2.5) // min delay, max jitter
 
-	// Connect router to record ground truth to BOTH oracle and verifier
-	// The verifier controls path selection, so it knows the truth
-	// The oracle gets a copy but may lie when queried
+	// Connect router to record:
+	// 1. Hash commitment (what the verifier receives - can't see actual path)
+	// 2. Ground truth to oracle (so oracle knows what actually happened)
+	// 3. Debug ground truth (for analysis only, NOT used in verification)
 	router.OnTransmission = func(info network.TransmissionInfo) {
+		// Oracle needs the truth to know what lies to tell
 		record := verification.TransmissionRecord{
 			PacketID:       info.PacketID,
 			SentTime:       info.SentTime,
@@ -84,10 +89,15 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 			ActualDelay:    info.ActualDelay,
 			IsShortestPath: info.IsShortestPath,
 		}
-		// Oracle gets the truth (but may lie when answering)
 		oracle.RecordTransmission(record)
-		// Verifier also knows the truth (for verification)
-		verifier.RecordGroundTruth(record)
+
+		// Verifier receives a HASH commitment from the network
+		// This is like getting a sealed envelope - can't see the path, but can verify later
+		pathHash := verification.HashPath(info.PathUsed)
+		verifier.RecordPathCommitment(info.PacketID, pathHash, info.SentTime)
+
+		// DEBUG ONLY: Record ground truth for analysis (NOT used in verification!)
+		verifier.RecordDebugGroundTruth(record)
 	}
 
 	// Create ground stations
@@ -97,8 +107,8 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 	// We'll create our own send function that uses the verifiable router
 	numPackets := 100 // Send 100 packets for statistical significance
 
-	fmt.Printf("Sending %d packets between stations using RANDOM path selection...\n", numPackets)
-	fmt.Println("(This simulates the verifier not knowing which path will be used)")
+	fmt.Printf("Sending %d packets between stations...\n", numPackets)
+	fmt.Println("Network provides hash commitments for each packet (path hidden)")
 	fmt.Println()
 
 	// Schedule packet sends from A to B
@@ -108,22 +118,22 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 
 		sim.Schedule(sendTime, func() {
 			pkt := network.NewPacket(pktID, stationA.Name, sim.Now)
-			fmt.Printf("[%.2fs] %s SENT pkt %d\n", sim.Now, stationA.Name, pkt.ID)
 			router.Forward(sim, pkt, stationB)
 		})
 	}
 
-	// Run simulation
+	// Run simulation (quieter output)
 	sim.Run(30.0)
 
 	fmt.Println()
-	fmt.Println("=== TRANSMISSION PHASE COMPLETE ===")
-	fmt.Printf("Recorded %d transmissions\n", len(oracle.GroundTruth))
+	fmt.Printf("Transmitted %d packets, received %d hash commitments\n",
+		len(oracle.GroundTruth), len(verifier.PathCommitments))
 	fmt.Println()
 
 	// Now run verification
 	fmt.Println("=== VERIFICATION PHASE ===")
 	fmt.Println("Interrogating the network about its behavior...")
+	fmt.Println("(Checking for internal contradictions only)")
 	fmt.Println()
 
 	// Create time intervals to query
@@ -144,7 +154,12 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 	if result.Trustworthy {
 		fmt.Println(">>> CONCLUSION: Network appears trustworthy (no contradictions detected)")
 	} else {
-		fmt.Println(">>> CONCLUSION: Network is LYING! Contradictions detected!")
+		fmt.Println(">>> CONCLUSION: Network contradicted itself!")
 		fmt.Printf(">>> Found %d contradictions in %d queries\n", result.ContradictionsFound, result.TotalQueries)
+	}
+
+	// Show debug report for lying scenarios
+	if showDebug {
+		fmt.Println(verifier.GetDebugReport())
 	}
 }
