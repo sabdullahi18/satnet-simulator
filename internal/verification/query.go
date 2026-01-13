@@ -2,7 +2,6 @@ package verification
 
 import "fmt"
 
-// QueryType represents the type of question we can ask the network
 type QueryType int
 
 const (
@@ -31,7 +30,6 @@ func (q QueryType) String() string {
 	}
 }
 
-// TimeInterval represents a time range [Start, End]
 type TimeInterval struct {
 	Start float64
 	End   float64
@@ -41,12 +39,10 @@ func (ti TimeInterval) String() string {
 	return fmt.Sprintf("[%.2f, %.2f]", ti.Start, ti.End)
 }
 
-// Contains checks if a time point falls within the interval
 func (ti TimeInterval) Contains(t float64) bool {
 	return t >= ti.Start && t <= ti.End
 }
 
-// Query represents a question posed to the network
 type Query struct {
 	ID       int
 	Type     QueryType
@@ -70,14 +66,13 @@ func (q Query) String() string {
 	}
 }
 
-// Response represents the network's answer to a query
 type Response struct {
-	QueryID       int
-	Query         Query
-	BoolAnswer    bool    // For yes/no questions
-	FloatAnswer   float64 // For numeric answers (delay, count)
-	StringAnswer  string  // For path name answers
-	AnswerTime    float64 // When the response was given (simulation time)
+	QueryID      int
+	Query        Query
+	BoolAnswer   bool
+	FloatAnswer  float64
+	StringAnswer string
+	AnswerTime   float64
 }
 
 func (r Response) String() string {
@@ -97,12 +92,12 @@ func (r Response) String() string {
 
 // TransmissionRecord is the ground truth of what actually happened
 type TransmissionRecord struct {
-	PacketID     int
-	SentTime     float64
-	ReceivedTime float64
-	PathUsed     string
-	PathDelay    float64 // Base delay of the path
-	ActualDelay  float64 // Total delay including jitter and spikes
+	PacketID       int
+	SentTime       float64
+	ReceivedTime   float64
+	PathUsed       string
+	PathDelay      float64
+	ActualDelay    float64
 	IsShortestPath bool
 }
 
