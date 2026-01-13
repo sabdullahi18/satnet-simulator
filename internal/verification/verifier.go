@@ -12,9 +12,16 @@ type Contradiction struct {
 	Response1   Response
 	Query2      Query
 	Response2   Response
+	GroundTruth *TransmissionRecord
 }
 
 func (c Contradiction) String() string {
+	if c.GroundTruth != nil {
+		return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query: %s -> %s\n  Actual: %s", c.Type, c.Description, c.Query1, c.Response1, c.GroundTruth)
+	}
+	if c.Query2.ID == 0 && c.Response2.QueryID == 0 {
+		return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query: %s -> %s", c.Type, c.Description, c.Query1, c.Response1)
+	}
 	return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query1: %s -> %s\n  Query2: %s -> %s",
 		c.Type, c.Description, c.Query1, c.Response1, c.Query2, c.Response2)
 }
@@ -25,6 +32,7 @@ type Verifier struct {
 	Contradictions []Contradiction
 	Paths          []PathInfo
 	nextQueryID    int
+	GroundTruth    []TransmissionRecord
 
 	MinPossibleDelay float64
 	MaxJitter        float64
@@ -42,10 +50,25 @@ func NewVerifier(oracle *NetworkOracle, paths []PathInfo, minDelay, maxJitter fl
 		Responses:        make([]Response, 0),
 		Contradictions:   make([]Contradiction, 0),
 		Paths:            paths,
+		GroundTruth:      make([]TransmissionRecord, 0),
 		nextQueryID:      1,
 		MinPossibleDelay: minDelay,
 		MaxJitter:        maxJitter,
 	}
+}
+
+func (v *Verifier) RecordGroundTruth(record TransmissionRecord) {
+	v.GroundTruth = append(v.GroundTruth, record)
+}
+
+func (v *Verifier) FindGroundTruth(packetID int, interval TimeInterval) *TransmissionRecord {
+	for i := range v.GroundTruth {
+		rec := &v.GroundTruth[i]
+		if rec.PacketID == packetID && interval.Contains(rec.SentTime) {
+			return rec
+		}
+	}
+	return nil
 }
 
 func (v *Verifier) AskQuestion(q Query, simTime float64) Response {
@@ -88,19 +111,70 @@ func (v *Verifier) InterrogatePacket(packetID int, interval TimeInterval, simTim
 func (v *Verifier) CheckContradictions() []Contradiction {
 	v.Contradictions = make([]Contradiction, 0)
 
-	byPacket := make(map[int][]Response)
-	for _, resp := range v.Responses {
-		pid := resp.Query.PacketID
-		byPacket[pid] = append(byPacket[pid], resp)
+	type key struct {
+		packetID int
+		interval TimeInterval
 	}
 
-	for packetID, responses := range byPacket {
-		v.checkPacketContradictions(packetID, responses)
+	byPacket := make(map[key][]Response)
+	for _, resp := range v.Responses {
+		k := key{resp.Query.PacketID, resp.Query.Interval}
+		byPacket[k] = append(byPacket[k], resp)
+	}
+
+	for k, responses := range byPacket {
+		v.checkPacketContradictions(k.packetID, responses)
+		v.checkAgainstGroundTruth(k.packetID, k.interval, responses)
 	}
 
 	v.checkAggregateContradictions()
-
 	return v.Contradictions
+}
+
+func (v *Verifier) checkAgainstGroundTruth(packetID int, interval TimeInterval, responses []Response) {
+	truth := v.FindGroundTruth(packetID, interval)
+	if truth == nil {
+		return
+	}
+
+	for _, resp := range responses {
+		switch resp.Query.Type {
+		case QueryShortestPath:
+			if resp.BoolAnswer != truth.IsShortestPath {
+				v.Contradictions = append(v.Contradictions, Contradiction{
+					Type:        "GROUND_TRUTH_SHORTEST_PATH",
+					Description: fmt.Sprintf("Packet %d: network claims shortest_path=%v but actual=%v", packetID, resp.BoolAnswer, truth.IsShortestPath),
+					Query1:      resp.Query,
+					Response1:   resp,
+					GroundTruth: truth,
+				})
+			}
+
+		case QueryPathUsed:
+			if resp.StringAnswer != "UNKNOWN" && resp.StringAnswer != truth.PathUsed {
+				v.Contradictions = append(v.Contradictions, Contradiction{
+					Type:        "GROUND_TRUTH_PATH_USED",
+					Description: fmt.Sprintf("Packet %d: network claims path='%s' but actual='%s'", packetID, resp.StringAnswer, truth.PathUsed),
+					Query1:      resp.Query,
+					Response1:   resp,
+					GroundTruth: truth,
+				})
+			}
+
+		case QueryDelay:
+			delayDiff := math.Abs(resp.FloatAnswer - truth.ActualDelay)
+			tolerance := 0.01
+			if resp.FloatAnswer >= 0 && delayDiff > tolerance {
+				v.Contradictions = append(v.Contradictions, Contradiction{
+					Type:        "GROUND_TRUTH_DELAY",
+					Description: fmt.Sprintf("Packet %d: network claims delay=%.4fs but actual=%.4fs (diff=%.4fs)", packetID, resp.FloatAnswer, truth.ActualDelay, delayDiff),
+					Query1:      resp.Query,
+					Response1:   resp,
+					GroundTruth: truth,
+				})
+			}
+		}
+	}
 }
 
 func (v *Verifier) checkPacketContradictions(packetID int, responses []Response) {
@@ -234,29 +308,30 @@ func (v *Verifier) checkPacketContradictions(packetID int, responses []Response)
 }
 
 func (v *Verifier) checkAggregateContradictions() {
-	claimedPathCounts := make(map[string]int)
-	for _, resp := range v.Responses {
-		if resp.Query.Type == QueryPathUsed && resp.StringAnswer != "UNKNOWN" {
-			claimedPathCounts[resp.StringAnswer]++
+	for _, countResp := range v.Responses {
+		if countResp.Query.Type == QueryPacketCount {
+			continue
 		}
-	}
+		pathName := countResp.Query.PathName
+		interval := countResp.Query.Interval
+		claimedCount := int(countResp.FloatAnswer)
+		individualClaims := 0
 
-	for _, resp := range v.Responses {
-		if resp.Query.Type == QueryPacketCount {
-			pathName := resp.Query.PathName
-			claimedCount := int(resp.FloatAnswer)
-			actualClaims := claimedPathCounts[pathName]
-
-			if actualClaims > 0 && math.Abs(float64(claimedCount-actualClaims)) > float64(actualClaims)/2 {
-				v.Contradictions = append(v.Contradictions, Contradiction{
-					Type:        "COUNT_MISMATCH",
-					Description: fmt.Sprintf("Path '%s': claimed count %d but individual responses indicate %d", pathName, claimedCount, actualClaims),
-					Query1:      resp.Query,
-					Response1:   resp,
-					Query2:      Query{},
-					Response2:   Response{},
-				})
+		for _, pathResp := range v.Responses {
+			if pathResp.Query.Type == QueryPathUsed && pathResp.StringAnswer == pathName && pathResp.Query.Interval == interval {
+				individualClaims++
 			}
+		}
+
+		if individualClaims > 0 && math.Abs(float64(claimedCount-individualClaims)) > float64(individualClaims)/2 {
+			v.Contradictions = append(v.Contradictions, Contradiction{
+				Type:        "COUNT_MISMATCH",
+				Description: fmt.Sprintf("Path '%s' in %s: claimed count %d but individual responses indicate %d", pathName, interval, claimedCount, individualClaims),
+				Query1:      countResp.Query,
+				Response1:   countResp,
+				Query2:      Query{},
+				Response2:   Response{},
+			})
 		}
 	}
 }
