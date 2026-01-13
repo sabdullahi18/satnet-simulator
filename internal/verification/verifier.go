@@ -1,6 +1,7 @@
 package verification
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"math"
 )
@@ -16,9 +17,6 @@ type Contradiction struct {
 }
 
 func (c Contradiction) String() string {
-	if c.GroundTruth != nil {
-		return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query: %s -> %s\n  Actual: %s", c.Type, c.Description, c.Query1, c.Response1, c.GroundTruth)
-	}
 	if c.Query2.ID == 0 && c.Response2.QueryID == 0 {
 		return fmt.Sprintf("CONTRADICTION [%s]: %s\n  Query: %s -> %s", c.Type, c.Description, c.Query1, c.Response1)
 	}
@@ -26,14 +24,20 @@ func (c Contradiction) String() string {
 		c.Type, c.Description, c.Query1, c.Response1, c.Query2, c.Response2)
 }
 
-type Verifier struct {
-	Oracle         *NetworkOracle
-	Responses      []Response
-	Contradictions []Contradiction
-	Paths          []PathInfo
-	nextQueryID    int
-	GroundTruth    []TransmissionRecord
+type PathCommitment struct {
+	PacketID  int
+	PathHash  string
+	Timestamp float64
+}
 
+type Verifier struct {
+	Oracle           *NetworkOracle
+	Responses        []Response
+	Contradictions   []Contradiction
+	Paths            []PathInfo
+	nextQueryID      int
+	PathCommitments  map[int]PathCommitment
+	GroundTruth      []TransmissionRecord
 	MinPossibleDelay float64
 	MaxJitter        float64
 }
@@ -50,11 +54,25 @@ func NewVerifier(oracle *NetworkOracle, paths []PathInfo, minDelay, maxJitter fl
 		Responses:        make([]Response, 0),
 		Contradictions:   make([]Contradiction, 0),
 		Paths:            paths,
+		PathCommitments:  make(map[int]PathCommitment),
 		GroundTruth:      make([]TransmissionRecord, 0),
 		nextQueryID:      1,
 		MinPossibleDelay: minDelay,
 		MaxJitter:        maxJitter,
 	}
+}
+
+func (v *Verifier) RecordPathCommitment(packetID int, pathHash string, timestamp float64) {
+	v.PathCommitments[packetID] = PathCommitment{
+		PacketID:  packetID,
+		PathHash:  pathHash,
+		Timestamp: timestamp,
+	}
+}
+
+func HashPath(pathName string) string {
+	h := sha256.Sum256([]byte(pathName))
+	return fmt.Sprintf("%x", h[:8])
 }
 
 func (v *Verifier) RecordGroundTruth(record TransmissionRecord) {
@@ -129,6 +147,29 @@ func (v *Verifier) CheckContradictions() []Contradiction {
 
 	v.checkAggregateContradictions()
 	return v.Contradictions
+}
+
+func (v *Verifier) checkHashCommitment(packetID int, responses []Response) {
+	commitment, exists := v.PathCommitments[packetID]
+	if !exists {
+		return
+	}
+
+	for _, resp := range responses {
+		if resp.Query.Type == QueryPathUsed && resp.StringAnswer != "UNKNOWN" {
+			claimedPath := resp.StringAnswer
+			claimedHash := HashPath(claimedPath)
+
+			if claimedHash != commitment.PathHash {
+				v.Contradictions = append(v.Contradictions, Contradiction{
+					Type:        "HASH_MISMATCH",
+					Description: fmt.Sprintf("Packet %d: claimed path '%s' (hash=%s) doesn't match commitment hash=%s", packetID, claimedPath, claimedHash, commitment.PathHash),
+					Query1:      resp.Query,
+					Response1:   resp,
+				})
+			}
+		}
+	}
 }
 
 func (v *Verifier) checkAgainstGroundTruth(packetID int, interval TimeInterval, responses []Response) {
@@ -208,6 +249,17 @@ func (v *Verifier) checkPacketContradictions(packetID int, responses []Response)
 			v.Contradictions = append(v.Contradictions, Contradiction{
 				Type:        "PATH_MISMATCH",
 				Description: fmt.Sprintf("Packet %d: claimed shortest path but path '%s' is not the shortest ('%s')", packetID, claimedPath, shortestPathName),
+				Query1:      shortestPathResp.Query,
+				Response1:   *shortestPathResp,
+				Query2:      pathUsedResp.Query,
+				Response2:   *pathUsedResp,
+			})
+		}
+
+		if !claimedShortest && claimedPath == shortestPathName && claimedPath != "UNKNOWN" {
+			v.Contradictions = append(v.Contradictions, Contradiction{
+				Type:        "PATH_MISMATCH",
+				Description: fmt.Sprintf("Packet %d: claimed NOT shortest path but path '%s' IS the shortest", packetID, claimedPath),
 				Query1:      shortestPathResp.Query,
 				Response1:   *shortestPathResp,
 				Query2:      pathUsedResp.Query,
@@ -329,8 +381,6 @@ func (v *Verifier) checkAggregateContradictions() {
 				Description: fmt.Sprintf("Path '%s' in %s: claimed count %d but individual responses indicate %d", pathName, interval, claimedCount, individualClaims),
 				Query1:      countResp.Query,
 				Response1:   countResp,
-				Query2:      Query{},
-				Response2:   Response{},
 			})
 		}
 	}
@@ -366,6 +416,67 @@ func (v *Verifier) RunVerification(intervals []TimeInterval, packetsPerInterval 
 		Trustworthy:         len(contradictions) == 0,
 		OracleStats:         v.Oracle.GetStats(),
 	}
+}
+
+func (v *Verifier) GetDebugReport() string {
+	report := "\n=== DEBUG: Ground Truth Analysis ===\n"
+	report += "(This information is NOT available to the verifier in production)\n\n"
+
+	liesDetected := 0
+	liesUndetected := 0
+
+	for _, truth := range v.GroundTruth {
+		for _, resp := range v.Responses {
+			if resp.Query.PacketID != truth.PacketID {
+				continue
+			}
+			if !resp.Query.Interval.Contains(truth.SentTime) {
+				continue
+			}
+
+			switch resp.Query.Type {
+			case QueryShortestPath:
+				if resp.BoolAnswer != truth.IsShortestPath {
+					detected := false
+					for _, c := range v.Contradictions {
+						if c.Query1.PacketID == truth.PacketID {
+							detected = true
+							break
+						}
+					}
+					if detected {
+						liesDetected++
+					} else {
+						liesUndetected++
+						report += fmt.Sprintf("UNDETECTED LIE: Packet %d - claimed shortest=%v, actual=%v\n",
+							truth.PacketID, resp.BoolAnswer, truth.IsShortestPath)
+					}
+				}
+			case QueryPathUsed:
+				if resp.StringAnswer != "UNKNOWN" && resp.StringAnswer != truth.PathUsed {
+					detected := false
+					for _, c := range v.Contradictions {
+						if c.Query1.PacketID == truth.PacketID {
+							detected = true
+							break
+						}
+					}
+					if detected {
+						liesDetected++
+					} else {
+						liesUndetected++
+						report += fmt.Sprintf("UNDETECTED LIE: Packet %d - claimed path=%s, actual=%s\n",
+							truth.PacketID, resp.StringAnswer, truth.PathUsed)
+					}
+				}
+			}
+		}
+	}
+
+	report += fmt.Sprintf("\nSummary: %d lies detected through contradictions, %d lies went undetected\n",
+		liesDetected, liesUndetected)
+
+	return report
 }
 
 type VerificationResult struct {
