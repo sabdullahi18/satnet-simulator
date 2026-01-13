@@ -25,7 +25,7 @@ func main() {
 		SpikeDelay: 0.0,
 	}
 
-	satnet := &network.SatNetRouter{
+	satnet := &network.VerifiableRouter{
 		Paths: []network.SatellitePath{fastPath, slowPath},
 	}
 

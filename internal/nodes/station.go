@@ -8,10 +8,10 @@ import (
 
 type GroundStation struct {
 	Name   string
-	Router *network.SatNetRouter
+	Router *network.VerifiableRouter
 }
 
-func NewGroundStation(name string, router *network.SatNetRouter) *GroundStation {
+func NewGroundStation(name string, router *network.VerifiableRouter) *GroundStation {
 	return &GroundStation{
 		Name:   name,
 		Router: router,
