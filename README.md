@@ -10,11 +10,11 @@ This discrete-event simulator analyses trust and verifies performance claims in 
 │   ├── engine/           # Event scheduling and virtual clock
 │   │   └── simulation.go 
 │   ├── network/          
-│   │   ├── packet.go     # Implements lying strategies
+│   │   ├── packet.go     
 │   │   ├── path.go   
 │   │   └── router.go
-│   ├── nodes/            # Ground stations (Senders/Receivers)
-│   │   └── station.go
+│   ├── nodes/            
+│   │   └── station.go    # Ground stations (Senders/Receivers)
 │   └── verification/     # Core logic for the oracle and verifier
 │       ├── oracle.go     # Implements lying strategies
 │       ├── verifier.go   # Implements contradiction detection
