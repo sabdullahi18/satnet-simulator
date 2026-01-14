@@ -17,11 +17,11 @@ func main() {
 	fmt.Println("The verifier doesn't have access to the ground truth")
 	fmt.Println("It can only detect lies through internal contradictions in the network's own responses")
 
-	runScenario("HONEST_NETWORK", verification.StrategyHonest, 0.0)
-	runScenario("ALWAYS_LIES_ABOUT_SHORTEST_PATH", verification.StrategyAlwaysClaimShortest, 0.0)
-	// runScenario("RANDOM_LIES_30%", verification.StrategyRandomLies, 0.3, true)
-	// runScenario("MINIMIZE_DELAY_LIES", verification.StrategyMinimiseDelay, 0.0, true)
-	// runScenario("SMART_LIAR", verification.StrategySmart, 0.5, true)
+	// runScenario("HONEST_NETWORK", verification.StrategyHonest, 0.0)
+	// runScenario("ALWAYS_LIES_ABOUT_SHORTEST_PATH", verification.StrategyAlwaysClaimShortest, 0.0)
+	// runScenario("RANDOM_LIES_30%", verification.StrategyRandomLies, 0.3)
+	// runScenario("MINIMISE_DELAY_LIES", verification.StrategyMinimiseDelay, 0.0)
+	runScenario("SMART_LIAR", verification.StrategySmart, 0.5)
 
 }
 

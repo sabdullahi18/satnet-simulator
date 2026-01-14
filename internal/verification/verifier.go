@@ -193,7 +193,7 @@ func (v *Verifier) checkHashCommitment(packetID int, responses []Response, truth
 
 				v.Contradictions = append(v.Contradictions, Contradiction{
 					Type:        "HASH_MISMATCH",
-					Description: fmt.Sprintf("Packet %d: network claimed path '%s' but committed to different path at routing time", packetID, claimedPath),
+					Description: fmt.Sprintf("Packet %d: network claimed path %s (actual: %s) but committed to different path at routing time", packetID, claimedHash, claimedPath),
 					Query1:      resp.Query,
 					Response1:   resp,
 					Query2:      commitmentQuery,

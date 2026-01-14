@@ -29,7 +29,7 @@ func (s LyingStrategy) String() string {
 	case StrategyRandomLies:
 		return "RANDOM_LIES"
 	case StrategyMinimiseDelay:
-		return "MINIMIZE_DELAY"
+		return "MINIMISE_DELAY"
 	case StrategySmart:
 		return "SMART"
 	default:
