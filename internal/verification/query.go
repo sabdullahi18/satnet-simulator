@@ -52,6 +52,10 @@ type Query struct {
 }
 
 func (q Query) String() string {
+	if q.ID == -1 {
+		return fmt.Sprintf("Hash commitment for packet %d at routing time", q.PacketID)
+	}
+
 	switch q.Type {
 	case QueryShortestPath:
 		return fmt.Sprintf("Q%d: Did packet %d use shortest path in %s?", q.ID, q.PacketID, q.Interval)
@@ -76,6 +80,10 @@ type Response struct {
 }
 
 func (r Response) String() string {
+	if r.QueryID == -1 {
+		return r.StringAnswer
+	}
+
 	switch r.Query.Type {
 	case QueryShortestPath:
 		return fmt.Sprintf("R%d: %v", r.QueryID, r.BoolAnswer)
