@@ -17,20 +17,34 @@ func main() {
 	fmt.Println("The verifier doesn't have access to the ground truth")
 	fmt.Println("It can only detect lies through internal contradictions in the network's own responses")
 
-	// runScenario("HONEST_NETWORK", verification.StrategyHonest, 0.0)
-	// runScenario("ALWAYS_LIES_ABOUT_SHORTEST_PATH", verification.StrategyAlwaysClaimShortest, 0.0)
-	// runScenario("RANDOM_LIES_30%", verification.StrategyRandomLies, 0.3)
-	// runScenario("MINIMISE_DELAY_LIES", verification.StrategyMinimiseDelay, 0.0)
-	runScenario("SMART_LIAR", verification.StrategySmart, 0.5)
-
+	runEnhancedScenario("HONEST", verification.StrategyHonest, 0.0)
 }
 
-func runScenario(name string, strategy verification.LyingStrategy, lieProb float64) {
+func runEnhancedScenario(name string, strategy verification.LyingStrategy, lieProb float64) {
 	fmt.Printf("\n########################################\n")
 	fmt.Printf("# SCENARIO: %s\n", name)
 	fmt.Printf("########################################\n\n")
 
 	sim := engine.NewSimulation()
+	topology := network.NewPathTopology()
+	leoPath := topology.CreateDetailedLEOPath("path_leo_fast")
+	geoPath := topology.CreateDetailedGEOPath("path_geo_slow")
+
+	fmt.Println("=== PATH TOPOLOGY ===")
+	fmt.Printf("LEO path: %s\n", leoPath.Name)
+	fmt.Printf("    Hops: %d, Total Delay: %.4fs\n", len(leoPath.SubPaths), leoPath.TotalDelay)
+	fmt.Printf("    Merkle Root: %s\n", leoPath.ComputeMerkleRoot())
+	for i, sp := range leoPath.SubPaths {
+		fmt.Printf("    [%d] %s -> %s (%.4fs) hash=%s\n", i, sp.FromNode, sp.ToNode, sp.LinkDelay, sp.ComputeHash())
+	}
+
+	fmt.Printf("GEO path: %s\n", geoPath.Name)
+	fmt.Printf("    Hops: %d, Total Delay: %.4fs\n", len(geoPath.SubPaths), geoPath.TotalDelay)
+	fmt.Printf("    Merkle Root: %s\n", geoPath.ComputeMerkleRoot())
+	for i, sp := range geoPath.SubPaths {
+		fmt.Printf("    [%d] %s -> %s (%.4fs) hash=%s\n", i, sp.FromNode, sp.ToNode, sp.LinkDelay, sp.ComputeHash())
+	}
+	fmt.Println()
 
 	pathLEO := network.SatellitePath{
 		Name:       "path_leo_fast",
@@ -57,6 +71,7 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 	}
 
 	verifier := verification.NewVerifier(oracle, pathInfos, 0.05, 2.5) // min delay, max jitter
+	probeManager := verification.NewProbeManager(topology)
 
 	router.OnTransmission = func(info network.TransmissionInfo) {
 		record := verification.TransmissionRecord{
@@ -72,6 +87,28 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 		pathHash := verification.HashPath(info.PathUsed)
 		verifier.RecordPathCommitment(info.PacketID, pathHash, info.SentTime)
 		verifier.RecordGroundTruth(record)
+
+		if probe := probeManager.GetProbe(info.PacketID); probe != nil {
+			result := &verification.ProbeResult{
+				Probe:        probe,
+				ReceivedTime: info.ReceivedTime,
+				ActualDelay:  info.ActualDelay,
+				ReportedPath: info.PathUsed,
+			}
+
+			if probe.ForcedPath != "" {
+				result.PathMatchesForced = (info.PathUsed == probe.ForcedPath)
+				if !result.PathMatchesForced {
+					result.AddIssue(fmt.Sprintf("Forced path violation: expected %s, got %s", probe.ForcedPath, info.PathUsed))
+				}
+			}
+
+			if probe.ExpectedMinDelay > 0 && info.ActualDelay < probe.ExpectedMinDelay {
+				result.AddIssue(fmt.Sprintf("Timing violation: %.4fs < min %.4fs", info.ActualDelay, probe.ExpectedMinDelay))
+			}
+
+			probeManager.RecordResult(info.PacketID, result)
+		}
 	}
 
 	stationA := &nodes.GroundStation{Name: "StationA", Router: (*network.VerifiableRouter)(nil)}
@@ -93,11 +130,37 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 		})
 	}
 
+	probeSchedule := probeManager.CreateProbeSchedule(1.0, 15.0, 3.0, []string{"path_leo_fast", "path_geo_slow"})
+	fmt.Printf("\n=== PROBE INJECCTION ===")
+	fmt.Printf("Scheduling %d probe packets to verify path behaviour ...\n\n", len(probeSchedule.Probes))
+
+	for _, probe := range probeSchedule.Probes {
+		p := probe
+		sim.Schedule(p.SentTime, func() {
+			pkt := network.NewPacket(p.ID, stationA.Name, sim.Now)
+			fmt.Printf("[%.2fs] PROBE %d SENT (forced path: %s, expected delay: %.4f-%.4fs)\n", sim.Now, p.ID, p.ForcedPath, p.ExpectedMinDelay, p.ExpectedMaxDelay)
+			router.Forward(sim, pkt, stationB)
+		})
+	}
+
 	sim.Run(30.0)
 
 	fmt.Println()
 	fmt.Println("=== TRANSMISSION PHASE COMPLETE ===")
 	fmt.Printf("Recorded %d transmissions\n", len(oracle.GroundTruth))
+	fmt.Println()
+
+	fmt.Println("=== PROBE ANALYSIS ===")
+	probeContradictions := probeManager.AnalyseResults()
+	fmt.Println(probeManager.Summary())
+	if len(probeContradictions) > 0 {
+		fmt.Printf("Probe contradictions found: %d\n", len(probeContradictions))
+		for _, pc := range probeContradictions {
+			fmt.Printf("    - %s\n", pc)
+		}
+	} else {
+		fmt.Println("No probe contradictions detected")
+	}
 	fmt.Println()
 
 	fmt.Println("=== VERIFICATION PHASE ===")
@@ -114,10 +177,22 @@ func runScenario(name string, strategy verification.LyingStrategy, lieProb float
 	result := verifier.RunVerification(intervals, numPackets, sim.Now)
 	fmt.Println(result)
 
-	if result.Trustworthy {
+	fmt.Println("=== MERKLE PROOF DEMONSTRATION ===")
+	proof := leoPath.GenerateMerkleProof(1)
+	if proof != nil {
+		fmt.Printf("Generated proof for subpath %d (hash: %s)\n", proof.SubPathIndex, proof.SubPathHash)
+		fmt.Printf("    Siblings: %v\n", proof.Siblings)
+		fmt.Printf("    Positions: %v\n", proof.Positions)
+		verified := network.VerifyMerkleProof(proof, leoPath.ComputeMerkleRoot())
+		fmt.Printf("   Verification against Merkle root: %v\n", verified)
+	}
+	fmt.Println()
+
+	totalContradictions := result.ContradictionsFound + len(probeContradictions)
+	if totalContradictions == 0 {
 		fmt.Println(">>> CONCLUSION: Network appears trustworthy (no contradictions detected)")
 	} else {
 		fmt.Println(">>> CONCLUSION: Network is LYING! Contradictions detected!")
-		fmt.Printf(">>> Found %d contradictions in %d queries\n", result.ContradictionsFound, result.TotalQueries)
+		fmt.Printf(">>> Found %d query contradictions + %d probe contradictions = %d total\n", result.ContradictionsFound, len(probeContradictions), totalContradictions)
 	}
 }
