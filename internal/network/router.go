@@ -98,6 +98,38 @@ func (r *VerifiableRouter) SelectPath() SatellitePath {
 	return r.Paths[0]
 }
 
+func (r *VerifiableRouter) GetPathByName(name string) *SatellitePath {
+	for i := range r.Paths {
+		if r.Paths[i].Name == name {
+			return &r.Paths[i]
+		}
+	}
+	return nil
+}
+
+func (r *VerifiableRouter) ForwardOnPath(sim *engine.Simulation, pkt Packet, dest Destination, forcedPathName string) {
+	if len(r.Paths) == 0 {
+		fmt.Println("[Router Error] No paths available!")
+		return
+	}
+
+	var selectedPath *SatellitePath
+	for i := range r.Paths {
+		if r.Paths[i].Name == forcedPathName {
+			selectedPath = &r.Paths[i]
+			break
+		}
+	}
+
+	if selectedPath == nil {
+		fmt.Printf("[Router Error] Forced path '%s' not found, falling back to random\n", forcedPathName)
+		r.Forward(sim, pkt, dest)
+		return
+	}
+
+	r.forwardOnPath(sim, pkt, dest, *selectedPath)
+}
+
 func (r *VerifiableRouter) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 	if len(r.Paths) == 0 {
 		fmt.Println("[Router Error] No paths available!")
@@ -105,6 +137,10 @@ func (r *VerifiableRouter) Forward(sim *engine.Simulation, pkt Packet, dest Dest
 	}
 
 	selectedPath := r.SelectPath()
+	r.forwardOnPath(sim, pkt, dest, selectedPath)
+}
+
+func (r *VerifiableRouter) forwardOnPath(sim *engine.Simulation, pkt Packet, dest Destination, selectedPath SatellitePath) {
 	isShortestPath := selectedPath.Name == r.shortestPathName
 
 	sentTime := sim.Now

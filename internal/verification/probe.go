@@ -191,6 +191,10 @@ func (pm *ProbeManager) GetResult(probeID int) *ProbeResult {
 	return pm.results[probeID]
 }
 
+func (pm *ProbeManager) GetAllProbes() map[int]*ProbePacket {
+	return pm.probes
+}
+
 type ProbeContradiction struct {
 	Type        string
 	ProbeID     int
@@ -219,22 +223,12 @@ func (pm *ProbeManager) AnalyseResults() []ProbeContradiction {
 		if probe == nil {
 			continue
 		}
-
-		if probe.ExpectedMinDelay > 0 || probe.ExpectedMaxDelay > 0 {
+		if probe.ExpectedMinDelay > 0 {
 			if result.ActualDelay < probe.ExpectedMinDelay {
 				contradictions = append(contradictions, ProbeContradiction{
-					Type:        "PROBE_TIMING_TOO_FAST",
+					Type:        "TIMING_IMPOSSIBLY_FAST",
 					ProbeID:     probeID,
-					Description: fmt.Sprintf("Probe %d: actual delay %.4fs < expected min %.4fs", probeID, result.ActualDelay, probe.ExpectedMinDelay),
-					Probe:       probe,
-					Result:      result,
-				})
-			}
-			if probe.ExpectedMaxDelay > 0 && result.ActualDelay > probe.ExpectedMaxDelay {
-				contradictions = append(contradictions, ProbeContradiction{
-					Type:        "PROBE_TIMING_TOO_SLOW",
-					ProbeID:     probeID,
-					Description: fmt.Sprintf("Probe %d: actual delay %.4fs > expected max %.4fs", probeID, result.ActualDelay, probe.ExpectedMaxDelay),
+					Description: fmt.Sprintf("Probe %d: actual delay %.4fs < minimum possible %.4fs for path %s", probeID, result.ActualDelay, probe.ExpectedMinDelay, probe.ForcedPath),
 					Probe:       probe,
 					Result:      result,
 				})

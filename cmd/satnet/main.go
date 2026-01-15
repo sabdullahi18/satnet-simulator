@@ -17,7 +17,8 @@ func main() {
 	fmt.Println("The verifier doesn't have access to the ground truth")
 	fmt.Println("It can only detect lies through internal contradictions in the network's own responses")
 
-	runEnhancedScenario("HONEST", verification.StrategyHonest, 0.0)
+	// runEnhancedScenario("HONEST", verification.StrategyHonest, 0.0)
+	runEnhancedScenario("SMART_LIAR", verification.StrategySmart, 0.5)
 }
 
 func runEnhancedScenario(name string, strategy verification.LyingStrategy, lieProb float64) {
@@ -98,13 +99,10 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 
 			if probe.ForcedPath != "" {
 				result.PathMatchesForced = (info.PathUsed == probe.ForcedPath)
-				if !result.PathMatchesForced {
-					result.AddIssue(fmt.Sprintf("Forced path violation: expected %s, got %s", probe.ForcedPath, info.PathUsed))
-				}
 			}
 
 			if probe.ExpectedMinDelay > 0 && info.ActualDelay < probe.ExpectedMinDelay {
-				result.AddIssue(fmt.Sprintf("Timing violation: %.4fs < min %.4fs", info.ActualDelay, probe.ExpectedMinDelay))
+				result.AddIssue(fmt.Sprintf("Timing violation: %.4fs < min expected %.4fs for path %s", info.ActualDelay, probe.ExpectedMinDelay, info.PathUsed))
 			}
 
 			probeManager.RecordResult(info.PacketID, result)
@@ -132,6 +130,8 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 
 	probeSchedule := probeManager.CreateProbeSchedule(1.0, 15.0, 3.0, []string{"path_leo_fast", "path_geo_slow"})
 	fmt.Printf("\n=== PROBE INJECCTION ===")
+	fmt.Println("Probe packets are routed on FORCED paths to verify path-specific behavior.")
+	fmt.Println("Unlike regular packets, probes specify exactly which path to use.")
 	fmt.Printf("Scheduling %d probe packets to verify path behaviour ...\n\n", len(probeSchedule.Probes))
 
 	for _, probe := range probeSchedule.Probes {
@@ -139,7 +139,7 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 		sim.Schedule(p.SentTime, func() {
 			pkt := network.NewPacket(p.ID, stationA.Name, sim.Now)
 			fmt.Printf("[%.2fs] PROBE %d SENT (forced path: %s, expected delay: %.4f-%.4fs)\n", sim.Now, p.ID, p.ForcedPath, p.ExpectedMinDelay, p.ExpectedMaxDelay)
-			router.Forward(sim, pkt, stationB)
+			router.ForwardOnPath(sim, pkt, stationB, p.ForcedPath)
 		})
 	}
 
@@ -147,12 +147,38 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 
 	fmt.Println()
 	fmt.Println("=== TRANSMISSION PHASE COMPLETE ===")
-	fmt.Printf("Recorded %d transmissions\n", len(oracle.GroundTruth))
+	fmt.Printf("Recorded %d transmissions (including %d probes)\n", len(oracle.GroundTruth), len(probeSchedule.Probes))
 	fmt.Println()
 
 	fmt.Println("=== PROBE ANALYSIS ===")
 	probeContradictions := probeManager.AnalyseResults()
 	fmt.Println(probeManager.Summary())
+
+	// Show detailed probe results
+	for probeID := range probeManager.GetAllProbes() {
+		probe := probeManager.GetProbe(probeID)
+		result := probeManager.GetResult(probeID)
+		if result == nil {
+			fmt.Printf("  Probe %d: NO RESULT (packet may have been lost)\n", probeID)
+			continue
+		}
+
+		status := "OK"
+		if result.HasIssues() || result.ReportedPath != probe.ForcedPath {
+			status = "ISSUE"
+		}
+
+		fmt.Printf("  Probe %d [%s]: forced=%s, actual=%s, delay=%.4fs\n",
+			probeID, status, probe.ForcedPath, result.ReportedPath, result.ActualDelay)
+
+		if result.ReportedPath != probe.ForcedPath {
+			fmt.Printf("    -> WARNING: Router did not respect forced path!\n")
+		}
+		for _, issue := range result.Issues {
+			fmt.Printf("    -> %s\n", issue)
+		}
+	}
+
 	if len(probeContradictions) > 0 {
 		fmt.Printf("Probe contradictions found: %d\n", len(probeContradictions))
 		for _, pc := range probeContradictions {
@@ -180,7 +206,10 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	fmt.Println("=== MERKLE PROOF DEMONSTRATION ===")
 	proof := leoPath.GenerateMerkleProof(1)
 	if proof != nil {
-		fmt.Printf("Generated proof for subpath %d (hash: %s)\n", proof.SubPathIndex, proof.SubPathHash)
+		fmt.Printf("Generated proof for LEO subpath %d: %s -> %s\n",
+			proof.SubPathIndex, leoPath.SubPaths[1].FromNode, leoPath.SubPaths[1].ToNode)
+		fmt.Printf("  SubPath Hash: %s\n", proof.SubPathHash)
+
 		fmt.Printf("    Siblings: %v\n", proof.Siblings)
 		fmt.Printf("    Positions: %v\n", proof.Positions)
 		verified := network.VerifyMerkleProof(proof, leoPath.ComputeMerkleRoot())
@@ -188,6 +217,7 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	}
 	fmt.Println()
 
+	fmt.Println("=== FINAL CONCLUSION ===")
 	totalContradictions := result.ContradictionsFound + len(probeContradictions)
 	if totalContradictions == 0 {
 		fmt.Println(">>> CONCLUSION: Network appears trustworthy (no contradictions detected)")
