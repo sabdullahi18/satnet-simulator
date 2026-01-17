@@ -322,6 +322,8 @@ func (v *Verifier) RunVerification(simTime float64) VerificationResult {
 		}
 
 		suspicion, contradiction := v.Detector.ProcessResponse(q, resp, rec1, rec2, timeOverlap)
+		fmt.Printf("Query %d: suspicion=%.4f, contradiction=%v, P(honest)=%.4f\n",
+			i, suspicion, contradiction, v.Confidence.Bayesian.CurrentPHonest)
 		v.QueryLog = append(v.QueryLog, QueryLogEntry{
 			Query:     q,
 			Response:  resp,
