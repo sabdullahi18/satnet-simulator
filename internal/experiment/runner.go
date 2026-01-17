@@ -60,18 +60,17 @@ type TrialResult struct {
 	TrueDelayedPackets int
 	TrueDelayFraction  float64
 	DetectedCorrectly  bool
-
-	Duration time.Duration
+	Duration           time.Duration
 }
 
 type ExperimentResult struct {
 	Config ExperimentConfig
 	Trials []TrialResult
 
-	TruePositiveRate  float64
-	FalsePositiveRate float64
-	TrueNegativeRate  float64
-	FalseNegativeRate float64
+	TruePositiveRate  float64 // Detected dishonest when dishonest
+	FalsePositiveRate float64 // Detected dishonest when honest
+	TrueNegativeRate  float64 // Detected honest when honest
+	FalseNegativeRate float64 // Detected honest when dishonest
 
 	MeanQueriesPerDetection float64
 	MeanConfidence          float64
@@ -144,7 +143,6 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 
 	for trial := 0; trial < config.NumTrials; trial++ {
 		startTime := time.Now()
-
 		result := r.runSingleTrial(config, trial)
 		result.Duration = time.Since(startTime)
 
@@ -153,7 +151,6 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d)\n",
 			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted)
 	}
-
 	aggregated := r.aggregateResults(config, trials)
 	r.Results = append(r.Results, aggregated)
 
@@ -212,6 +209,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	verifyConfig.SamplingSecret = fmt.Sprintf("secret_trial_%d_%d", trialNum, time.Now().UnixNano())
 
 	verifier := verification.NewVerifier(oracle, verifyConfig)
+
 	for _, p := range config.Paths {
 		isShortest := p.Name == shortestPath
 		verifier.AddPathInfo(p.Name, p.Delay, isShortest)
@@ -241,10 +239,10 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult) ExperimentResult {
 	wasAdversarial := config.AdversarialConfig.Mode != network.ModeHonest
 
-	truePositives := 0
-	falsePositives := 0
-	trueNegatives := 0
-	falseNegatives := 0
+	truePositives := 0  // Correctly detected dishonesty
+	falsePositives := 0 // Wrongly accused honesty
+	trueNegatives := 0  // Correctly confirmed honesty
+	falseNegatives := 0 // Missed dishonesty
 
 	totalQueries := 0
 	totalConfidence := 0.0
