@@ -3,7 +3,61 @@ package verification
 import (
 	"fmt"
 	"math"
+	"math/rand"
+	"sort"
 )
+
+type QueryStrategy int
+
+const (
+	StrategyRandom QueryStrategy = iota
+	StrategyTargetedQuery
+	StrategyAdaptive
+	StrategyExhaustive
+)
+
+func (s QueryStrategy) String() string {
+	switch s {
+	case StrategyRandom:
+		return "RANDOM"
+	case StrategyTargetedQuery:
+		return "TARGETED"
+	case StrategyAdaptive:
+		return "ADAPTIVE"
+	case StrategyExhaustive:
+		return "EXHAUSTIVE"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+type VerificationConfig struct {
+	SamplingRate     float64
+	SamplingSecret   string
+	MaxQueries       int
+	TargetConfidence float64
+	QueryStrategy    QueryStrategy
+
+	MinPhysicalDelay  float64
+	MaxJitter         float64
+	TemporalTolerance float64
+
+	PriorHonest float64
+}
+
+func DefaultVerificationConfig() VerificationConfig {
+	return VerificationConfig{
+		SamplingRate:      0.05,
+		SamplingSecret:    fmt.Sprintf("secret_%d", rand.Int63()),
+		MaxQueries:        1000,
+		TargetConfidence:  0.95,
+		QueryStrategy:     StrategyAdaptive,
+		MinPhysicalDelay:  0.01,
+		MaxJitter:         2.0,
+		TemporalTolerance: 0.5,
+		PriorHonest:       0.5,
+	}
+}
 
 type PathCommitment struct {
 	PacketID  int
@@ -12,16 +66,20 @@ type PathCommitment struct {
 }
 
 type Verifier struct {
-	Oracle           *NetworkOracle
-	Responses        []Response
-	Contradictions   []Contradiction
-	Paths            []PathInfo
-	nextQueryID      int
-	PathCommitments  map[int]PathCommitment
-	GroundTruth      []TransmissionRecord
-	MinPossibleDelay float64
-	MaxJitter        float64
-	ResponseHistory  map[int][]Response
+	Oracle *NetworkOracle
+	Config VerificationConfig
+
+	Detector   *ContradictionDetector
+	Confidence *ConfidenceTracker
+
+	AllRecords []TransmissionRecord
+	SampledIDs map[int]bool
+	PathInfos  map[string]PathInfo
+
+	nextQueryID    int
+	QueryLog       []QueryLogEntry
+	ResponseCache  map[int]Response
+	Contradictions []Contradiction
 }
 
 type PathInfo struct {
@@ -30,473 +88,352 @@ type PathInfo struct {
 	IsShortest bool
 }
 
-func NewVerifier(oracle *NetworkOracle, paths []PathInfo, minDelay, maxJitter float64) *Verifier {
-	return &Verifier{
-		Oracle:           oracle,
-		Responses:        make([]Response, 0),
-		Contradictions:   make([]Contradiction, 0),
-		Paths:            paths,
-		PathCommitments:  make(map[int]PathCommitment),
-		GroundTruth:      make([]TransmissionRecord, 0),
-		nextQueryID:      1,
-		MinPossibleDelay: minDelay,
-		MaxJitter:        maxJitter,
-		ResponseHistory:  make(map[int][]Response),
+type QueryLogEntry struct {
+	Query     Query
+	Response  Response
+	Suspicion float64
+	Timestamp float64
+}
+
+func (v *Verifier) AddPathInfo(name string, baseDelay float64, isShortest bool) {
+	v.PathInfos[name] = PathInfo{
+		Name:       name,
+		BaseDelay:  baseDelay,
+		IsShortest: isShortest,
 	}
+	v.Detector.Physical.AddPath(name, baseDelay)
 }
 
-func (v *Verifier) RecordPathCommitment(packetID int, pathHash string, timestamp float64) {
-	v.PathCommitments[packetID] = PathCommitment{
-		PacketID:  packetID,
-		PathHash:  pathHash,
-		Timestamp: timestamp,
+func (v *Verifier) IngestRecords(records []TransmissionRecord) {
+	v.AllRecords = append(v.AllRecords, records...)
+
+	for _, rec := range records {
+		data := fmt.Sprintf("%d|%f|%s", rec.PacketID, rec.SentTime, v.Config.SamplingSecret)
+		hash := HashPath(data)
+		hashVal := 0
+		for i := 0; i < 4 && i < len(hash); i++ {
+			hashVal = hashVal*16 + int(hash[i])%16
+		}
+		normalised := float64(hashVal) / float64(0xFFFF)
+
+		if normalised < v.Config.SamplingRate {
+			v.SampledIDs[rec.PacketID] = true
+		}
 	}
+
+	delayedCount := 0
+	for _, rec := range records {
+		if rec.WasDelayed {
+			delayedCount++
+		}
+	}
+
+	v.Confidence = NewConfidenceTracker(
+		v.Config.PriorHonest,
+		0.05, 0.05, // alpha, beta
+		float64(delayedCount)/float64(len(records)),
+		delayedCount,
+		len(records),
+	)
 }
 
-func (v *Verifier) RecordGroundTruth(record TransmissionRecord) {
-	v.GroundTruth = append(v.GroundTruth, record)
+func (v *Verifier) AskQuery(q Query, simTime float64) Response {
+	q.ID = v.nextQueryID
+	v.nextQueryID++
+
+	resp := v.Oracle.Answer(q, simTime)
+	v.ResponseCache[q.ID] = resp
+
+	return resp
 }
 
-func (v *Verifier) FindGroundTruth(packetID int, interval TimeInterval) *TransmissionRecord {
-	for i := range v.GroundTruth {
-		rec := &v.GroundTruth[i]
-		if rec.PacketID == packetID && interval.Contains(rec.SentTime) {
-			return rec
+func (v *Verifier) GenerateQueries() []Query {
+	queries := make([]Query, 0)
+
+	sampledRecords := make([]TransmissionRecord, 0)
+	for _, rec := range v.AllRecords {
+		if v.SampledIDs[rec.PacketID] {
+			sampledRecords = append(sampledRecords, rec)
+		}
+	}
+
+	if len(sampledRecords) < 2 {
+		return queries
+	}
+
+	switch v.Config.QueryStrategy {
+	case StrategyRandom:
+		queries = v.generateRandomQueries(sampledRecords)
+	case StrategyTargetedQuery:
+		queries = v.generateTargetedQueries(sampledRecords)
+	case StrategyAdaptive:
+		queries = v.generateAdaptiveQueries(sampledRecords)
+	case StrategyExhaustive:
+		queries = v.generateExhaustiveQueries(sampledRecords)
+	}
+
+	return queries
+}
+
+func (v *Verifier) generateRandomQueries(records []TransmissionRecord) []Query {
+	queries := make([]Query, 0)
+
+	for i := range len(records) {
+		for j := i + 1; j < len(records); j++ {
+			if rand.Float64() < 0.1 {
+				interval := TimeInterval{
+					Start: math.Min(records[i].SentTime, records[j].SentTime) - 0.1,
+					End:   math.Max(records[i].SentTime, records[j].SentTime) + 0.1,
+				}
+
+				queries = append(queries, Query{
+					Type:      QueryComparison,
+					PacketID:  records[i].PacketID,
+					PacketID2: records[j].PacketID,
+					Interval:  interval,
+				})
+			}
+		}
+	}
+
+	return queries
+}
+
+func (v *Verifier) generateTargetedQueries(records []TransmissionRecord) []Query {
+	queries := make([]Query, 0)
+
+	sorted := make([]TransmissionRecord, len(records))
+	copy(sorted, records)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].ActualDelay > sorted[j].ActualDelay
+	})
+
+	highDelayCount := len(sorted) / 4
+	if highDelayCount < 5 {
+		highDelayCount = min(5, len(sorted))
+	}
+
+	highDelay := sorted[:highDelayCount]
+	lowDelay := sorted[highDelayCount:]
+
+	for _, high := range highDelay {
+		numComparisons := min(5, len(lowDelay))
+		for i := 0; i < numComparisons; i++ {
+			low := lowDelay[rand.Intn(len(lowDelay))]
+
+			interval := TimeInterval{
+				Start: math.Min(high.SentTime, low.SentTime) - 0.1,
+				End:   math.Max(high.SentTime, low.SentTime) + 0.1,
+			}
+
+			queries = append(queries, Query{
+				Type:      QueryComparison,
+				PacketID:  high.PacketID,
+				PacketID2: low.PacketID,
+				Interval:  interval,
+			})
+		}
+	}
+
+	return queries
+}
+
+func (v *Verifier) generateAdaptiveQueries(records []TransmissionRecord) []Query {
+	queries := v.generateTargetedQueries(records)
+
+	random := v.generateRandomQueries(records)
+	for i := 0; i < len(random)/4; i++ {
+		queries = append(queries, random[rand.Intn(len(random))])
+	}
+
+	return queries
+}
+
+func (v *Verifier) generateExhaustiveQueries(records []TransmissionRecord) []Query {
+	queries := make([]Query, 0)
+
+	for i := range len(records) {
+		for j := i + 1; j < len(records); j++ {
+			interval := TimeInterval{
+				Start: math.Min(records[i].SentTime, records[j].SentTime) - 0.1,
+				End:   math.Max(records[i].SentTime, records[j].SentTime) + 0.1,
+			}
+
+			queries = append(queries, Query{
+				Type:      QueryComparison,
+				PacketID:  records[i].PacketID,
+				PacketID2: records[j].PacketID,
+				Interval:  interval,
+			})
+		}
+	}
+
+	return queries
+}
+
+func (v *Verifier) findRecord(packetID int) *TransmissionRecord {
+	for i := range v.AllRecords {
+		if v.AllRecords[i].PacketID == packetID {
+			return &v.AllRecords[i]
 		}
 	}
 	return nil
 }
 
-func (v *Verifier) AskQuestion(q Query, simTime float64) Response {
-	q.ID = v.nextQueryID
-	v.nextQueryID++
+func (v *Verifier) RunVerification(simTime float64) VerificationResult {
+	queries := v.GenerateQueries()
 
-	resp := v.Oracle.Answer(q, simTime)
-	v.Responses = append(v.Responses, resp)
+	rand.Shuffle(len(queries), func(i, j int) {
+		queries[i], queries[j] = queries[j], queries[i]
+	})
 
-	if q.PacketID >= 0 {
-		v.ResponseHistory[q.PacketID] = append(v.ResponseHistory[q.PacketID], resp)
-	}
-
-	return resp
-}
-
-func (v *Verifier) InterrogatePacket(packetID int, interval TimeInterval, simTime float64) []Response {
-	responses := make([]Response, 0, 3)
-
-	q1 := Query{
-		Type:     QueryShortestPath,
-		Interval: interval,
-		PacketID: packetID,
-	}
-	responses = append(responses, v.AskQuestion(q1, simTime))
-
-	q2 := Query{
-		Type:     QueryDelay,
-		Interval: interval,
-		PacketID: packetID,
-	}
-	responses = append(responses, v.AskQuestion(q2, simTime))
-
-	q3 := Query{
-		Type:     QueryPathUsed,
-		Interval: interval,
-		PacketID: packetID,
-	}
-	responses = append(responses, v.AskQuestion(q3, simTime))
-
-	return responses
-}
-
-func (v *Verifier) CheckContradictions() []Contradiction {
-	v.Contradictions = make([]Contradiction, 0)
-
-	type key struct {
-		packetID int
-		interval TimeInterval
-	}
-
-	byPacket := make(map[key][]Response)
-	for _, resp := range v.Responses {
-		k := key{resp.Query.PacketID, resp.Query.Interval}
-		byPacket[k] = append(byPacket[k], resp)
-	}
-
-	for k, responses := range byPacket {
-		truth := v.FindGroundTruth(k.packetID, k.interval)
-		v.checkPacketContradictions(k.packetID, responses, truth)
-		v.checkHashCommitment(k.packetID, responses, truth)
-		v.checkCrossIntervalContradictions(k.packetID, k.interval, responses, truth)
-	}
-
-	v.checkAggregateContradictions()
-	return v.Contradictions
-}
-
-func (v *Verifier) checkHashCommitment(packetID int, responses []Response, truth *TransmissionRecord) {
-	if truth == nil {
-		return
-	}
-
-	commitment, exists := v.PathCommitments[packetID]
-	if !exists {
-		return
-	}
-
-	for _, resp := range responses {
-		if resp.Query.Type == QueryPathUsed && resp.StringAnswer != "UNKNOWN" {
-			claimedPath := resp.StringAnswer
-			claimedHash := HashPath(claimedPath)
-
-			if claimedHash != commitment.PathHash {
-				commitmentQuery := Query{
-					ID:       -1,
-					Type:     QueryPathUsed,
-					PacketID: packetID,
-				}
-
-				commitmentResp := Response{
-					QueryID:      -1,
-					Query:        commitmentQuery,
-					StringAnswer: fmt.Sprintf("committed_hash=%s (actual: %s)", commitment.PathHash, truth.PathUsed),
-				}
-
-				v.Contradictions = append(v.Contradictions, Contradiction{
-					Type:        "HASH_MISMATCH",
-					Description: fmt.Sprintf("Packet %d: network claimed path %s (actual: %s) but committed to different path at routing time", packetID, claimedHash, claimedPath),
-					Query1:      resp.Query,
-					Response1:   resp,
-					Query2:      commitmentQuery,
-					Response2:   commitmentResp,
-					GroundTruth: truth,
-				})
-			}
-		}
-	}
-}
-
-func (v *Verifier) checkCrossIntervalContradictions(packetID int, interval TimeInterval, responses []Response, truth *TransmissionRecord) {
-	if truth == nil {
-		return
-	}
-
-	allResponses := v.ResponseHistory[packetID]
-	if len(allResponses) == 0 {
-		return
-	}
-
-	var currentPath, currentShortest, currentDelay *Response
-	for i := range responses {
-		resp := &responses[i]
-		switch resp.Query.Type {
-		case QueryPathUsed:
-			currentPath = resp
-		case QueryShortestPath:
-			currentShortest = resp
-		case QueryDelay:
-			currentDelay = resp
-		}
-	}
-
-	for _, prevResp := range allResponses {
-		if prevResp.Query.Interval == interval {
-			continue
+	for i, q := range queries {
+		if i >= v.Config.MaxQueries {
+			break
 		}
 
-		prevTruth := v.FindGroundTruth(packetID, prevResp.Query.Interval)
-		if prevTruth == nil {
-			continue
+		resp := v.AskQuery(q, simTime)
+		rec1 := v.findRecord(q.PacketID)
+		rec2 := v.findRecord(q.PacketID2)
+
+		timeOverlap := false
+		if rec1 != nil && rec2 != nil {
+			timeOverlap = math.Abs(rec1.SentTime-rec2.SentTime) < 5.0
 		}
 
-		if currentPath != nil && prevResp.Query.Type == QueryPathUsed {
-			if currentPath.StringAnswer != "UNKNOWN" && prevResp.StringAnswer != "UNKNOWN" {
-				if currentPath.StringAnswer != prevResp.StringAnswer {
-					v.Contradictions = append(v.Contradictions, Contradiction{
-						Type:        "CROSS_INTERVAL_PATH_MISMATCH",
-						Description: fmt.Sprintf("Packet %d: network gives different paths in different queries", packetID),
-						Query1:      currentPath.Query,
-						Response1:   *currentPath,
-						Query2:      prevResp.Query,
-						Response2:   prevResp,
-						GroundTruth: truth,
-					})
-				}
-			}
+		suspicion, contradiction := v.Detector.ProcessResponse(q, resp, rec1, rec2, timeOverlap)
+		v.QueryLog = append(v.QueryLog, QueryLogEntry{
+			Query:     q,
+			Response:  resp,
+			Suspicion: suspicion,
+			Timestamp: simTime,
+		})
+
+		involvesSuspicious := false
+		if rec1 != nil && rec1.WasDelayed {
+			involvesSuspicious = true
+		}
+		if rec2 != nil && rec2.WasDelayed {
+			involvesSuspicious = true
 		}
 
-		if currentShortest != nil && prevResp.Query.Type == QueryShortestPath {
-			if currentShortest.BoolAnswer != prevResp.BoolAnswer {
-				v.Contradictions = append(v.Contradictions, Contradiction{
-					Type:        "CROSS_INTERVAL_SHORTEST_MISMATCH",
-					Description: fmt.Sprintf("Packet %d: network gives different shortest_path answers", packetID),
-					Query1:      currentShortest.Query,
-					Response1:   *currentShortest,
-					Query2:      prevResp.Query,
-					Response2:   prevResp,
-					GroundTruth: truth,
-				})
-			}
+		v.Confidence.ProcessResult(q.ID, suspicion, contradiction, involvesSuspicious)
+		if contradiction {
+			break
 		}
 
-		if currentDelay != nil && prevResp.Query.Type == QueryDelay {
-			if currentDelay.FloatAnswer >= 0 && prevResp.FloatAnswer >= 0 {
-				delayDiff := math.Abs(currentDelay.FloatAnswer - prevResp.FloatAnswer)
-				if delayDiff >= 0.01 {
-					v.Contradictions = append(v.Contradictions, Contradiction{
-						Type:        "CROSS_INTERVAL_DELAY_MISMATCH",
-						Description: fmt.Sprintf("Packet %d: network reports significantly different delays (%.4fs vs %.4fs)", packetID, currentDelay.FloatAnswer, prevResp.FloatAnswer),
-						Query1:      currentDelay.Query,
-						Response1:   *currentDelay,
-						Query2:      prevResp.Query,
-						Response2:   prevResp,
-						GroundTruth: truth,
-					})
-				}
-			}
-		}
-	}
-}
-
-func (v *Verifier) checkPacketContradictions(packetID int, responses []Response, truth *TransmissionRecord) {
-	if truth == nil {
-		return
-	}
-
-	var shortestPathResp, delayResp, pathUsedResp *Response
-
-	for i := range responses {
-		resp := &responses[i]
-		switch resp.Query.Type {
-		case QueryShortestPath:
-			shortestPathResp = resp
-		case QueryDelay:
-			delayResp = resp
-		case QueryPathUsed:
-			pathUsedResp = resp
-		}
-	}
-
-	if shortestPathResp != nil && pathUsedResp != nil {
-		claimedShortest := shortestPathResp.BoolAnswer
-		claimedPath := pathUsedResp.StringAnswer
-
-		var shortestPathName string
-		for _, p := range v.Paths {
-			if p.IsShortest {
-				shortestPathName = p.Name
+		shouldContinue, reason := v.Confidence.Bayesian.ShouldContinue(v.Config.TargetConfidence, v.Config.MaxQueries)
+		if !shouldContinue {
+			if reason == "DISHONEST_DETECTED" || reason == "HONEST_CONFIRMED" {
 				break
 			}
 		}
-
-		if claimedShortest && claimedPath != shortestPathName && claimedPath != "UNKNOWN" {
-			v.Contradictions = append(v.Contradictions, Contradiction{
-				Type:        "PATH_MISMATCH",
-				Description: fmt.Sprintf("Packet %d: claimed shortest path but path '%s' is not the shortest ('%s')", packetID, claimedPath, shortestPathName),
-				Query1:      shortestPathResp.Query,
-				Response1:   *shortestPathResp,
-				Query2:      pathUsedResp.Query,
-				Response2:   *pathUsedResp,
-				GroundTruth: truth,
-			})
-		}
-
-		if !claimedShortest && claimedPath == shortestPathName && claimedPath != "UNKNOWN" {
-			v.Contradictions = append(v.Contradictions, Contradiction{
-				Type:        "PATH_MISMATCH",
-				Description: fmt.Sprintf("Packet %d: claimed NOT shortest path but path '%s' IS the shortest", packetID, claimedPath),
-				Query1:      shortestPathResp.Query,
-				Response1:   *shortestPathResp,
-				Query2:      pathUsedResp.Query,
-				Response2:   *pathUsedResp,
-				GroundTruth: truth,
-			})
-		}
 	}
 
-	if delayResp != nil && pathUsedResp != nil {
-		claimedDelay := delayResp.FloatAnswer
-		claimedPath := pathUsedResp.StringAnswer
-
-		var pathInfo *PathInfo
-		for i := range v.Paths {
-			if v.Paths[i].Name == claimedPath {
-				pathInfo = &v.Paths[i]
-				break
-			}
-		}
-
-		if pathInfo != nil {
-			if claimedDelay < pathInfo.BaseDelay-0.001 {
-				v.Contradictions = append(v.Contradictions, Contradiction{
-					Type:        "DELAY_TOO_LOW",
-					Description: fmt.Sprintf("Packet %d: claimed delay %.4fs but path '%s' has base delay %.4fs", packetID, claimedDelay, claimedPath, pathInfo.BaseDelay),
-					Query1:      delayResp.Query,
-					Response1:   *delayResp,
-					Query2:      pathUsedResp.Query,
-					Response2:   *pathUsedResp,
-					GroundTruth: truth,
-				})
-			}
-
-			maxExpectedDelay := pathInfo.BaseDelay + v.MaxJitter + 3.0
-			if claimedDelay > maxExpectedDelay {
-				v.Contradictions = append(v.Contradictions, Contradiction{
-					Type:        "DELAY_TOO_HIGH",
-					Description: fmt.Sprintf("Packet %d: claimed delay %.4fs exceeds max expected %.4fs for path '%s'", packetID, claimedDelay, maxExpectedDelay, claimedPath),
-					Query1:      delayResp.Query,
-					Response1:   *delayResp,
-					Query2:      pathUsedResp.Query,
-					Response2:   *pathUsedResp,
-					GroundTruth: truth,
-				})
-			}
-		}
-	}
-
-	if shortestPathResp != nil && delayResp != nil {
-		if shortestPathResp.BoolAnswer {
-			claimedDelay := delayResp.FloatAnswer
-
-			var shortestPathInfo *PathInfo
-			for i := range v.Paths {
-				if v.Paths[i].IsShortest {
-					shortestPathInfo = &v.Paths[i]
-					break
-				}
-			}
-
-			if shortestPathInfo != nil {
-				minExpected := shortestPathInfo.BaseDelay
-				maxExpected := shortestPathInfo.BaseDelay + v.MaxJitter + 3.0
-
-				if claimedDelay < minExpected-0.001 {
-					v.Contradictions = append(v.Contradictions, Contradiction{
-						Type:        "SHORTEST_PATH_DELAY_INCONSISTENT",
-						Description: fmt.Sprintf("Packet %d: claims shortest path but delay %.4fs < min expected %.4fs", packetID, claimedDelay, minExpected),
-						Query1:      shortestPathResp.Query,
-						Response1:   *shortestPathResp,
-						Query2:      delayResp.Query,
-						Response2:   *delayResp,
-						GroundTruth: truth,
-					})
-				} else if claimedDelay > maxExpected {
-					v.Contradictions = append(v.Contradictions, Contradiction{
-						Type:        "SHORTEST_PATH_DELAY_INCONSISTENT",
-						Description: fmt.Sprintf("Packet %d: claims shortest path but delay %.4fs > max expected %.4fs", packetID, claimedDelay, maxExpected),
-						Query1:      shortestPathResp.Query,
-						Response1:   *shortestPathResp,
-						Query2:      delayResp.Query,
-						Response2:   *delayResp,
-						GroundTruth: truth,
-					})
-				}
-			}
-		}
-	}
-
-	if delayResp != nil {
-		if delayResp.FloatAnswer < v.MinPossibleDelay && delayResp.FloatAnswer >= 0 {
-			v.Contradictions = append(v.Contradictions, Contradiction{
-				Type:        "PHYSICAL_VIOLATION",
-				Description: fmt.Sprintf("Packet %d: claimed delay %.4fs violates minimum possible delay %.4fs (speed of light)", packetID, delayResp.FloatAnswer, v.MinPossibleDelay),
-				Query1:      delayResp.Query,
-				Response1:   *delayResp,
-				Query2:      Query{},
-				Response2:   Response{},
-				GroundTruth: truth,
-			})
-		}
-	}
+	return v.buildResult()
 }
 
-func (v *Verifier) checkAggregateContradictions() {
-	for _, countResp := range v.Responses {
-		if countResp.Query.Type == QueryPacketCount {
-			continue
-		}
-		pathName := countResp.Query.PathName
-		interval := countResp.Query.Interval
-		claimedCount := int(countResp.FloatAnswer)
-		individualClaims := 0
-
-		for _, pathResp := range v.Responses {
-			if pathResp.Query.Type == QueryPathUsed && pathResp.StringAnswer == pathName && pathResp.Query.Interval == interval {
-				individualClaims++
-			}
-		}
-
-		if individualClaims > 0 && math.Abs(float64(claimedCount-individualClaims)) > float64(individualClaims)/2 {
-			v.Contradictions = append(v.Contradictions, Contradiction{
-				Type:        "COUNT_MISMATCH",
-				Description: fmt.Sprintf("Path '%s' in %s: claimed count %d but individual responses indicate %d", pathName, interval, claimedCount, individualClaims),
-				Query1:      countResp.Query,
-				Response1:   countResp,
-			})
-		}
-	}
-}
-
-func (v *Verifier) RunVerification(intervals []TimeInterval, packetsPerInterval int, simTime float64) VerificationResult {
-	totalQueries := 0
-
-	for _, interval := range intervals {
-		for pid := range packetsPerInterval {
-			v.InterrogatePacket(pid, interval, simTime)
-			totalQueries += 3
-		}
-
-		for _, path := range v.Paths {
-			q := Query{
-				Type:     QueryPacketCount,
-				Interval: interval,
-				PathName: path.Name,
-			}
-			v.AskQuestion(q, simTime)
-			totalQueries++
-		}
-	}
-
-	contradictions := v.CheckContradictions()
+func (v *Verifier) buildResult() VerificationResult {
+	verdict, confidence := v.Confidence.GetVerdict()
+	definitiveProofs := v.Detector.GetDefinitiveContradictions()
+	trustworthy := verdict == "HONEST" || verdict == "HONEST_LIKELY"
 
 	return VerificationResult{
-		TotalQueries:        totalQueries,
-		TotalResponses:      len(v.Responses),
-		ContradictionsFound: len(contradictions),
-		Contradictions:      contradictions,
-		Trustworthy:         len(contradictions) == 0,
-		OracleStats:         v.Oracle.GetStats(),
+		Verdict:              verdict,
+		Confidence:           confidence,
+		Trustworthy:          trustworthy,
+		TotalQueries:         len(v.QueryLog),
+		TotalSampled:         len(v.SampledIDs),
+		TotalPackets:         len(v.AllRecords),
+		ContradictionsFound:  len(v.Detector.Contradictions),
+		DefinitiveProofs:     len(definitiveProofs),
+		Contradictions:       v.Detector.Contradictions,
+		OracleStats:          v.Oracle.GetStats(),
+		ConfidenceHistory:    v.extractConfidenceHistory(),
+		TopSuspiciousPackets: v.Detector.Temporal.GetTopSuspicious(10),
 	}
+}
+
+func (v *Verifier) extractConfidenceHistory() []float64 {
+	history := make([]float64, len(v.Confidence.Bayesian.QueryHistory))
+	for i, qr := range v.Confidence.Bayesian.QueryHistory {
+		history[i] = qr.PHonestAfter
+	}
+	return history
 }
 
 type VerificationResult struct {
-	TotalQueries        int
-	TotalResponses      int
+	Verdict     string
+	Confidence  float64
+	Trustworthy bool
+
+	TotalQueries int
+	TotalSampled int
+	TotalPackets int
+
 	ContradictionsFound int
+	DefinitiveProofs    int
 	Contradictions      []Contradiction
-	Trustworthy         bool
-	OracleStats         string
+
+	OracleStats          string
+	ConfidenceHistory    []float64
+	TopSuspiciousPackets []int
 }
 
 func (vr VerificationResult) String() string {
 	status := "TRUSTWORTHY"
 	if !vr.Trustworthy {
-		status = "UNTRUSTWORTHY - LIES DETECTED"
+		status = "UNTRUSTWORTHY"
 	}
 
 	result := fmt.Sprintf(`
-=== VERIFICATION RESULT ===
-Status: %s
-Total Queries: %d
-Contradictions Found: %d
-Oracle Stats: %s
-`, status, vr.TotalQueries, vr.ContradictionsFound, vr.OracleStats)
+================================================================================
+                        VERIFICATION RESULT
+================================================================================
+Status:              %s
+Verdict:             %s
+Confidence:          %.2f%%
+
+Packets:             %d total, %d sampled (%.1f%%)
+Queries:             %d executed
+Contradictions:      %d found (%d definitive proofs)
+
+Oracle Stats:        %s
+Top Suspicious:      %v
+================================================================================
+`, status, vr.Verdict, vr.Confidence*100,
+		vr.TotalPackets, vr.TotalSampled, float64(vr.TotalSampled)/float64(vr.TotalPackets)*100,
+		vr.TotalQueries,
+		vr.ContradictionsFound, vr.DefinitiveProofs,
+		vr.OracleStats,
+		vr.TopSuspiciousPackets)
 
 	if len(vr.Contradictions) > 0 {
-		result += "\n=== CONTRADICTIONS ===\n"
+		result += "\n=== CONTRADICTIONS FOUND ===\n"
 		for i, c := range vr.Contradictions {
+			if i >= 10 {
+				result += fmt.Sprintf("\n... and %d more\n", len(vr.Contradictions)-10)
+				break
+			}
 			result += fmt.Sprintf("\n[%d] %s\n", i+1, c)
 		}
 	}
 
 	return result
+}
+
+func NewVerifier(oracle *NetworkOracle, config VerificationConfig) *Verifier {
+	v := &Verifier{
+		Oracle:        oracle,
+		Config:        config,
+		Detector:      NewContradictionDetector(config.MinPhysicalDelay, config.MaxJitter, config.TemporalTolerance),
+		AllRecords:    make([]TransmissionRecord, 0),
+		SampledIDs:    make(map[int]bool),
+		PathInfos:     make(map[string]PathInfo),
+		QueryLog:      make([]QueryLogEntry, 0),
+		ResponseCache: make(map[int]Response),
+		nextQueryID:   1,
+	}
+
+	return v
 }
