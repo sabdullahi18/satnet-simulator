@@ -25,7 +25,6 @@ func (g *GroundStation) Send(sim *engine.Simulation, dest network.Destination, c
 		sim.Schedule(float64(i)*1.0, func() {
 			pkt := network.NewPacket(packetID, g.Name, sim.Now)
 			fmt.Printf("[%5.2fs] %s SENT pkt %d\n", sim.Now, g.Name, pkt.ID)
-			// g.Router.Forward(sim, pkt, dest)
 		})
 	}
 }

@@ -62,64 +62,64 @@ func main() {
 	honestResult := runner.RunExperiment(honestConfig)
 	fmt.Print(honestResult)
 
-	//		// ===========================================================================
-	//		// EXPERIMENT 2: Varying Delay Fractions
-	//		// ===========================================================================
-	//		fmt.Println("\n>>> EXPERIMENT 2: Varying Delay Fractions")
-	//		fmt.Println("    Testing detection rate at different attack intensities")
+	// // ===========================================================================
+	// // EXPERIMENT 2: Varying Delay Fractions
+	// // ===========================================================================
+	// fmt.Println("\n>>> EXPERIMENT 2: Varying Delay Fractions")
+	// fmt.Println("    Testing detection rate at different attack intensities")
 	//
-	//		delayFractions := []float64{0.01, 0.02, 0.05, 0.10, 0.20}
+	// delayFractions := []float64{0.01, 0.02, 0.05, 0.10, 0.20}
 	//
-	//		for _, fraction := range delayFractions {
-	//			config := baseConfig
-	//			config.Name = fmt.Sprintf("delay_%.0f%%", fraction*100)
-	//			config.AdversarialConfig = network.AdversarialConfig{
-	//				Mode:              network.ModeRandomDelay,
-	//				DelayFraction:     fraction,
-	//				MinMaliciousDelay: 0.5,
-	//				MaxMaliciousDelay: 2.0,
-	//			}
-	//			config.LyingStrategy = verification.StrategySophisticated
-	//			config.LieProbability = 0.8
+	// for _, fraction := range delayFractions {
+	// 	config := baseConfig
+	// 	config.Name = fmt.Sprintf("delay_%.0f%%", fraction*100)
+	// 	config.AdversarialConfig = network.AdversarialConfig{
+	// 		Mode:              network.ModeRandomDelay,
+	// 		DelayFraction:     fraction,
+	// 		MinMaliciousDelay: 0.5,
+	// 		MaxMaliciousDelay: 2.0,
+	// 	}
+	// 	config.LyingStrategy = verification.StrategySophisticated
+	// 	config.LieProbability = 0.8
 	//
-	//			result := runner.RunExperiment(config)
-	//			fmt.Printf("  Delay %.0f%%: TPR=%.1f%%, Queries=%.0f\n",
-	//				fraction*100, result.TruePositiveRate*100, result.MeanQueriesPerDetection)
-	//		}
+	// 	result := runner.RunExperiment(config)
+	// 	fmt.Printf("  Delay %.0f%%: TPR=%.1f%%, Queries=%.0f\n",
+	// 		fraction*100, result.TruePositiveRate*100, result.MeanQueriesPerDetection)
+	// }
+
+	// // ===========================================================================
+	// // EXPERIMENT 3: Lying Strategy Comparison
+	// // ===========================================================================
+	// fmt.Println("\n>>> EXPERIMENT 3: Lying Strategy Comparison")
+	// fmt.Println("    Testing how different lying strategies affect detection")
 	//
-	//		// ===========================================================================
-	//		// EXPERIMENT 3: Lying Strategy Comparison
-	//		// ===========================================================================
-	//		fmt.Println("\n>>> EXPERIMENT 3: Lying Strategy Comparison")
-	//		fmt.Println("    Testing how different lying strategies affect detection")
+	// adversarialConfig := baseConfig
+	// adversarialConfig.AdversarialConfig = network.AdversarialConfig{
+	// 	Mode:              network.ModeRandomDelay,
+	// 	DelayFraction:     0.10,
+	// 	MinMaliciousDelay: 0.5,
+	// 	MaxMaliciousDelay: 2.0,
+	// }
 	//
-	//		adversarialConfig := baseConfig
-	//		adversarialConfig.AdversarialConfig = network.AdversarialConfig{
-	//			Mode:              network.ModeRandomDelay,
-	//			DelayFraction:     0.10,
-	//			MinMaliciousDelay: 0.5,
-	//			MaxMaliciousDelay: 2.0,
-	//		}
+	// strategies := []verification.LyingStrategy{
+	// 	verification.StrategyHonest,              // Delays but tells truth (catches itself)
+	// 	verification.StrategyAlwaysClaimShortest, // Naive lying
+	// 	verification.StrategyRandomLies,          // Random lying
+	// 	verification.StrategySophisticated,       // Tries to be consistent
+	// 	verification.StrategyTargeted,            // Lies about specific packets
+	// }
 	//
-	//		strategies := []verification.LyingStrategy{
-	//			verification.StrategyHonest,              // Delays but tells truth (catches itself)
-	//			verification.StrategyAlwaysClaimShortest, // Naive lying
-	//			verification.StrategyRandomLies,          // Random lying
-	//			verification.StrategySophisticated,       // Tries to be consistent
-	//			verification.StrategyTargeted,            // Lies about specific packets
-	//		}
+	// for _, strategy := range strategies {
+	// 	config := adversarialConfig
+	// 	config.Name = fmt.Sprintf("strategy_%s", strategy)
+	// 	config.LyingStrategy = strategy
+	// 	config.LieProbability = 0.7
 	//
-	//		for _, strategy := range strategies {
-	//			config := adversarialConfig
-	//			config.Name = fmt.Sprintf("strategy_%s", strategy)
-	//			config.LyingStrategy = strategy
-	//			config.LieProbability = 0.7
-	//
-	//			result := runner.RunExperiment(config)
-	//			fmt.Printf("  %s: TPR=%.1f%%, Queries=%.0f\n",
-	//				strategy, result.TruePositiveRate*100, result.MeanQueriesPerDetection)
-	//		}
-	//
+	// 	result := runner.RunExperiment(config)
+	// 	fmt.Printf("  %s: TPR=%.1f%%, Queries=%.0f\n",
+	// 		strategy, result.TruePositiveRate*100, result.MeanQueriesPerDetection)
+	// }
+
 	//		// ===========================================================================
 	//		// EXPERIMENT 4: Sampling Rate Impact
 	//		// ===========================================================================

@@ -6,12 +6,12 @@ import (
 )
 
 type BayesianTracker struct {
-	PriorHonest    float64
-	CurrentPHonest float64
-	QueryHistory   []QueryResult
-
-	LambdaHonest    float64
-	LambdaDishonest float64
+	PriorHonest            float64
+	CurrentPHonest         float64
+	QueryHistory           []QueryResult
+	LambdaHonest           float64
+	LambdaDishonest        float64
+	MinQueriesBeforeHonest int
 }
 
 type QueryResult struct {
@@ -23,11 +23,12 @@ type QueryResult struct {
 
 func NewBayesianTracker(priorHonest float64) *BayesianTracker {
 	return &BayesianTracker{
-		PriorHonest:     priorHonest,
-		CurrentPHonest:  priorHonest,
-		QueryHistory:    make([]QueryResult, 0),
-		LambdaHonest:    2.0,
-		LambdaDishonest: 0.5,
+		PriorHonest:            priorHonest,
+		CurrentPHonest:         priorHonest,
+		QueryHistory:           make([]QueryResult, 0),
+		LambdaHonest:           1.0,
+		LambdaDishonest:        0.8,
+		MinQueriesBeforeHonest: 50,
 	}
 }
 
@@ -52,13 +53,15 @@ func (bt *BayesianTracker) Update(queryID int, suspicion float64, contradiction 
 	pResultIfHonest := bt.LambdaHonest * math.Exp(-bt.LambdaHonest*suspicion)
 	pLow := bt.LambdaHonest * math.Exp(-bt.LambdaHonest*suspicion)
 	pHigh := bt.LambdaDishonest * math.Exp(-bt.LambdaDishonest*suspicion)
-	pResultIfDishonest := 0.5*pLow + 0.5*pHigh
+	pResultIfDishonest := 0.7*pLow + 0.3*pHigh
 	pResult := pResultIfHonest*bt.CurrentPHonest + pResultIfDishonest*(1-bt.CurrentPHonest)
 
 	if pResult > 0 {
 		bt.CurrentPHonest = (pResultIfHonest * bt.CurrentPHonest) / pResult
 	}
 
+	dampingFactor := 0.95
+	bt.CurrentPHonest = bt.PriorHonest + dampingFactor*(bt.CurrentPHonest-bt.PriorHonest)
 	result.PHonestAfter = bt.CurrentPHonest
 	bt.QueryHistory = append(bt.QueryHistory, result)
 	return bt.CurrentPHonest
@@ -77,7 +80,7 @@ func (bt *BayesianTracker) ShouldContinue(targetConfidence float64, maxQueries i
 		return false, "DISHONEST_DETECTED"
 	}
 
-	if bt.CurrentPHonest >= targetConfidence {
+	if bt.CurrentPHonest >= targetConfidence && len(bt.QueryHistory) >= bt.MinQueriesBeforeHonest {
 		return false, "HONEST_CONFIRMED"
 	}
 

@@ -43,19 +43,21 @@ type VerificationConfig struct {
 	TemporalTolerance float64
 
 	PriorHonest float64
+	MinQueries  int
 }
 
 func DefaultVerificationConfig() VerificationConfig {
 	return VerificationConfig{
-		SamplingRate:      0.05,
+		SamplingRate:      0.20,
 		SamplingSecret:    fmt.Sprintf("secret_%d", rand.Int63()),
-		MaxQueries:        1000,
+		MaxQueries:        500,
 		TargetConfidence:  0.95,
 		QueryStrategy:     StrategyAdaptive,
 		MinPhysicalDelay:  0.01,
 		MaxJitter:         2.0,
 		TemporalTolerance: 0.5,
 		PriorHonest:       0.5,
+		MinQueries:        100,
 	}
 }
 
@@ -135,6 +137,8 @@ func (v *Verifier) IngestRecords(records []TransmissionRecord) {
 		delayedCount,
 		len(records),
 	)
+
+	v.Confidence.Bayesian.MinQueriesBeforeHonest = v.Config.MinQueries
 }
 
 func (v *Verifier) AskQuery(q Query, simTime float64) Response {
@@ -180,7 +184,7 @@ func (v *Verifier) generateRandomQueries(records []TransmissionRecord) []Query {
 
 	for i := range len(records) {
 		for j := i + 1; j < len(records); j++ {
-			if rand.Float64() < 0.1 {
+			if rand.Float64() < 0.3 {
 				interval := TimeInterval{
 					Start: math.Min(records[i].SentTime, records[j].SentTime) - 0.1,
 					End:   math.Max(records[i].SentTime, records[j].SentTime) + 0.1,
@@ -208,16 +212,16 @@ func (v *Verifier) generateTargetedQueries(records []TransmissionRecord) []Query
 		return sorted[i].ActualDelay > sorted[j].ActualDelay
 	})
 
-	highDelayCount := len(sorted) / 4
-	if highDelayCount < 5 {
-		highDelayCount = min(5, len(sorted))
+	highDelayCount := len(sorted) / 3
+	if highDelayCount < 10 {
+		highDelayCount = min(10, len(sorted))
 	}
 
 	highDelay := sorted[:highDelayCount]
 	lowDelay := sorted[highDelayCount:]
 
 	for _, high := range highDelay {
-		numComparisons := min(5, len(lowDelay))
+		numComparisons := min(10, len(lowDelay)) // Increased from 5
 		for i := 0; i < numComparisons; i++ {
 			low := lowDelay[rand.Intn(len(lowDelay))]
 
@@ -235,6 +239,21 @@ func (v *Verifier) generateTargetedQueries(records []TransmissionRecord) []Query
 		}
 	}
 
+	for i := range len(highDelay) {
+		for j := i + 1; j < len(highDelay); j++ {
+			interval := TimeInterval{
+				Start: math.Min(highDelay[i].SentTime, highDelay[j].SentTime) - 0.1,
+				End:   math.Max(highDelay[i].SentTime, highDelay[j].SentTime) + 0.1,
+			}
+			queries = append(queries, Query{
+				Type:      QueryComparison,
+				PacketID:  highDelay[i].PacketID,
+				PacketID2: highDelay[j].PacketID,
+				Interval:  interval,
+			})
+		}
+	}
+
 	return queries
 }
 
@@ -242,7 +261,8 @@ func (v *Verifier) generateAdaptiveQueries(records []TransmissionRecord) []Query
 	queries := v.generateTargetedQueries(records)
 
 	random := v.generateRandomQueries(records)
-	for i := 0; i < len(random)/4; i++ {
+	numRandom := len(random) / 2
+	for i := 0; i < numRandom && i < len(random); i++ {
 		queries = append(queries, random[rand.Intn(len(random))])
 	}
 
@@ -318,14 +338,17 @@ func (v *Verifier) RunVerification(simTime float64) VerificationResult {
 		}
 
 		v.Confidence.ProcessResult(q.ID, suspicion, contradiction, involvesSuspicious)
+
 		if contradiction {
 			break
 		}
 
-		shouldContinue, reason := v.Confidence.Bayesian.ShouldContinue(v.Config.TargetConfidence, v.Config.MaxQueries)
-		if !shouldContinue {
-			if reason == "DISHONEST_DETECTED" || reason == "HONEST_CONFIRMED" {
-				break
+		if len(v.QueryLog) >= v.Config.MinQueries {
+			shouldContinue, reason := v.Confidence.Bayesian.ShouldContinue(v.Config.TargetConfidence, v.Config.MaxQueries)
+			if !shouldContinue {
+				if reason == "DISHONEST_DETECTED" || reason == "HONEST_CONFIRMED" {
+					break
+				}
 			}
 		}
 	}
