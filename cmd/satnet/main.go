@@ -5,7 +5,7 @@ import (
 
 	"satnet-simulator/internal/engine"
 	"satnet-simulator/internal/network"
-	"satnet-simulator/internal/nodes"
+	// "satnet-simulator/internal/nodes"
 	"satnet-simulator/internal/verification"
 )
 
@@ -47,24 +47,24 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	}
 	fmt.Println()
 
-	pathLEO := network.SatellitePath{
-		Name:       "path_leo_fast",
-		Delay:      0.1,
-		SpikeProb:  0.3,
-		SpikeDelay: 2.0,
-	}
+	// pathLEO := network.SatellitePath{
+	// 	Name:       "path_leo_fast",
+	// 	Delay:      0.1,
+	// 	SpikeProb:  0.3,
+	// 	SpikeDelay: 2.0,
+	// }
+	//
+	// pathGEO := network.SatellitePath{
+	// 	Name:       "path_geo_slow",
+	// 	Delay:      0.8,
+	// 	SpikeProb:  0.0,
+	// 	SpikeDelay: 0.0,
+	// }
 
-	pathGEO := network.SatellitePath{
-		Name:       "path_geo_slow",
-		Delay:      0.8,
-		SpikeProb:  0.0,
-		SpikeDelay: 0.0,
-	}
-
-	paths := []network.SatellitePath{pathLEO, pathGEO}
-	router := network.NewVerifiableRouter(paths, network.StrategyRandom)
-	shortestPath, shortestDelay := router.GetShortestPath()
-	oracle := verification.NewNetworkOracle(strategy, lieProb, shortestPath, shortestDelay)
+	// paths := []network.SatellitePath{pathLEO, pathGEO}
+	// router := network.NewVerifiableRouter(paths, network.StrategyRandom)
+	// shortestPath, shortestDelay := router.GetShortestPath()
+	// oracle := verification.NewNetworkOracle(strategy, lieProb, shortestPath, shortestDelay)
 
 	// pathInfos := []verification.PathInfo{
 	// 	{Name: pathLEO.Name, BaseDelay: pathLEO.Delay, IsShortest: true},
@@ -74,59 +74,59 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	// verifier := verification.NewVerifier(oracle, pathInfos, 0.05, 2.5) // min delay, max jitter
 	probeManager := verification.NewProbeManager(topology)
 
-	router.OnTransmission = func(info network.TransmissionInfo) {
-		record := verification.TransmissionRecord{
-			PacketID:       info.PacketID,
-			SentTime:       info.SentTime,
-			ReceivedTime:   info.ReceivedTime,
-			PathUsed:       info.PathUsed,
-			PathDelay:      info.PathBaseDelay,
-			ActualDelay:    info.ActualDelay,
-			IsShortestPath: info.IsShortestPath,
-		}
-		oracle.RecordTransmission(record)
-		// pathHash := verification.HashPath(info.PathUsed)
-		// verifier.RecordPathCommitment(info.PacketID, pathHash, info.SentTime)
-		// verifier.RecordGroundTruth(record)
+	// router.OnTransmission = func(info network.TransmissionInfo) {
+	// 	record := verification.TransmissionRecord{
+	// 		PacketID:       info.PacketID,
+	// 		SentTime:       info.SentTime,
+	// 		ReceivedTime:   info.ReceivedTime,
+	// 		PathUsed:       info.PathUsed,
+	// 		PathDelay:      info.PathBaseDelay,
+	// 		ActualDelay:    info.ActualDelay,
+	// 		IsShortestPath: info.IsShortestPath,
+	// 	}
+	// 	oracle.RecordTransmission(record)
+	// 	// pathHash := verification.HashPath(info.PathUsed)
+	// 	// verifier.RecordPathCommitment(info.PacketID, pathHash, info.SentTime)
+	// 	// verifier.RecordGroundTruth(record)
+	//
+	// 	if probe := probeManager.GetProbe(info.PacketID); probe != nil {
+	// 		result := &verification.ProbeResult{
+	// 			Probe:        probe,
+	// 			ReceivedTime: info.ReceivedTime,
+	// 			ActualDelay:  info.ActualDelay,
+	// 			ReportedPath: info.PathUsed,
+	// 		}
+	//
+	// 		if probe.ForcedPath != "" {
+	// 			result.PathMatchesForced = (info.PathUsed == probe.ForcedPath)
+	// 		}
+	//
+	// 		if probe.ExpectedMinDelay > 0 && info.ActualDelay < probe.ExpectedMinDelay {
+	// 			result.AddIssue(fmt.Sprintf("Timing violation: %.4fs < min expected %.4fs for path %s", info.ActualDelay, probe.ExpectedMinDelay, info.PathUsed))
+	// 		}
+	//
+	// 		probeManager.RecordResult(info.PacketID, result)
+	// 	}
+	// }
 
-		if probe := probeManager.GetProbe(info.PacketID); probe != nil {
-			result := &verification.ProbeResult{
-				Probe:        probe,
-				ReceivedTime: info.ReceivedTime,
-				ActualDelay:  info.ActualDelay,
-				ReportedPath: info.PathUsed,
-			}
-
-			if probe.ForcedPath != "" {
-				result.PathMatchesForced = (info.PathUsed == probe.ForcedPath)
-			}
-
-			if probe.ExpectedMinDelay > 0 && info.ActualDelay < probe.ExpectedMinDelay {
-				result.AddIssue(fmt.Sprintf("Timing violation: %.4fs < min expected %.4fs for path %s", info.ActualDelay, probe.ExpectedMinDelay, info.PathUsed))
-			}
-
-			probeManager.RecordResult(info.PacketID, result)
-		}
-	}
-
-	stationA := &nodes.GroundStation{Name: "StationA", Router: (*network.VerifiableRouter)(nil)}
-	stationB := &nodes.GroundStation{Name: "StationB", Router: (*network.VerifiableRouter)(nil)}
+	// stationA := &nodes.GroundStation{Name: "StationA", Router: (*network.VerifiableRouter)(nil)}
+	// stationB := &nodes.GroundStation{Name: "StationB", Router: (*network.VerifiableRouter)(nil)}
 	numPackets := 100
 
 	fmt.Printf("Sending %d packets between stations using RANDOM path selection...\n", numPackets)
 	fmt.Println("(This simulates the verifier not knowing which path will be used)")
 	fmt.Println()
 
-	for i := range numPackets {
-		pktID := i
-		sendTime := float64(i) * 0.2
+	// for i := range numPackets {
+	// pktID := i
+	// sendTime := float64(i) * 0.2
 
-		sim.Schedule(sendTime, func() {
-			pkt := network.NewPacket(pktID, stationA.Name, sim.Now)
-			fmt.Printf("[%.2fs] %s SENT pkt %d\n", sim.Now, stationA.Name, pkt.ID)
-			router.Forward(sim, pkt, stationB)
-		})
-	}
+	// sim.Schedule(sendTime, func() {
+	// 	pkt := network.NewPacket(pktID, stationA.Name, sim.Now)
+	// 	fmt.Printf("[%.2fs] %s SENT pkt %d\n", sim.Now, stationA.Name, pkt.ID)
+	// 	router.Forward(sim, pkt, stationB)
+	// })
+	// }
 
 	probeSchedule := probeManager.CreateProbeSchedule(1.0, 15.0, 3.0, []string{"path_leo_fast", "path_geo_slow"})
 	fmt.Printf("\n=== PROBE INJECCTION ===")
@@ -134,20 +134,20 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	fmt.Println("Unlike regular packets, probes specify exactly which path to use.")
 	fmt.Printf("Scheduling %d probe packets to verify path behaviour ...\n\n", len(probeSchedule.Probes))
 
-	for _, probe := range probeSchedule.Probes {
-		p := probe
-		sim.Schedule(p.SentTime, func() {
-			pkt := network.NewPacket(p.ID, stationA.Name, sim.Now)
-			fmt.Printf("[%.2fs] PROBE %d SENT (forced path: %s, expected delay: %.4f-%.4fs)\n", sim.Now, p.ID, p.ForcedPath, p.ExpectedMinDelay, p.ExpectedMaxDelay)
-			router.ForwardOnPath(sim, pkt, stationB, p.ForcedPath)
-		})
-	}
+	// for _, probe := range probeSchedule.Probes {
+	// 	p := probe
+	// 	sim.Schedule(p.SentTime, func() {
+	// 		pkt := network.NewPacket(p.ID, stationA.Name, sim.Now)
+	// 		fmt.Printf("[%.2fs] PROBE %d SENT (forced path: %s, expected delay: %.4f-%.4fs)\n", sim.Now, p.ID, p.ForcedPath, p.ExpectedMinDelay, p.ExpectedMaxDelay)
+	// 		router.ForwardOnPath(sim, pkt, stationB, p.ForcedPath)
+	// 	})
+	// }
 
 	sim.Run(30.0)
 
 	fmt.Println()
 	fmt.Println("=== TRANSMISSION PHASE COMPLETE ===")
-	fmt.Printf("Recorded %d transmissions (including %d probes)\n", len(oracle.GroundTruth), len(probeSchedule.Probes))
+	// fmt.Printf("Recorded %d transmissions (including %d probes)\n", len(oracle.GroundTruth), len(probeSchedule.Probes))
 	fmt.Println()
 
 	fmt.Println("=== PROBE ANALYSIS ===")

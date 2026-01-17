@@ -6,17 +6,6 @@ import (
 	"satnet-simulator/internal/engine"
 )
 
-type SatellitePath struct {
-	Name       string
-	Delay      float64
-	SpikeProb  float64
-	SpikeDelay float64
-}
-
-type Destination interface {
-	Receive(sim *engine.Simulation, pkt Packet, pathUsed string)
-}
-
 func (p SatellitePath) Traverse(sim *engine.Simulation, pkt Packet, dest Destination) {
 	totalDelay := p.Delay
 
