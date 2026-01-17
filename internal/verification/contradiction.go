@@ -425,14 +425,6 @@ func (cd *ContradictionDetector) ProcessResponse(q Query, r Response,
 			}
 		}
 
-		if rec1 != nil && rec2 != nil {
-			s, c := cd.Temporal.CheckComparison(rec1, rec2, r.ComparisonAnswer, timeOverlap)
-			suspicion = s
-			if c != nil {
-				cd.Contradictions = append(cd.Contradictions, *c)
-			}
-		}
-
 	case QueryDelayBound:
 
 	case QueryDelay:

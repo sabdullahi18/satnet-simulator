@@ -243,10 +243,12 @@ func (ct *ConfidenceTracker) ProcessResult(queryID int, suspicion float64, contr
 
 	if contradiction {
 		ct.ContradictionsFound++
+		ct.Bayesian.Update(queryID, 1.0, true)
+		return
 	}
 
-	ct.Bayesian.Update(queryID, suspicion, contradiction)
-	ct.SPRT.Update(involvesSuspicious, suspicion > 0.3)
+	ct.Bayesian.Update(queryID, 0.0, false)
+	ct.SPRT.Update(involvesSuspicious, false)
 }
 
 func (ct *ConfidenceTracker) GetVerdict() (string, float64) {
@@ -270,7 +272,7 @@ func (ct *ConfidenceTracker) GetVerdict() (string, float64) {
 		return "HONEST_LIKELY", ct.Bayesian.CurrentPHonest
 	}
 
-	return "INCONCLUSIVE", 0.5
+	return "INCONCLUSIVE", ct.Bayesian.CurrentPHonest
 }
 
 func (ct *ConfidenceTracker) Summary() string {
