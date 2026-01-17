@@ -5,30 +5,6 @@ import (
 	"math"
 )
 
-type Contradiction struct {
-	Type        string
-	Description string
-	Query1      Query
-	Response1   Response
-	Query2      Query
-	Response2   Response
-	GroundTruth *TransmissionRecord
-}
-
-func (c Contradiction) String() string {
-	result := fmt.Sprintf("CONTRADICTION [%s]: %s", c.Type, c.Description)
-	result += fmt.Sprintf("\n Current answer: %s -> %s", c.Query1, c.Response1)
-
-	if c.Query2.ID != 0 || c.Response2.QueryID != 0 {
-		result += fmt.Sprintf("\n Contradicts with: %s -> %s", c.Query2, c.Response2)
-	}
-
-	if c.GroundTruth != nil {
-		result += fmt.Sprintf("\n [DEBUG - ground truth]: %s", c.GroundTruth)
-	}
-	return result
-}
-
 type PathCommitment struct {
 	PacketID  int
 	PathHash  string
