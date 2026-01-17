@@ -66,12 +66,12 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	shortestPath, shortestDelay := router.GetShortestPath()
 	oracle := verification.NewNetworkOracle(strategy, lieProb, shortestPath, shortestDelay)
 
-	pathInfos := []verification.PathInfo{
-		{Name: pathLEO.Name, BaseDelay: pathLEO.Delay, IsShortest: true},
-		{Name: pathGEO.Name, BaseDelay: pathGEO.Delay, IsShortest: false},
-	}
+	// pathInfos := []verification.PathInfo{
+	// 	{Name: pathLEO.Name, BaseDelay: pathLEO.Delay, IsShortest: true},
+	// 	{Name: pathGEO.Name, BaseDelay: pathGEO.Delay, IsShortest: false},
+	// }
 
-	verifier := verification.NewVerifier(oracle, pathInfos, 0.05, 2.5) // min delay, max jitter
+	// verifier := verification.NewVerifier(oracle, pathInfos, 0.05, 2.5) // min delay, max jitter
 	probeManager := verification.NewProbeManager(topology)
 
 	router.OnTransmission = func(info network.TransmissionInfo) {
@@ -85,9 +85,9 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 			IsShortestPath: info.IsShortestPath,
 		}
 		oracle.RecordTransmission(record)
-		pathHash := verification.HashPath(info.PathUsed)
-		verifier.RecordPathCommitment(info.PacketID, pathHash, info.SentTime)
-		verifier.RecordGroundTruth(record)
+		// pathHash := verification.HashPath(info.PathUsed)
+		// verifier.RecordPathCommitment(info.PacketID, pathHash, info.SentTime)
+		// verifier.RecordGroundTruth(record)
 
 		if probe := probeManager.GetProbe(info.PacketID); probe != nil {
 			result := &verification.ProbeResult{
@@ -193,15 +193,15 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	fmt.Println("Interrogating the network about its behaviour...")
 	fmt.Println()
 
-	intervals := []verification.TimeInterval{
-		{Start: 0.0, End: 5.0},
-		{Start: 5.0, End: 10.0},
-		{Start: 10.0, End: 15.0},
-		{Start: 15.0, End: 20.0},
-	}
+	// intervals := []verification.TimeInterval{
+	// 	{Start: 0.0, End: 5.0},
+	// 	{Start: 5.0, End: 10.0},
+	// 	{Start: 10.0, End: 15.0},
+	// 	{Start: 15.0, End: 20.0},
+	// }
 
-	result := verifier.RunVerification(intervals, numPackets, sim.Now)
-	fmt.Println(result)
+	// result := verifier.RunVerification(intervals, numPackets, sim.Now)
+	// fmt.Println(result)
 
 	fmt.Println("=== MERKLE PROOF DEMONSTRATION ===")
 	proof := leoPath.GenerateMerkleProof(1)
@@ -218,11 +218,11 @@ func runEnhancedScenario(name string, strategy verification.LyingStrategy, liePr
 	fmt.Println()
 
 	fmt.Println("=== FINAL CONCLUSION ===")
-	totalContradictions := result.ContradictionsFound + len(probeContradictions)
-	if totalContradictions == 0 {
-		fmt.Println(">>> CONCLUSION: Network appears trustworthy (no contradictions detected)")
-	} else {
-		fmt.Println(">>> CONCLUSION: Network is LYING! Contradictions detected!")
-		fmt.Printf(">>> Found %d query contradictions + %d probe contradictions = %d total\n", result.ContradictionsFound, len(probeContradictions), totalContradictions)
-	}
+	// totalContradictions := result.ContradictionsFound + len(probeContradictions)
+	// if totalContradictions == 0 {
+	// 	fmt.Println(">>> CONCLUSION: Network appears trustworthy (no contradictions detected)")
+	// } else {
+	// 	fmt.Println(">>> CONCLUSION: Network is LYING! Contradictions detected!")
+	// 	fmt.Printf(">>> Found %d query contradictions + %d probe contradictions = %d total\n", result.ContradictionsFound, len(probeContradictions), totalContradictions)
+	// }
 }
