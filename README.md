@@ -33,7 +33,6 @@ satnet-simulator/
 - `QueryCongestionFlag`: "Was there congestion during time interval [t1, t2]?"
 
 ### The Lying Oracle
-The network reports on its own behaviour but can be configured with specific lying strategies:
 - `StrategyHonest`: Always tells the truth
 - `StrategyAlwaysClaimShortest`: Always claims shortest path was used
 - `StrategyRandomLies`: Lies with configurable probability
