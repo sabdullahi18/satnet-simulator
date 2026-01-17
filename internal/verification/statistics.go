@@ -60,8 +60,6 @@ func (bt *BayesianTracker) Update(queryID int, suspicion float64, contradiction 
 		bt.CurrentPHonest = (pResultIfHonest * bt.CurrentPHonest) / pResult
 	}
 
-	dampingFactor := 0.95
-	bt.CurrentPHonest = bt.PriorHonest + dampingFactor*(bt.CurrentPHonest-bt.PriorHonest)
 	result.PHonestAfter = bt.CurrentPHonest
 	bt.QueryHistory = append(bt.QueryHistory, result)
 	return bt.CurrentPHonest
