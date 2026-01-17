@@ -1,7 +1,6 @@
 package verification
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"math"
 )
@@ -76,11 +75,6 @@ func (v *Verifier) RecordPathCommitment(packetID int, pathHash string, timestamp
 		PathHash:  pathHash,
 		Timestamp: timestamp,
 	}
-}
-
-func HashPath(pathName string) string {
-	h := sha256.Sum256([]byte(pathName))
-	return fmt.Sprintf("%x", h[:8])
 }
 
 func (v *Verifier) RecordGroundTruth(record TransmissionRecord) {
