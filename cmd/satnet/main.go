@@ -18,7 +18,7 @@ func main() {
 	fmt.Println("It can only detect lies through internal contradictions in the network's own responses")
 
 	// runEnhancedScenario("HONEST", verification.StrategyHonest, 0.0)
-	runEnhancedScenario("SMART_LIAR", verification.StrategySmart, 0.5)
+	// runEnhancedScenario("SMART_LIAR", verification.StrategySmart, 0.5)
 }
 
 func runEnhancedScenario(name string, strategy verification.LyingStrategy, lieProb float64) {
