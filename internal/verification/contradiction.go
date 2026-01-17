@@ -430,9 +430,6 @@ func (cd *ContradictionDetector) ProcessResponse(q Query, r Response,
 			suspicion = s
 			if c != nil {
 				cd.Contradictions = append(cd.Contradictions, *c)
-				if c.Severity >= 0.9 {
-					foundContradiction = true
-				}
 			}
 		}
 
