@@ -38,7 +38,7 @@ func main() {
 		VerificationConfig: verification.VerificationConfig{
 			SamplingRate:      0.10,
 			MaxQueries:        500,
-			TargetConfidence:  0.95,
+			TargetConfidence:  0.99,
 			QueryStrategy:     verification.StrategyAdaptive,
 			MinPhysicalDelay:  0.01,
 			MaxJitter:         2.5,
