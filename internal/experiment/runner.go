@@ -3,6 +3,7 @@ package experiment
 import (
 	"fmt"
 	"math"
+	"os"
 	"time"
 
 	"satnet-simulator/internal/engine"
@@ -205,6 +206,22 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	}
 
 	sim.Run(config.SimDuration + 10.0)
+
+	// --- EXPORT DATA START ---
+	if trialNum == 0 {
+		f, err := os.Create("packet_delays.csv")
+		if err == nil {
+			defer f.Close()
+			f.WriteString("PacketID,SentTime,ActualDelay,MinDelay,WasDelayed\n")
+			for _, t := range transmissions {
+				fmt.Fprintf(f, "%d,%.4f,%.4f,%.4f,%v\n",
+					t.PacketID, t.SentTime, t.ActualDelay, t.MinDelay, t.WasDelayed)
+			}
+			fmt.Println(">>> Exported packet data to packet_delays.csv")
+		}
+	}
+	// --- EXPORT DATA END ---
+
 	verifyConfig := config.VerificationConfig
 	verifyConfig.SamplingSecret = fmt.Sprintf("secret_trial_%d_%d", trialNum, time.Now().UnixNano())
 

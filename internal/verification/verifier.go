@@ -322,8 +322,16 @@ func (v *Verifier) RunVerification(simTime float64) VerificationResult {
 		}
 
 		suspicion, contradiction := v.Detector.ProcessResponse(q, resp, rec1, rec2, timeOverlap)
-		fmt.Printf("Query %d: suspicion=%.4f, contradiction=%v, P(honest)=%.4f\n",
-			i, suspicion, contradiction, v.Confidence.Bayesian.CurrentPHonest)
+
+		// DEBUGGING
+		fmt.Printf("\n[Query %d] %s\n", i, q.String())
+		fmt.Printf("   Answer: %s\n", resp.String())
+		fmt.Printf("   Stats:  suspicion=%.4f, contradiction=%v, P(honest)=%.4f\n",
+			suspicion, contradiction, v.Confidence.Bayesian.CurrentPHonest)
+		// fmt.Printf("Query %d: suspicion=%.4f, contradiction=%v, P(honest)=%.4f\n",
+		// 	i, suspicion, contradiction, v.Confidence.Bayesian.CurrentPHonest)
+		// DEBUGGING
+
 		v.QueryLog = append(v.QueryLog, QueryLogEntry{
 			Query:     q,
 			Response:  resp,
