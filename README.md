@@ -25,25 +25,27 @@ satnet-simulator/
 └── README.md
 ```
 ## Summary
-### Query Types
-- `QueryComparison`: "Which packet had better optimal delay: P_i or P_j?"
-- `QueryOrdering`: "Rank these packets by optimal delay"
-- `QueryPathHash`: "What is the hash of the path used for packet P_i?"
-- `QueryDelayBound`: "Was the optimal delay above or below threshold X?"
-- `QueryCongestionFlag`: "Was there congestion during time interval [t1, t2]?"
+### Strategy 1: Flagging Strategy
+**Question: Which packets does the SNP *claim* had legitimate congestion?**
 
-### The Lying Oracle
-- `StrategyHonest`: Always tells the truth
-- `StrategyAlwaysClaimShortest`: Always claims shortest path was used
-- `StrategyRandomLies`: Lies with configurable probability
-- `StrategySophisticated`: Maintains internally consistent lies
-- `StrategyTargeted`: Lies specifically about delayed packets
+| Strategy | Description |
+|----------|-------------|
+| `FlagNone` | Never flag any packets |
+| `FlagRandom` | Randomly flag packets with probability `FlagProbability` (e.g., 50%) |
+| `FlagLowDelay` | Flag packets with lowest observed delays (harder to catch lies about these) |
+| `FlagActualDelayed` | Flag packets that were actually maliciously delayed |
 
-### Contradiction Detection
-- **Transitivity**: Builds directed graph of comparisons, detects cycles
-- **Temporal Consistency**: Compares claimed vs observed delays
-- **Physical Constraint**: Validates against speed-of-light bounds
-- **Commitment**: Detects inconsistent answers to same queries
+### Strategy 2: Answering Strategy  
+**Question: How does the SNP answer "Which packet had minimum possible delay?"**
+
+| Strategy | Description |
+|----------|-------------|
+| `AnswerHonest` | Always tell the truth about minimum delays |
+| `AnswerRandom` | Randomly choose an answer |
+| `AnswerClaimLowerObserved` | Always claim the packet with lower observed delay had min delay |
+| `AnswerConsistent` | Maintain consistency with flagging claims |
+
+The best strategy 2 should always claim the packet with lower observed delay was minimal, since the verifier can only see the relative delays (d1 vs d2), not the absolute minimum possible delay.
 
 ### Statistical Analysis
 - **Bayesian Tracker**: Updates $P(\text{honest}|\text{evidence})$ after each query
