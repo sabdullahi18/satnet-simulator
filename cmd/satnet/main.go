@@ -9,63 +9,48 @@ import (
 
 func main() {
 	fmt.Println("================================================================================")
-	fmt.Println("     SATELLITE NETWORK SIMULATOR")
+	fmt.Println("     SATNET SIMULATOR - Verification Design Demo")
 	fmt.Println("================================================================================")
+	fmt.Println()
+	fmt.Println("Delay Model: d_obs(P) = d_base(t) + d_legit(P) + d_malicious(P)")
+	fmt.Println("  - d_base(t):      Piecewise constant with Poisson transitions")
+	fmt.Println("  - d_legit(P):     LogNormal(μ, σ²) for realistic jitter")
+	fmt.Println("  - d_malicious(P): Uniform[M_min, M_max] if P ∈ T (target set)")
+	fmt.Println()
 
 	runner := experiment.NewRunner()
 
-	baseConfig := experiment.ExperimentConfig{
-		NumPackets:  300,
-		NumTrials:   1,
-		SimDuration: 30.0,
-		Paths: []network.SatellitePath{
-			{Name: "PATH_A", Delay: 0.10, SpikeProb: 0.05, SpikeDelay: 0.2},
-			{Name: "PATH_B", Delay: 0.12, SpikeProb: 0.05, SpikeDelay: 0.2},
-		},
-		PathStrategy:    network.StrategyRandom,
-		FlagProbability: 0.5,
+	fmt.Println("\n>>> Experiment 1: Honest Network (baseline)")
+	honestConfig := experiment.DefaultExperimentConfig()
+	honestConfig.Name = "honest_baseline"
+	honestConfig.NumPackets = 100
+	honestConfig.NumTrials = 5
+	honestConfig.TargetingConfig = network.DefaultHonestTargeting()
+	honestConfig.LyingStrategy = verification.StrategyHonest
+	runner.RunExperiment(honestConfig)
 
-		AdversarialConfig: network.AdversarialConfig{
-			Mode:              network.ModeRandomDelay,
-			DelayFraction:     0.10,
-			MinMaliciousDelay: 0.2,
-			MaxMaliciousDelay: 1.0,
-		},
+	fmt.Println("\n>>> Experiment 2: Adversarial Network (10% targeted, sophisticated lying)")
+	adversarialConfig := experiment.DefaultExperimentConfig()
+	adversarialConfig.Name = "adversarial_10pct"
+	adversarialConfig.NumPackets = 100
+	adversarialConfig.NumTrials = 5
+	adversarialConfig.TargetingConfig = network.DefaultAdversarialTargeting(0.10)
+	adversarialConfig.LyingStrategy = verification.StrategySophisticated
+	adversarialConfig.LieProbability = 0.8
+	runner.RunExperiment(adversarialConfig)
 
-		VerificationConfig: verification.DefaultVerificationConfig(),
-	}
-
-	// 1. Random Flag / Random Answer
-	c1 := baseConfig
-	c1.Name = "1_RandFlag_RandAns"
-	c1.FlaggingStrategy = verification.FlagRandom
-	c1.AnsweringStrategy = verification.AnswerRandom
-	r1 := runner.RunExperiment(c1)
-	fmt.Print(r1)
-
-	// // 2. Random Flag / Best Answer (Smart)
-	// c2 := baseConfig
-	// c2.Name = "2_RandFlag_BestAns"
-	// c2.FlaggingStrategy = verification.FlagRandom
-	// c2.AnsweringStrategy = verification.AnswerSmart
-	// r2 := runner.RunExperiment(c2)
-	// fmt.Print(r2)
-
-	// // 3. Best Flag (Smart) / Random Answer
-	// c3 := baseConfig
-	// c3.Name = "3_BestFlag_RandAns"
-	// c3.FlaggingStrategy = verification.FlagSmart
-	// c3.AnsweringStrategy = verification.AnswerRandom
-	// r3 := runner.RunExperiment(c3)
-	// fmt.Print(r3)
-
-	// // 4. Best Flag (Smart) / Best Answer (Sophisticated)
-	// c4 := baseConfig
-	// c4.Name = "4_BestFlag_BestAns"
-	// c4.FlaggingStrategy = verification.FlagSmart
-	// c4.AnsweringStrategy = verification.AnswerSmart
-	// r4 := runner.RunExperiment(c4)
-	// fmt.Print(r4)
+	fmt.Println("\n>>> Experiment 3: Adversarial Network (20% targeted, sophisticated lying)")
+	adversarialConfig2 := experiment.DefaultExperimentConfig()
+	adversarialConfig2.Name = "adversarial_20pct"
+	adversarialConfig2.NumPackets = 100
+	adversarialConfig2.NumTrials = 5
+	adversarialConfig2.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
+	adversarialConfig2.LyingStrategy = verification.StrategySophisticated
+	adversarialConfig2.LieProbability = 0.8
+	runner.RunExperiment(adversarialConfig2)
 
 	runner.PrintSummary()
+
+	// fmt.Println("\n>>> CSV Export:")
+	// fmt.Println(runner.GenerateCSV())
 }

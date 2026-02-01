@@ -7,30 +7,33 @@ import (
 )
 
 type GroundStation struct {
-	Name   string
-	Router *network.VerifiableRouter
+	Name     string
+	Received int
 }
 
-func NewGroundStation(name string, router *network.VerifiableRouter) *GroundStation {
+func NewGroundStation(name string) *GroundStation {
 	return &GroundStation{
-		Name:   name,
-		Router: router,
-	}
-}
-
-func (g *GroundStation) Send(sim *engine.Simulation, dest network.Destination, count int) {
-	for i := range count {
-		packetID := i
-
-		sim.Schedule(float64(i)*1.0, func() {
-			pkt := network.NewPacket(packetID, g.Name, sim.Now)
-			fmt.Printf("[%5.2fs] %s SENT pkt %d\n", sim.Now, g.Name, pkt.ID)
-		})
+		Name:     name,
+		Received: 0,
 	}
 }
 
 func (g *GroundStation) Receive(sim *engine.Simulation, pkt network.Packet, pathUsed string) {
+	g.Received++
 	latency := sim.Now - pkt.CreationTime
-	fmt.Printf("[%5.2fs] %s RECEIVED pkt %d (from %s via %s, latency: %.2fs)\n",
-		sim.Now, g.Name, pkt.ID, pkt.Src, pathUsed, latency)
+	fmt.Printf("[%5.2fs] %s RECEIVED pkt %d (from %s, latency: %.4fs)\n",
+		sim.Now, g.Name, pkt.ID, pkt.Src, latency)
+}
+
+type MockGroundStation struct {
+	Name     string
+	Received int
+}
+
+func NewMockGroundStation(name string) *MockGroundStation {
+	return &MockGroundStation{Name: name}
+}
+
+func (m *MockGroundStation) Receive(sim *engine.Simulation, pkt network.Packet, pathUsed string) {
+	m.Received++
 }

@@ -6,292 +6,157 @@ import (
 	"satnet-simulator/internal/engine"
 )
 
-type AdversarialMode int
+type TargetingMode int
 
 const (
-	ModeHonest AdversarialMode = iota
-	ModeRandomDelay
-	ModeTargetedDelay
-	ModeTimeBased
-	ModeSelectiveByPath
+	TargetNone TargetingMode = iota
+	TargetRandom
+	TargetByID
+	TargetByTime
 )
 
-func (m AdversarialMode) String() string {
+func (m TargetingMode) String() string {
 	switch m {
-	case ModeHonest:
+	case TargetNone:
 		return "HONEST"
-	case ModeRandomDelay:
-		return "RANDOM_DELAY"
-	case ModeTargetedDelay:
-		return "TARGETED_DELAY"
-	case ModeTimeBased:
-		return "TIME_BASED"
-	case ModeSelectiveByPath:
-		return "SELECTIVE_BY_PATH"
+	case TargetRandom:
+		return "RANDOM"
+	case TargetByID:
+		return "BY_ID"
+	case TargetByTime:
+		return "BY_TIME"
 	default:
 		return "UNKNOWN"
 	}
 }
 
-type AdversarialConfig struct {
-	Mode              AdversarialMode
-	DelayFraction     float64
-	MinMaliciousDelay float64
-	MaxMaliciousDelay float64
-	TargetTimeStart   float64
-	TargetTimeEnd     float64
-	TargetPath        string
+type TargetingConfig struct {
+	Mode            TargetingMode
+	TargetFraction  float64
+	TargetTimeStart float64
+	TargetTimeEnd   float64
+	TargetIDs       []int
 }
 
-func DefaultHonestConfig() AdversarialConfig {
-	return AdversarialConfig{
-		Mode:          ModeHonest,
-		DelayFraction: 0,
+func DefaultHonestTargeting() TargetingConfig {
+	return TargetingConfig{
+		Mode:           TargetNone,
+		TargetFraction: 0,
 	}
 }
 
-func DefaultAdversarialConfig(fraction float64) AdversarialConfig {
-	return AdversarialConfig{
-		Mode:              ModeRandomDelay,
-		DelayFraction:     fraction,
-		MinMaliciousDelay: 0.5,
-		MaxMaliciousDelay: 2.0,
+func DefaultAdversarialTargeting(fraction float64) TargetingConfig {
+	return TargetingConfig{
+		Mode:           TargetRandom,
+		TargetFraction: fraction,
 	}
 }
 
 type TransmissionCallback func(info TransmissionInfo)
 
 type TransmissionInfo struct {
-	PacketID       int
-	Source         string
-	SentTime       float64
-	ReceivedTime   float64
-	PathUsed       string
-	PathBaseDelay  float64
-	MinDelay       float64
-	ActualDelay    float64
-	MaliciousDelay float64
-	Jitter         float64
-	IsShortestPath bool
-	WasDelayed     bool
-	ShortestPath   string
+	PacketID         int
+	Source           string
+	SentTime         float64
+	ReceivedTime     float64
+	BaseDelay        float64
+	LegitDelay       float64
+	MaliciousDelay   float64
+	TotalDelay       float64
+	MinPossibleDelay float64
+	WasDelayed       bool
 }
 
-type VerifiableRouter struct {
-	Paths          []SatellitePath
-	AdversarialCfg AdversarialConfig
-	OnTransmission TransmissionCallback
-
-	shortestPathName string
-	shortestDelay    float64
-
-	PacketsRouted  int
-	PacketsDelayed int
+type Router struct {
+	DelayModel      *DelayModel
+	TargetingCfg    TargetingConfig
+	OnTransmission  TransmissionCallback
+	PacketsRouted   int
+	PacketsTargeted int
+	targetIDSet     map[int]bool
 }
 
-func NewVerifiableRouter(paths []SatellitePath, config AdversarialConfig) *VerifiableRouter {
-	r := &VerifiableRouter{
-		Paths:          paths,
-		AdversarialCfg: config,
+func NewRouter(delayModel *DelayModel, targeting TargetingConfig) *Router {
+	r := &Router{
+		DelayModel:   delayModel,
+		TargetingCfg: targeting,
+		targetIDSet:  make(map[int]bool),
 	}
 
-	if len(paths) > 0 {
-		r.shortestPathName = paths[0].Name
-		r.shortestDelay = paths[0].Delay
-		for _, p := range paths {
-			if p.Delay < r.shortestDelay {
-				r.shortestDelay = p.Delay
-				r.shortestPathName = p.Name
-			}
-		}
+	for _, id := range targeting.TargetIDs {
+		r.targetIDSet[id] = true
 	}
 
 	return r
 }
 
-func (r *VerifiableRouter) GetShortestPath() (string, float64) {
-	return r.shortestPathName, r.shortestDelay
-}
-
-func (r *VerifiableRouter) SelectPath(strategy PathSelectionStrategy) SatellitePath {
-	if len(r.Paths) == 0 {
-		return SatellitePath{}
-	}
-
-	switch strategy {
-	case StrategyShortest:
-		for _, p := range r.Paths {
-			if p.Name == r.shortestPathName {
-				return p
-			}
-		}
-		return r.Paths[0]
-
-	case StrategyRandom:
-		return r.Paths[rand.Intn(len(r.Paths))]
-
-	case StrategyWeighted:
-		totalWeight := 0.0
-		for _, p := range r.Paths {
-			totalWeight += 1.0 / p.Delay
-		}
-		choice := rand.Float64() * totalWeight
-		cumulative := 0.0
-		for _, p := range r.Paths {
-			cumulative += 1.0 / p.Delay
-			if choice <= cumulative {
-				return p
-			}
-		}
-		return r.Paths[0]
-	}
-	return r.Paths[0]
-}
-
-func (r *VerifiableRouter) shouldDelay(pkt Packet, simTime float64, pathName string) bool {
-	switch r.AdversarialCfg.Mode {
-	case ModeHonest:
+func (r *Router) isTargeted(pkt Packet, sendTime float64) bool {
+	switch r.TargetingCfg.Mode {
+	case TargetNone:
 		return false
 
-	case ModeRandomDelay:
-		return rand.Float64() < r.AdversarialCfg.DelayFraction
+	case TargetRandom:
+		return rand.Float64() < r.TargetingCfg.TargetFraction
 
-	case ModeTargetedDelay:
-		// Target specific packet IDs (e.g., even-numbered)
-		return pkt.ID%2 == 0 && rand.Float64() < r.AdversarialCfg.DelayFraction*2
+	case TargetByID:
+		return r.targetIDSet[pkt.ID]
 
-	case ModeTimeBased:
-		if simTime >= r.AdversarialCfg.TargetTimeStart &&
-			simTime <= r.AdversarialCfg.TargetTimeEnd {
-			return rand.Float64() < r.AdversarialCfg.DelayFraction
-		}
-		return false
+	case TargetByTime:
+		return sendTime >= r.TargetingCfg.TargetTimeStart &&
+			sendTime <= r.TargetingCfg.TargetTimeEnd
 
-	case ModeSelectiveByPath:
-		if pathName == r.AdversarialCfg.TargetPath {
-			return rand.Float64() < r.AdversarialCfg.DelayFraction
-		}
+	default:
 		return false
 	}
-
-	return false
 }
 
-func (r *VerifiableRouter) computeMaliciousDelay() float64 {
-	if r.AdversarialCfg.MinMaliciousDelay >= r.AdversarialCfg.MaxMaliciousDelay {
-		return r.AdversarialCfg.MinMaliciousDelay
-	}
-
-	delayRange := r.AdversarialCfg.MaxMaliciousDelay - r.AdversarialCfg.MinMaliciousDelay
-	return r.AdversarialCfg.MinMaliciousDelay + rand.Float64()*delayRange
-}
-
-func (r *VerifiableRouter) Forward(sim *engine.Simulation, pkt Packet, dest Destination, strategy PathSelectionStrategy) {
-	if len(r.Paths) == 0 {
-		fmt.Println("[Router Error] No paths available!")
-		return
-	}
-
-	selectedPath := r.SelectPath(strategy)
-	r.forwardOnPath(sim, pkt, dest, selectedPath)
-}
-
-func (r *VerifiableRouter) ForwardOnPath(sim *engine.Simulation, pkt Packet, dest Destination, pathName string) {
-	for _, p := range r.Paths {
-		if p.Name == pathName {
-			r.forwardOnPath(sim, pkt, dest, p)
-			return
-		}
-	}
-
-	fmt.Printf("[Router Warning] Path '%s' not found, using random\n", pathName)
-	r.Forward(sim, pkt, dest, StrategyRandom)
-}
-
-func (r *VerifiableRouter) forwardOnPath(sim *engine.Simulation, pkt Packet, dest Destination, selectedPath SatellitePath) {
+func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 	r.PacketsRouted++
-
-	isShortestPath := selectedPath.Name == r.shortestPathName
-	sentTime := sim.Now
-	baseDelay := selectedPath.Delay
-	jitter := 0.5 + rand.Float64()*1.5
-
-	spikeDelay := 0.0
-	if rand.Float64() < selectedPath.SpikeProb {
-		spikeDelay = selectedPath.SpikeDelay
-		// [SILENCED] - Pollution removed
-		// fmt.Printf("  [!] SPIKE: Packet %d delayed by %.2fs on %s\n",
-		// 	pkt.ID, spikeDelay, selectedPath.Name)
+	sendTime := sim.Now
+	isTargeted := r.isTargeted(pkt, sendTime)
+	if isTargeted {
+		r.PacketsTargeted++
 	}
 
-	minDelay := baseDelay
-	legitimateDelay := baseDelay + jitter + spikeDelay
-
-	maliciousDelay := 0.0
-	wasDelayed := false
-	if r.shouldDelay(pkt, sim.Now, selectedPath.Name) {
-		maliciousDelay = r.computeMaliciousDelay()
-		wasDelayed = true
-		r.PacketsDelayed++
-	}
-
-	totalDelay := legitimateDelay + maliciousDelay
-	sim.Schedule(totalDelay, func() {
+	delays := r.DelayModel.ComputeTotalDelay(sendTime, isTargeted)
+	sim.Schedule(delays.TotalDelay, func() {
 		if r.OnTransmission != nil {
 			r.OnTransmission(TransmissionInfo{
-				PacketID:       pkt.ID,
-				Source:         pkt.Src,
-				SentTime:       sentTime,
-				ReceivedTime:   sim.Now,
-				PathUsed:       selectedPath.Name,
-				PathBaseDelay:  baseDelay,
-				MinDelay:       minDelay,
-				ActualDelay:    totalDelay,
-				MaliciousDelay: maliciousDelay,
-				Jitter:         jitter,
-				IsShortestPath: isShortestPath,
-				WasDelayed:     wasDelayed,
-				ShortestPath:   r.shortestPathName,
+				PacketID:         pkt.ID,
+				Source:           pkt.Src,
+				SentTime:         sendTime,
+				ReceivedTime:     sim.Now,
+				BaseDelay:        delays.BaseDelay,
+				LegitDelay:       delays.LegitDelay,
+				MaliciousDelay:   delays.MaliciousDelay,
+				TotalDelay:       delays.TotalDelay,
+				MinPossibleDelay: delays.MinPossible,
+				WasDelayed:       isTargeted,
 			})
 		}
 
-		dest.Receive(sim, pkt, selectedPath.Name)
+		dest.Receive(sim, pkt, "")
 	})
 }
 
-func (r *VerifiableRouter) GetStats() string {
-	delayRate := 0.0
-	if r.PacketsRouted > 0 {
-		delayRate = float64(r.PacketsDelayed) / float64(r.PacketsRouted) * 100
-	}
-	return fmt.Sprintf("Mode: %s, Routed: %d, Delayed: %d (%.1f%%)",
-		r.AdversarialCfg.Mode, r.PacketsRouted, r.PacketsDelayed, delayRate)
+func (r *Router) Initialise(duration float64) {
+	r.DelayModel.Initialise(duration)
 }
 
-type PathSelectionStrategy int
+func (r *Router) GetStats() string {
+	targetRate := 0.0
+	if r.PacketsRouted > 0 {
+		targetRate = float64(r.PacketsTargeted) / float64(r.PacketsRouted) * 100
+	}
+	return fmt.Sprintf("Mode: %s, Routed: %d, Targeted: %d (%.1f%%)",
+		r.TargetingCfg.Mode, r.PacketsRouted, r.PacketsTargeted, targetRate)
+}
 
-const (
-	StrategyShortest PathSelectionStrategy = iota
-	StrategyRandom
-	StrategyWeighted
-)
-
-type SatellitePath struct {
-	Name       string
-	Delay      float64
-	SpikeProb  float64
-	SpikeDelay float64
+func (r *Router) Reset() {
+	r.PacketsRouted = 0
+	r.PacketsTargeted = 0
 }
 
 type Destination interface {
 	Receive(sim *engine.Simulation, pkt Packet, pathUsed string)
-}
-
-func (r *VerifiableRouter) GetPathByName(name string) *SatellitePath {
-	for i := range r.Paths {
-		if r.Paths[i].Name == name {
-			return &r.Paths[i]
-		}
-	}
-	return nil
 }

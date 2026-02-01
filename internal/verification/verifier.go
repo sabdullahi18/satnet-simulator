@@ -1,13 +1,14 @@
 package verification
 
 import (
-	"fmt"
 	"math/rand"
 )
 
 type VerificationConfig struct {
 	MaxQueries             int
 	SamplingSecret         string
+	SamplingRate           float64
+	TargetConfidence       float64
 	ExpectedCongestionRate float64
 	RateTolerancePO        float64
 }
@@ -15,19 +16,11 @@ type VerificationConfig struct {
 func DefaultVerificationConfig() VerificationConfig {
 	return VerificationConfig{
 		MaxQueries:             500,
+		SamplingRate:           0.20,
+		TargetConfidence:       0.95,
 		ExpectedCongestionRate: 0.05,
 		RateTolerancePO:        0.05,
 	}
-}
-
-type Verifier struct {
-	Oracle  *Oracle
-	Records []TransmissionRecord
-	Config  VerificationConfig
-
-	ProbHonest      float64
-	ProbIncompetent float64
-	ProbMalicious   float64
 }
 
 type VerificationResult struct {
@@ -36,7 +29,17 @@ type VerificationResult struct {
 	Trustworthy         bool
 	TotalQueries        int
 	ContradictionsFound int
+	DefinitiveProofs    int
 	FlagRate            float64
+}
+
+type Verifier struct {
+	Oracle          *Oracle
+	Records         []TransmissionRecord
+	Config          VerificationConfig
+	ProbHonest      float64
+	ProbIncompetent float64
+	ProbMalicious   float64
 }
 
 func NewVerifier(oracle *Oracle, config VerificationConfig) *Verifier {
@@ -59,6 +62,7 @@ func (v *Verifier) RunVerification(currentTime float64) VerificationResult {
 	}
 
 	contradictions := 0
+	definitiveProofs := 0
 	queries := 0
 	indices := rand.Perm(len(v.Records))
 
@@ -69,18 +73,14 @@ func (v *Verifier) RunVerification(currentTime float64) VerificationResult {
 		}
 	}
 	flagRate := float64(flaggedCount) / float64(len(v.Records))
+
 	suspiciousFlags := false
 	if flagRate > (v.Config.ExpectedCongestionRate + v.Config.RateTolerancePO) {
 		suspiciousFlags = true
 		v.ProbHonest = 0.20
-		v.ProbMalicious = 0.6
-		v.ProbIncompetent = 0.2
-		fmt.Printf(">>> SUSPICIOUS ACTIVITY: flag rate %.1f%% exceeds expected %.1f%%\n", flagRate*100, v.Config.ExpectedCongestionRate*100)
+		v.ProbMalicious = 0.60
+		v.ProbIncompetent = 0.20
 	}
-
-	fmt.Printf("\n--- Starting Verification (Max %d Queries) ---\n", v.Config.MaxQueries)
-	fmt.Printf("    Initial Beliefs: Honest=%.2f, Incompetent=%.2f, Malicious=%.2f\n\n",
-		v.ProbHonest, v.ProbIncompetent, v.ProbMalicious)
 
 	for i := 0; i < len(indices)-1; i += 2 {
 		if queries >= v.Config.MaxQueries {
@@ -102,42 +102,17 @@ func (v *Verifier) RunVerification(currentTime float64) VerificationResult {
 		evidence := v.analyseResponse(p1, p2, ans)
 		v.updateBeliefs(evidence)
 
-		status := "CONSISTENT"
-		switch evidence {
-		case EvStrongContradiction:
-			status = "!!! CONTRADICTION !!!"
+		if evidence == EvStrongContradiction {
 			contradictions++
-		case EvWeakInconsistency:
-			status = "! Inconsistent (Flag)"
+		}
+		if evidence == EvDefinitiveProof {
+			definitiveProofs++
 		}
 
-		fmt.Printf("Q%d: Pkt %d (Obs: %.2fs) vs Pkt %d (Obs: %.2fs)\n",
-			q.ID, p1.ID, p1.ActualDelay, p2.ID, p2.ActualDelay)
-		fmt.Printf("      Oracle Claims: %s was minimal.\n", ans)
-		fmt.Printf("      Analysis:      %s\n", status)
-
-		fmt.Printf("      [STATS]:       P(Honest)=%.4f  P(Incomp)=%.4f  P(Malicious)=%.4f\n",
-			v.ProbHonest, v.ProbIncompetent, v.ProbMalicious)
-
-		truthStr := ""
-		if p1.WasDelayed {
-			truthStr += fmt.Sprintf("Pkt %d MALICIOUSLY DELAYED. ", p1.ID)
-		}
-		if p2.WasDelayed {
-			truthStr += fmt.Sprintf("Pkt %d MALICIOUSLY DELAYED. ", p2.ID)
-		}
-		if truthStr == "" {
-			truthStr = "Clean traffic."
-		}
-
-		fmt.Printf("      [DEBUG TRUTH]: %s\n\n", truthStr)
-
-		if v.ProbMalicious > 0.999 && contradictions > 5 {
-			fmt.Println(">>> Early Stopping: Malicious intent confirmed with >99.9% confidence.")
+		if v.ProbMalicious > 0.999 && contradictions > 3 {
 			break
 		}
-		if v.ProbIncompetent > 0.999 {
-			fmt.Println(">>> Early Stopping: High confidence of Incompetence.")
+		if v.ProbHonest > 0.99 && queries > 50 {
 			break
 		}
 	}
@@ -147,10 +122,13 @@ func (v *Verifier) RunVerification(currentTime float64) VerificationResult {
 	confidence := v.ProbHonest
 
 	if suspiciousFlags && v.ProbHonest > 0.5 {
-		verdict = "MALICIOUS_FLOODING"
+		verdict = "SUSPICIOUS_FLAG_RATE"
 		trustworthy = false
-		confidence = 0.95
-		v.ProbMalicious = 0.95
+		confidence = 0.90
+	} else if definitiveProofs > 0 {
+		verdict = "MALICIOUS_PROVEN"
+		trustworthy = false
+		confidence = 0.999
 	} else if v.ProbMalicious > 0.90 {
 		verdict = "MALICIOUS"
 		trustworthy = false
@@ -167,6 +145,8 @@ func (v *Verifier) RunVerification(currentTime float64) VerificationResult {
 		Trustworthy:         trustworthy,
 		TotalQueries:        queries,
 		ContradictionsFound: contradictions,
+		DefinitiveProofs:    definitiveProofs,
+		FlagRate:            flagRate,
 	}
 }
 
@@ -176,6 +156,7 @@ const (
 	EvConsistent EvidenceType = iota
 	EvWeakInconsistency
 	EvStrongContradiction
+	EvDefinitiveProof
 )
 
 func (v *Verifier) analyseResponse(p1, p2 TransmissionRecord, ans Answer) EvidenceType {
@@ -192,7 +173,10 @@ func (v *Verifier) analyseResponse(p1, p2 TransmissionRecord, ans Answer) Eviden
 			}
 			return EvConsistent
 		} else if obs2Lower {
-			return EvStrongContradiction
+			if !p2.IsFlagged {
+				return EvStrongContradiction
+			}
+			return EvConsistent
 		}
 	}
 
@@ -203,12 +187,16 @@ func (v *Verifier) analyseResponse(p1, p2 TransmissionRecord, ans Answer) Eviden
 			}
 			return EvConsistent
 		} else if obs1Lower {
-			return EvStrongContradiction
+			if !p1.IsFlagged {
+				return EvStrongContradiction
+			}
+			return EvConsistent
 		}
 	}
 
 	return EvConsistent
 }
+
 func (v *Verifier) updateBeliefs(ev EvidenceType) {
 	var lHonest, lIncompetent, lMalicious float64
 
@@ -216,16 +204,22 @@ func (v *Verifier) updateBeliefs(ev EvidenceType) {
 	case EvConsistent:
 		lHonest = 0.80
 		lIncompetent = 0.50
-		lMalicious = 0.50 // Smart malicious acts consistent often
+		lMalicious = 0.50
+
 	case EvWeakInconsistency:
 		lHonest = 0.10
 		lIncompetent = 0.80
 		lMalicious = 0.40
+
 	case EvStrongContradiction:
-		// A strong contradiction (physical impossibility) is damning
 		lHonest = 0.0001
 		lIncompetent = 0.20
 		lMalicious = 0.80
+
+	case EvDefinitiveProof:
+		lHonest = 0.00001
+		lIncompetent = 0.05
+		lMalicious = 0.95
 	}
 
 	pH := v.ProbHonest * lHonest
