@@ -219,8 +219,9 @@ func (r *VerifiableRouter) forwardOnPath(sim *engine.Simulation, pkt Packet, des
 	spikeDelay := 0.0
 	if rand.Float64() < selectedPath.SpikeProb {
 		spikeDelay = selectedPath.SpikeDelay
-		fmt.Printf("  [!] SPIKE: Packet %d delayed by %.2fs on %s\n",
-			pkt.ID, spikeDelay, selectedPath.Name)
+		// [SILENCED] - Pollution removed
+		// fmt.Printf("  [!] SPIKE: Packet %d delayed by %.2fs on %s\n",
+		// 	pkt.ID, spikeDelay, selectedPath.Name)
 	}
 
 	minDelay := baseDelay
