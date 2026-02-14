@@ -10,15 +10,12 @@ type DelayModel struct {
 	BaseDelayMin   float64
 	BaseDelayMax   float64
 	TransitionRate float64
-
-	LegitMu    float64
-	LegitSigma float64
-
-	MaliciousMin float64
-	MaliciousMax float64
-
-	transitions []PathTransition
-	initialised bool
+	LegitMu        float64
+	LegitSigma     float64
+	MaliciousMin   float64
+	MaliciousMax   float64
+	transitions    []PathTransition
+	initialised    bool
 }
 
 type PathTransition struct {
@@ -39,15 +36,12 @@ func DefaultDelayModel() *DelayModel {
 		BaseDelayMin:   0.020,
 		BaseDelayMax:   0.080,
 		TransitionRate: 0.05,
-
-		LegitMu:    -3.9,
-		LegitSigma: 0.8,
-
-		MaliciousMin: 0.5,
-		MaliciousMax: 2.0,
-
-		transitions: make([]PathTransition, 0),
-		initialised: false,
+		LegitMu:        -3.9,
+		LegitSigma:     0.8,
+		MaliciousMin:   0.5,
+		MaliciousMax:   2.0,
+		transitions:    make([]PathTransition, 0),
+		initialised:    false,
 	}
 }
 

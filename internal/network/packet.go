@@ -12,10 +12,8 @@ type Packet struct {
 	Dest         string
 	CreationTime float64
 	SequenceNum  int
-
 	ReceivedTime float64
 	ObservedPath string
-
 	// Hidden ground truth (for simulation only)
 	ActualPath     []string
 	MinDelay       float64
@@ -32,12 +30,16 @@ func (p *Packet) ComputePathHash() string {
 	if len(p.ActualPath) == 0 {
 		return ""
 	}
-	pathStr := ""
+
+	hasher := sha256.New()
+
 	for _, node := range p.ActualPath {
-		pathStr += node + "|"
+		hasher.Write([]byte(node))
+		hasher.Write([]byte("|"))
 	}
-	h := sha256.Sum256([]byte(pathStr))
-	return fmt.Sprintf("%x", h[:8])
+
+	sum := hasher.Sum(nil)
+	return fmt.Sprintf("%x", sum[:8])
 }
 
 func NewPacket(id int, src string, time float64) Packet {
