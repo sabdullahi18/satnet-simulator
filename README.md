@@ -1,5 +1,5 @@
 # satnet-simulator
-
+***OUTDATED!!***
 This discrete-event simulator verifies performance claims in satellite networks. This tool models the interaction between a client (verifier) and a network operator (oracle). The simulator generates traffic across paths with variable latency and jitter, allows the network to lie about its performance using various strategies, and then attempts to detect those lies using ZKP-style questioning combined with statistical analysis.
 
 ## Project Structure
