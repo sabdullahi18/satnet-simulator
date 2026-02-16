@@ -2,206 +2,143 @@ package verification
 
 import (
 	"math/rand"
-	"sort"
 )
 
-type LyingStrategy string
+// TargetingStrategy defines which packets get malicious delay
+type TargetingStrategy string
 
 const (
-	StrategyHonest        LyingStrategy = "HONEST"
-	StrategyRandomLies    LyingStrategy = "RANDOM_LIES"
-	StrategyMinimiseDelay LyingStrategy = "MINIMISE_DELAY"
-	StrategySophisticated LyingStrategy = "SOPHISTICATED"
-	StrategyTargeted      LyingStrategy = "TARGETED"
+	TargetNone   TargetingStrategy = "TARGET_NONE"
+	TargetRandom TargetingStrategy = "TARGET_RANDOM"
+	TargetByID   TargetingStrategy = "TARGET_BY_ID"
+	TargetByTime TargetingStrategy = "TARGET_BY_TIME"
 )
 
-type FlaggingStrategy string
+// AnsweringStrategy defines how the oracle responds to queries
 type AnsweringStrategy string
 
 const (
-	FlagRandom   FlaggingStrategy  = "FLAG_RANDOM"
-	FlagSmart    FlaggingStrategy  = "FLAG_SMART"
+	AnswerHonest AnsweringStrategy = "ANSWER_HONEST"
 	AnswerRandom AnsweringStrategy = "ANSWER_RANDOM"
-	AnswerSmart  AnsweringStrategy = "ANSWER_SMART"
+	AnswerSmart  AnsweringStrategy = "ANSWER_SMART" // Hides malicious as Flagged
+	AnswerBold   AnsweringStrategy = "ANSWER_BOLD"  // Gaslights as Minimal
 )
 
+type AdversaryConfig struct {
+	AnsweringStr  AnsweringStrategy
+	MaliciousRate float64 // Used for consistency if needed, or remove
+}
+
 type Oracle struct {
-	Strategy        LyingStrategy
-	LieProbability  float64
-	Packets         map[int]*PacketRecord
-	Queries         int
-	FlagProbability float64
-	FlagStrategy    FlaggingStrategy
-	AnswerStrategy  AnsweringStrategy
+	Config       AdversaryConfig
+	Packets      map[int]*PacketRecord
+	Queries      int
+	QueryHistory map[int][]QueryRecord // PacketID -> List of previous answers
 }
 
-func NewNetworkOracle(strategy LyingStrategy, lieProbability float64) *Oracle {
+type QueryRecord struct {
+	Answer Answer
+	Time   float64 // When the query was asked (simulation time steps, if we track it)
+}
+
+func NewOracle(config AdversaryConfig) *Oracle {
 	return &Oracle{
-		Strategy:       strategy,
-		LieProbability: lieProbability,
-		Packets:        make(map[int]*PacketRecord),
+		Config:       config,
+		Packets:      make(map[int]*PacketRecord),
+		QueryHistory: make(map[int][]QueryRecord),
 	}
 }
 
-func NewStrategicOracle(f FlaggingStrategy, a AnsweringStrategy) *Oracle {
-	strategy := StrategyHonest
-	lieProbability := 0.0
-
-	if f == FlagSmart && a == AnswerSmart {
-		strategy = StrategySophisticated
-		lieProbability = 0.8
-	} else if a == AnswerRandom {
-		strategy = StrategyRandomLies
-		lieProbability = 0.5
-	} else if a == AnswerSmart {
-		strategy = StrategyMinimiseDelay
-	}
-
-	return &Oracle{
-		Strategy:        strategy,
-		LieProbability:  lieProbability,
-		Packets:         make(map[int]*PacketRecord),
-		FlagStrategy:    f,
-		AnswerStrategy:  a,
-		FlagProbability: 0.5,
-	}
-}
+// Targeting logic is handled by the Router/Simulation, not the Oracle.
+// The Oracle only observes the result (PacketRecord) and decides how to answer.
 
 func (o *Oracle) RecordTransmission(p PacketRecord) {
 	o.Packets[p.ID] = &p
 }
 
-func (o *Oracle) FlagPackets() {
-	allPackets := make([]*PacketRecord, 0, len(o.Packets))
-	for _, p := range o.Packets {
-		allPackets = append(allPackets, p)
-	}
-
-	sort.Slice(allPackets, func(i, j int) bool {
-		return allPackets[i].ActualDelay < allPackets[j].ActualDelay
-	})
-
-	fastThresholdIdx := int(float64(len(allPackets)) * 0.10)
-	fastThreshold := 0.0
-	if len(allPackets) > fastThresholdIdx {
-		fastThreshold = allPackets[fastThresholdIdx].ActualDelay
-	}
-
-	for _, p := range o.Packets {
-		shouldFlag := false
-
-		switch o.FlagStrategy {
-		case FlagRandom:
-			shouldFlag = rand.Float64() < o.FlagProbability
-
-		case FlagSmart:
-			if p.ActualDelay <= fastThreshold {
-				shouldFlag = false
-			} else {
-				overhead := p.ActualDelay - p.MinDelay
-				if overhead > 0.15 {
-					shouldFlag = true
-				}
-			}
-
-		default:
-			if o.Strategy == StrategySophisticated || o.Strategy == StrategyTargeted {
-				if p.ActualDelay > fastThreshold {
-					overhead := p.ActualDelay - p.MinDelay
-					if overhead > 0.15 {
-						shouldFlag = true
-					}
-				}
-			}
-		}
-
-		p.IsFlagged = shouldFlag
-	}
-}
-
-func (o *Oracle) Answer(q Query) Answer {
+// AnswerQuery handles the new single-packet query: "Did packet P achieve minimal delay?"
+func (o *Oracle) AnswerQuery(q Query) Answer {
 	o.Queries++
 
-	p1, ok1 := o.Packets[q.Pkt1]
-	p2, ok2 := o.Packets[q.Pkt2]
-
-	if !ok1 || !ok2 {
-		return Pkt1Lower
+	p, ok := o.Packets[q.PktID]
+	if !ok {
+		// Default to Minimal if we don't know (shouldn't happen)
+		return AnswerMinimal
 	}
 
-	truthAnswer := Pkt1Lower
-	if p2.MinDelay < p1.MinDelay {
-		truthAnswer = Pkt2Lower
+	answer := o.decideAnswer(p)
+
+	// Record history for consistency checking
+	if _, exists := o.QueryHistory[q.PktID]; !exists {
+		o.QueryHistory[q.PktID] = make([]QueryRecord, 0)
 	}
+	o.QueryHistory[q.PktID] = append(o.QueryHistory[q.PktID], QueryRecord{
+		Answer: answer,
+		Time:   q.Time,
+	})
 
-	switch o.Strategy {
-	case StrategyHonest:
-		return truthAnswer
-
-	case StrategyRandomLies:
-		if rand.Float64() < o.LieProbability {
-			if truthAnswer == Pkt1Lower {
-				return Pkt2Lower
-			}
-			return Pkt1Lower
-		}
-		return truthAnswer
-
-	case StrategyMinimiseDelay:
-		if p1.ActualDelay < p2.ActualDelay {
-			return Pkt1Lower
-		}
-		return Pkt2Lower
-
-	case StrategySophisticated:
-		return o.sophisticatedAnswer(p1, p2, truthAnswer)
-
-	case StrategyTargeted:
-		return o.targetedAnswer(p1, p2, truthAnswer)
-
-	default:
-		return truthAnswer
-	}
+	return answer
 }
 
-func (o *Oracle) sophisticatedAnswer(p1, p2 *PacketRecord, truth Answer) Answer {
-	if !p1.WasDelayed && !p2.WasDelayed {
-		return truth
-	}
+func (o *Oracle) decideAnswer(p *PacketRecord) Answer {
+	// Logic variables used below
+	hasMalicious := p.WasDelayed
 
-	if p1.WasDelayed && p2.WasDelayed {
-		if p1.ActualDelay < p2.ActualDelay {
-			return Pkt1Lower
+	// Threshold for "Legit Congestion" to be worth flagging?
+	// If we flag everything, the flag rate is 100%. The prompt implies flagging is for "congestion".
+	// Let's use a threshold, e.g., > 10ms over base?
+	hasCongestion := (p.ActualDelay - p.BaseDelay - p.MaliciousDelay) > 0.010
+
+	switch o.Config.AnsweringStr {
+	case AnswerHonest:
+		if hasMalicious {
+			// An honest network wouldn't have malicious delay, but if it did (by accident?), it would admittingly flag it?
+			// Or maybe "Honest" here implies the strategy the network *should* follow.
+			// Ideally, malicious packets shouldn't exist in honest status.
+			// But if we are simulating an attacker who decides to be honest about this packet:
+			return AnswerFlagged
 		}
-		return Pkt2Lower
-	}
-
-	if p1.WasDelayed {
-		if p1.ActualDelay >= p2.ActualDelay {
-			return Pkt2Lower
+		if hasCongestion {
+			return AnswerFlagged
 		}
-		return truth
-	}
+		return AnswerMinimal
 
-	if p2.ActualDelay >= p1.ActualDelay {
-		return Pkt1Lower
-	}
-	return truth
-}
-
-func (o *Oracle) targetedAnswer(p1, p2 *PacketRecord, truth Answer) Answer {
-	if !p1.WasDelayed && !p2.WasDelayed {
-		return truth
-	}
-
-	if rand.Float64() < o.LieProbability {
-		if truth == Pkt1Lower {
-			return Pkt2Lower
+	case AnswerRandom:
+		if rand.Float64() < 0.5 {
+			return AnswerMinimal
 		}
-		return Pkt1Lower
+		return AnswerFlagged
+
+	case AnswerSmart: // "Hide" strategy
+		if hasMalicious {
+			// Malicious packet! We want to hide it.
+			// If we say Minimal -> We claim delay is base. But obs delay is high. Risk of Logical Contradiction.
+			// If we say Flagged -> We claim delay is legit congestion. Obs delay is high. Plausible!
+			// Smart strategy: Claim Flagged.
+			return AnswerFlagged
+		}
+		// Non-malicious packets: Be honest to maintain credibility?
+		// Or random? Usually honest is best to minimize flag rate abuse.
+		if hasCongestion {
+			return AnswerFlagged
+		}
+		return AnswerMinimal
+
+	case AnswerBold: // "Gaslight" strategy
+		if hasMalicious {
+			// Try to claim it's minimal!
+			// Only works if the delay isn't HUGE compared to minimal.
+			// If (Obs - Base) is small enough, maybe we get away with it.
+			return AnswerMinimal
+		}
+		// Non-malicious
+		if hasCongestion {
+			return AnswerFlagged
+		}
+		return AnswerMinimal
 	}
 
-	return truth
+	return AnswerMinimal
 }
 
 func (o *Oracle) GetPacket(id int) *PacketRecord {
@@ -215,5 +152,3 @@ func (o *Oracle) GetAllPackets() []*PacketRecord {
 	}
 	return result
 }
-
-func (o *Oracle) SetShortestPath(name string, delay float64) {}

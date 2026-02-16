@@ -16,54 +16,50 @@ type ExperimentConfig struct {
 	SimDuration        float64
 	DelayModelConfig   network.DelayModelConfig
 	TargetingConfig    network.TargetingConfig
-	LyingStrategy      verification.LyingStrategy
-	LieProbability     float64
+	AdversaryConfig    verification.AdversaryConfig
 	VerificationConfig verification.VerificationConfig
-	FlaggingStrategy   verification.FlaggingStrategy
-	AnsweringStrategy  verification.AnsweringStrategy
-	FlagProbability    float64
 }
 
 func DefaultExperimentConfig() ExperimentConfig {
 	return ExperimentConfig{
 		Name:        "default",
-		NumPackets:  100,
-		NumTrials:   10,
-		SimDuration: 50.0,
+		NumPackets:  1000,
+		NumTrials:   5,
+		SimDuration: 100.0,
 
 		DelayModelConfig: network.DelayModelConfig{
 			BaseDelayMin:   0.020,
 			BaseDelayMax:   0.080,
 			TransitionRate: 0.05,
-			LegitMu:        -3.9,
+			LegitMu:        -4.6,
 			LegitSigma:     0.8,
-			MaliciousMin:   0.5,
-			MaliciousMax:   2.0,
+			MaliciousMin:   0.100,
+			MaliciousMax:   0.200,
 		},
 
 		TargetingConfig: network.DefaultHonestTargeting(),
-		LyingStrategy:   verification.StrategyHonest,
-		LieProbability:  0.0,
+
+		AdversaryConfig: verification.AdversaryConfig{
+			AnsweringStr:  verification.AnswerHonest,
+			MaliciousRate: 0.1,
+		},
 
 		VerificationConfig: verification.DefaultVerificationConfig(),
-		FlaggingStrategy:   verification.FlagRandom,
-		AnsweringStrategy:  verification.AnswerRandom,
-		FlagProbability:    0.5,
 	}
 }
 
 type TrialResult struct {
-	TrialNum            int
-	Verdict             string
-	Confidence          float64
-	Trustworthy         bool
-	QueriesExecuted     int
-	ContradictionsFound int
-	DefinitiveProofs    int
-	TrueDelayedPackets  int
-	TrueDelayFraction   float64
-	DetectedCorrectly   bool
-	Duration            time.Duration
+	TrialNum              int
+	Verdict               string
+	Confidence            float64
+	Trustworthy           bool
+	QueriesExecuted       int
+	ContradictionsFound   int
+	HistoryContradictions int
+	TrueDelayedPackets    int
+	TrueDelayFraction     float64
+	DetectedCorrectly     bool
+	Duration              time.Duration
 }
 
 type ExperimentResult struct {
@@ -80,10 +76,7 @@ type ExperimentResult struct {
 }
 
 func (er ExperimentResult) String() string {
-	strategyName := string(er.Config.LyingStrategy)
-	if er.Config.FlaggingStrategy != "" {
-		strategyName = fmt.Sprintf("%s/%s", er.Config.FlaggingStrategy, er.Config.AnsweringStrategy)
-	}
+	strategyName := fmt.Sprintf("%s", er.Config.AdversaryConfig.AnsweringStr)
 
 	result := fmt.Sprintf(`
 ================================================================================
@@ -142,7 +135,7 @@ func NewRunner() *Runner {
 
 func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 	fmt.Printf("\n>>> Running experiment: %s (%d trials)\n", config.Name, config.NumTrials)
-	fmt.Printf("    Strategy: %s\n", config.LyingStrategy)
+	fmt.Printf("    Strategy: %s, Targeting: %s\n", config.AdversaryConfig.AnsweringStr, config.TargetingConfig.Mode)
 
 	trials := make([]TrialResult, config.NumTrials)
 
@@ -153,8 +146,8 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 
 		trials[trial] = result
 
-		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d)\n",
-			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted)
+		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, hist_contra=%d)\n",
+			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.HistoryContradictions)
 	}
 
 	aggregated := r.aggregateResults(config, trials)
@@ -170,13 +163,9 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	delayModel.Initialise(config.SimDuration + 10.0)
 
 	router := network.NewRouter(delayModel, config.TargetingConfig)
-	var oracle *verification.Oracle
-	if config.LyingStrategy != "" {
-		oracle = verification.NewNetworkOracle(config.LyingStrategy, config.LieProbability)
-	} else {
-		oracle = verification.NewStrategicOracle(config.FlaggingStrategy, config.AnsweringStrategy)
-		oracle.FlagProbability = config.FlagProbability
-	}
+
+	// Create Oracle
+	oracle := verification.NewOracle(config.AdversaryConfig)
 
 	dest := NewMockGroundStation("DestStation")
 	transmissions := make([]verification.TransmissionRecord, 0)
@@ -202,6 +191,11 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 		}
 	}
 
+	// For ID-based targeting, we need to populate TargetIDs in config if not done
+	if config.TargetingConfig.Mode == network.TargetByID && len(config.TargetingConfig.TargetIDs) == 0 {
+		// Populate logic handled elsewhere or assume user provided it
+	}
+
 	for i := 0; i < config.NumPackets; i++ {
 		pktID := i
 		sendTime := float64(i) * (config.SimDuration / float64(config.NumPackets))
@@ -213,34 +207,34 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	}
 
 	sim.Run(config.SimDuration + 10.0)
-	oracle.FlagPackets()
+
 	finalRecords := make([]verification.TransmissionRecord, 0)
 	for _, pPtr := range oracle.Packets {
 		finalRecords = append(finalRecords, *pPtr)
 	}
 
 	verifyConfig := config.VerificationConfig
-	verifyConfig.SamplingSecret = fmt.Sprintf("secret_trial_%d_%d", trialNum, time.Now().UnixNano())
+	// Update secret if needed
 
 	verifier := verification.NewVerifier(oracle, verifyConfig)
 	verifier.IngestRecords(finalRecords)
-	result := verifier.RunVerification(sim.Now)
+	result := verifier.RunVerification()
 
 	wasAdversarial := config.TargetingConfig.Mode != network.TargetNone
 	detectedDishonest := !result.Trustworthy
 	correctDetection := (wasAdversarial && detectedDishonest) || (!wasAdversarial && !detectedDishonest)
 
 	return TrialResult{
-		TrialNum:            trialNum,
-		Verdict:             result.Verdict,
-		Confidence:          result.Confidence,
-		Trustworthy:         result.Trustworthy,
-		QueriesExecuted:     result.TotalQueries,
-		ContradictionsFound: result.ContradictionsFound,
-		DefinitiveProofs:    result.DefinitiveProofs,
-		TrueDelayedPackets:  delayedCount,
-		TrueDelayFraction:   float64(delayedCount) / float64(config.NumPackets),
-		DetectedCorrectly:   correctDetection,
+		TrialNum:              trialNum,
+		Verdict:               result.Verdict,
+		Confidence:            result.Confidence,
+		Trustworthy:           result.Trustworthy,
+		QueriesExecuted:       result.TotalQueries,
+		ContradictionsFound:   result.ContradictionsFound,
+		HistoryContradictions: result.HistoryContradictions,
+		TrueDelayedPackets:    delayedCount,
+		TrueDelayFraction:     float64(delayedCount) / float64(config.NumPackets),
+		DetectedCorrectly:     correctDetection,
 	}
 }
 
@@ -308,23 +302,27 @@ func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult)
 func (r *Runner) RunStrategySweep(name string, baseConfig ExperimentConfig) []ExperimentResult {
 	results := make([]ExperimentResult, 0)
 
-	strategies := []struct {
-		flag   verification.FlaggingStrategy
-		answer verification.AnsweringStrategy
-		name   string
-	}{
-		{verification.FlagRandom, verification.AnswerRandom, "rand_rand"},
-		{verification.FlagRandom, verification.AnswerSmart, "rand_smart"},
-		{verification.FlagSmart, verification.AnswerRandom, "smart_rand"},
-		{verification.FlagSmart, verification.AnswerSmart, "smart_smart"},
+	// Sweep Packet Size? Strategy?
+	// For now, let's sweep Answering Strategies
+
+	strats := []verification.AnsweringStrategy{
+		verification.AnswerHonest,
+		verification.AnswerRandom,
+		verification.AnswerSmart,
+		verification.AnswerBold,
 	}
 
-	for _, strat := range strategies {
+	for _, s := range strats {
 		config := baseConfig
-		config.Name = fmt.Sprintf("%s_%s", name, strat.name)
-		config.FlaggingStrategy = strat.flag
-		config.AnsweringStrategy = strat.answer
-		config.LyingStrategy = "" // Use legacy strategies
+		config.Name = fmt.Sprintf("%s_%s", name, s)
+		config.AdversaryConfig.AnsweringStr = s
+		// Force Targeting to Random if adversarial
+		if config.TargetingConfig.Mode == network.TargetNone {
+			// This sweep assumes adversarial targeting?
+			// If we want to test honesty, use TargetNone.
+			// If we sweep strategies, we probably mean Adversarial Strategies.
+			config.TargetingConfig = network.DefaultAdversarialTargeting(0.10) // 10% attack
+		}
 
 		result := r.RunExperiment(config)
 		results = append(results, result)
@@ -355,7 +353,7 @@ func (r *Runner) PrintSummary() {
 
 	for _, result := range r.Results {
 		fmt.Printf("\n%s:\n", result.Config.Name)
-		fmt.Printf("  Strategy: %s\n", result.Config.LyingStrategy)
+		fmt.Printf("  Strategy: %s\n", result.Config.AdversaryConfig.AnsweringStr)
 
 		if result.WasAdversarial {
 			fmt.Printf("  TPR: %.1f%%, FNR: %.1f%%, Mean Queries: %.1f\n",
@@ -381,7 +379,7 @@ func (r *Runner) GenerateCSV() string {
 			result.Config.Name,
 			result.WasAdversarial,
 			result.TargetDelayFraction,
-			result.Config.LyingStrategy,
+			result.Config.AdversaryConfig.AnsweringStr,
 			result.TruePositiveRate,
 			result.FalsePositiveRate,
 			result.TrueNegativeRate,

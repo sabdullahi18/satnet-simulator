@@ -26,27 +26,27 @@ func main() {
 	honestConfig.NumPackets = 100
 	honestConfig.NumTrials = 5
 	honestConfig.TargetingConfig = network.DefaultHonestTargeting()
-	honestConfig.LyingStrategy = verification.StrategyHonest
+	honestConfig.AdversaryConfig.AnsweringStr = verification.AnswerHonest
 	runner.RunExperiment(honestConfig)
 
-	fmt.Println("\n>>> Experiment 2: Adversarial Network (10% targeted, sophisticated lying)")
+	fmt.Println("\n>>> Experiment 2: Adversarial Network (10% targeted, Smart lying)")
 	adversarialConfig := experiment.DefaultExperimentConfig()
-	adversarialConfig.Name = "adversarial_10pct"
+	adversarialConfig.Name = "adversarial_10pct_smart"
 	adversarialConfig.NumPackets = 100
 	adversarialConfig.NumTrials = 5
 	adversarialConfig.TargetingConfig = network.DefaultAdversarialTargeting(0.10)
-	adversarialConfig.LyingStrategy = verification.StrategySophisticated
-	adversarialConfig.LieProbability = 0.8
+	adversarialConfig.AdversaryConfig.AnsweringStr = verification.AnswerSmart
+	adversarialConfig.AdversaryConfig.MaliciousRate = 0.10
 	runner.RunExperiment(adversarialConfig)
 
-	fmt.Println("\n>>> Experiment 3: Adversarial Network (20% targeted, sophisticated lying)")
+	fmt.Println("\n>>> Experiment 3: Adversarial Network (20% targeted, Bold gaslighting)")
 	adversarialConfig2 := experiment.DefaultExperimentConfig()
-	adversarialConfig2.Name = "adversarial_20pct"
+	adversarialConfig2.Name = "adversarial_20pct_bold"
 	adversarialConfig2.NumPackets = 100
 	adversarialConfig2.NumTrials = 5
 	adversarialConfig2.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
-	adversarialConfig2.LyingStrategy = verification.StrategySophisticated
-	adversarialConfig2.LieProbability = 0.8
+	adversarialConfig2.AdversaryConfig.AnsweringStr = verification.AnswerBold
+	adversarialConfig2.AdversaryConfig.MaliciousRate = 0.20
 	runner.RunExperiment(adversarialConfig2)
 
 	runner.PrintSummary()
