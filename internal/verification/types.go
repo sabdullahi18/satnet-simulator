@@ -11,9 +11,6 @@ func (q Query) String() string {
 	return fmt.Sprintf("Q(t=%.2f): is_minimal(%d)?", q.Time, q.PktID)
 }
 
-// Answer represents the oracle's two-part response:
-// IsMinimal: "Did this packet achieve the minimum possible delay?"
-// IsFlagged: "If not minimal, was this due to legitimate congestion?"
 type Answer struct {
 	IsMinimal bool
 	IsFlagged bool
@@ -37,7 +34,7 @@ type PacketRecord struct {
 	MaliciousDelay float64
 	ActualDelay    float64
 	MinDelay       float64
-	WasDelayed     bool // True if MaliciousDelay > 0 (packet was targeted)
+	WasDelayed     bool // True if MaliciousDelay > 0
 	HasCongestion  bool // True if packet experienced legitimate congestion
 }
 

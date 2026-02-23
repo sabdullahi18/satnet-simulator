@@ -7,7 +7,7 @@ import (
 
 type VerificationConfig struct {
 	MaxQueries        int
-	FlagRateThreshold float64 // Above this flagging rate, the network is suspicious
+	FlagRateThreshold float64 
 }
 
 func DefaultVerificationConfig() VerificationConfig {
@@ -48,14 +48,11 @@ func (v *Verifier) RunVerification() VerificationResult {
 		return VerificationResult{Verdict: "INSUFFICIENT_DATA", Trustworthy: true}
 	}
 
-	// Group records by batch (same send time)
 	batches := v.groupByTime()
-
 	contradictions := 0
 	queries := 0
 	flaggedCount := 0
 
-	// Process batches in random order
 	times := make([]int, 0, len(batches))
 	for bid := range batches {
 		times = append(times, bid)
@@ -74,7 +71,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 			continue
 		}
 
-		// Find minimum observed delay in this batch
 		minDelay := batch[0].ActualDelay
 		for _, p := range batch[1:] {
 			if p.ActualDelay < minDelay {
@@ -82,8 +78,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 			}
 		}
 
-		// Query packets with delay > minDelay: "Is this minimal?"
-		// Also query some packets with delay == minDelay for flag rate tracking
 		for _, p := range batch {
 			if queries >= v.Config.MaxQueries {
 				break
@@ -94,27 +88,23 @@ func (v *Verifier) RunVerification() VerificationResult {
 			ans := v.Oracle.AnswerQuery(q)
 			queries++
 
-			// Detection mechanism 1: Logical Contradictions
 			// If oracle claims minimal but we observed a lower delay in the same batch,
 			// that's a direct contradiction — absolute proof of dishonesty.
 			if ans.IsMinimal && p.ActualDelay > minDelay {
 				contradictions++
 			}
 
-			// Track flagging for mechanism 2
 			if ans.IsFlagged {
 				flaggedCount++
 			}
 		}
 	}
 
-	// Detection mechanism 2: Flagging Rate Anomalies
 	flaggingRate := 0.0
 	if queries > 0 {
 		flaggingRate = float64(flaggedCount) / float64(queries)
 	}
 
-	// Determine verdict
 	verdict := "TRUSTED"
 	trustworthy := true
 	confidence := 1.0 - flaggingRate
@@ -139,12 +129,9 @@ func (v *Verifier) RunVerification() VerificationResult {
 	}
 }
 
-// groupByTime groups records by their SentTime.
-// Records in the same batch were sent at the same time and should share the same base delay.
 func (v *Verifier) groupByTime() map[int][]TransmissionRecord {
 	batches := make(map[int][]TransmissionRecord)
 
-	// Sort records by SentTime so we can group by exact send time
 	sorted := make([]TransmissionRecord, len(v.Records))
 	copy(sorted, v.Records)
 	sort.Slice(sorted, func(i, j int) bool {

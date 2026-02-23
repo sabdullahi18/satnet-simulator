@@ -4,14 +4,13 @@ import (
 	"math/rand"
 )
 
-// AnsweringStrategy defines how the oracle responds to queries
 type AnsweringStrategy string
 
 const (
 	AnswerHonest          AnsweringStrategy = "ANSWER_HONEST"
 	AnswerRandom          AnsweringStrategy = "ANSWER_RANDOM"
-	AnswerDelayedHonest   AnsweringStrategy = "ANSWER_DELAYED_HONEST"   // Hides malicious as congestion (Flagged)
-	AnswerLiesThatMinimal AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL" // Gaslights: claims malicious packets are minimal
+	AnswerDelayedHonest   AnsweringStrategy = "ANSWER_DELAYED_HONEST"   // hides malicious as congestion
+	AnswerLiesThatMinimal AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL" // claims malicious packets are minimal
 )
 
 type AdversaryConfig struct {
@@ -73,8 +72,6 @@ func (o *Oracle) decideAnswer(p *PacketRecord) Answer {
 	switch o.Config.AnsweringStr {
 	case AnswerHonest:
 		// Honest: report truthfully based on ground truth
-		// IsMinimal = packet had neither congestion nor malicious delay
-		// IsFlagged = packet had congestion
 		isMinimal := !hasCongestion && !hasMalicious
 		return Answer{IsMinimal: isMinimal, IsFlagged: hasCongestion}
 
