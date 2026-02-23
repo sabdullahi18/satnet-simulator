@@ -10,6 +10,7 @@ type DelayModel struct {
 	BaseDelayMin   float64
 	BaseDelayMax   float64
 	TransitionRate float64
+	CongestionRate float64
 	LegitMu        float64
 	LegitSigma     float64
 	MaliciousMin   float64
@@ -36,6 +37,7 @@ func DefaultDelayModel() *DelayModel {
 		BaseDelayMin:   0.020,
 		BaseDelayMax:   0.080,
 		TransitionRate: 0.05,
+		CongestionRate: 0.2,
 		// LogNormal parameters for legit delay (occasional spikes)
 		// mu=-4.6, sigma=0.8 gives median ~10ms, mean ~14ms, 99th %ile ~64ms
 		LegitMu:      -4.6,
@@ -52,6 +54,7 @@ func NewDelayModelConfig(cfg DelayModelConfig) *DelayModel {
 		BaseDelayMin:   cfg.BaseDelayMin,
 		BaseDelayMax:   cfg.BaseDelayMax,
 		TransitionRate: cfg.TransitionRate,
+		CongestionRate: cfg.CongestionRate,
 		LegitMu:        cfg.LegitMu,
 		LegitSigma:     cfg.LegitSigma,
 		MaliciousMin:   cfg.MaliciousMin,
@@ -65,6 +68,7 @@ type DelayModelConfig struct {
 	BaseDelayMin   float64
 	BaseDelayMax   float64
 	TransitionRate float64
+	CongestionRate float64
 	LegitMu        float64
 	LegitSigma     float64
 	MaliciousMin   float64
@@ -132,9 +136,13 @@ func (dm *DelayModel) GetMaliciousDelay() float64 {
 	return dm.MaliciousMin + rand.Float64()*(dm.MaliciousMax-dm.MaliciousMin)
 }
 
-func (dm *DelayModel) ComputeTotalDelay(sendTime float64, isMalicious bool) DelayComponents {
+func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasCongestion bool, isMalicious bool) DelayComponents {
 	baseDelay := dm.GetBaseDelay(sendTime)
-	legitDelay := dm.GetLegitDelay()
+
+	legitDelay := 0.0
+	if hasCongestion {
+		legitDelay = dm.GetLegitDelay()
+	}
 
 	maliciousDelay := 0.0
 	if isMalicious {

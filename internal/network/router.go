@@ -65,6 +65,7 @@ type TransmissionInfo struct {
 	TotalDelay       float64
 	MinPossibleDelay float64
 	WasDelayed       bool
+	HasCongestion    bool
 }
 
 type Router struct {
@@ -118,7 +119,9 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 		r.PacketsTargeted++
 	}
 
-	delays := r.DelayModel.ComputeTotalDelay(sendTime, isTargeted)
+	hasCongestion := rand.Float64() < r.DelayModel.CongestionRate
+
+	delays := r.DelayModel.ComputeTotalDelay(sendTime, hasCongestion, isTargeted)
 	sim.Schedule(delays.TotalDelay, func() {
 		if r.OnTransmission != nil {
 			r.OnTransmission(TransmissionInfo{
@@ -132,6 +135,7 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 				TotalDelay:       delays.TotalDelay,
 				MinPossibleDelay: delays.MinPossible,
 				WasDelayed:       isTargeted,
+				HasCongestion:    hasCongestion,
 			})
 		}
 

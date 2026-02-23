@@ -12,6 +12,7 @@ import (
 type ExperimentConfig struct {
 	Name               string
 	NumPackets         int
+	BatchSize          int
 	NumTrials          int
 	SimDuration        float64
 	DelayModelConfig   network.DelayModelConfig
@@ -24,6 +25,7 @@ func DefaultExperimentConfig() ExperimentConfig {
 	return ExperimentConfig{
 		Name:        "default",
 		NumPackets:  1000,
+		BatchSize:   2,
 		NumTrials:   5,
 		SimDuration: 100.0,
 
@@ -31,6 +33,7 @@ func DefaultExperimentConfig() ExperimentConfig {
 			BaseDelayMin:   0.020,
 			BaseDelayMax:   0.080,
 			TransitionRate: 0.05,
+			CongestionRate: 0.2,
 			LegitMu:        -4.6,
 			LegitSigma:     0.8,
 			MaliciousMin:   0.100,
@@ -49,17 +52,17 @@ func DefaultExperimentConfig() ExperimentConfig {
 }
 
 type TrialResult struct {
-	TrialNum              int
-	Verdict               string
-	Confidence            float64
-	Trustworthy           bool
-	QueriesExecuted       int
-	ContradictionsFound   int
-	HistoryContradictions int
-	TrueDelayedPackets    int
-	TrueDelayFraction     float64
-	DetectedCorrectly     bool
-	Duration              time.Duration
+	TrialNum            int
+	Verdict             string
+	Confidence          float64
+	Trustworthy         bool
+	QueriesExecuted     int
+	ContradictionsFound int
+	FlaggingRate        float64
+	TrueDelayedPackets  int
+	TrueDelayFraction   float64
+	DetectedCorrectly   bool
+	Duration            time.Duration
 }
 
 type ExperimentResult struct {
@@ -146,8 +149,8 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 
 		trials[trial] = result
 
-		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, hist_contra=%d)\n",
-			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.HistoryContradictions)
+		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, contradictions=%d, flagRate=%.2f%%)\n",
+			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.ContradictionsFound, result.FlaggingRate*100)
 	}
 
 	aggregated := r.aggregateResults(config, trials)
@@ -181,6 +184,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 			ActualDelay:    info.TotalDelay,
 			MinDelay:       info.MinPossibleDelay,
 			WasDelayed:     info.WasDelayed,
+			HasCongestion:  info.HasCongestion,
 		}
 
 		oracle.RecordTransmission(record)
@@ -196,14 +200,29 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 		// Populate logic handled elsewhere or assume user provided it
 	}
 
-	for i := 0; i < config.NumPackets; i++ {
-		pktID := i
-		sendTime := float64(i) * (config.SimDuration / float64(config.NumPackets))
+	// Schedule packets in batches — all packets in a batch share the same send time
+	batchSize := config.BatchSize
+	if batchSize < 2 {
+		batchSize = 2
+	}
+	numBatches := config.NumPackets / batchSize
+	if numBatches < 1 {
+		numBatches = 1
+	}
 
-		sim.Schedule(sendTime, func() {
-			pkt := network.NewPacket(pktID, "SourceStation", sim.Now)
-			router.Forward(sim, pkt, dest)
-		})
+	pktID := 0
+	for b := 0; b < numBatches; b++ {
+		sendTime := float64(b) * (config.SimDuration / float64(numBatches))
+
+		for j := 0; j < batchSize; j++ {
+			currentPktID := pktID
+			pktID++
+
+			sim.Schedule(sendTime, func() {
+				pkt := network.NewPacket(currentPktID, "SourceStation", sim.Now)
+				router.Forward(sim, pkt, dest)
+			})
+		}
 	}
 
 	sim.Run(config.SimDuration + 10.0)
@@ -225,16 +244,16 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	correctDetection := (wasAdversarial && detectedDishonest) || (!wasAdversarial && !detectedDishonest)
 
 	return TrialResult{
-		TrialNum:              trialNum,
-		Verdict:               result.Verdict,
-		Confidence:            result.Confidence,
-		Trustworthy:           result.Trustworthy,
-		QueriesExecuted:       result.TotalQueries,
-		ContradictionsFound:   result.ContradictionsFound,
-		HistoryContradictions: result.HistoryContradictions,
-		TrueDelayedPackets:    delayedCount,
-		TrueDelayFraction:     float64(delayedCount) / float64(config.NumPackets),
-		DetectedCorrectly:     correctDetection,
+		TrialNum:            trialNum,
+		Verdict:             result.Verdict,
+		Confidence:          result.Confidence,
+		Trustworthy:         result.Trustworthy,
+		QueriesExecuted:     result.TotalQueries,
+		ContradictionsFound: result.ContradictionsFound,
+		FlaggingRate:        result.FlaggingRate,
+		TrueDelayedPackets:  delayedCount,
+		TrueDelayFraction:   float64(delayedCount) / float64(config.NumPackets),
+		DetectedCorrectly:   correctDetection,
 	}
 }
 
@@ -308,8 +327,8 @@ func (r *Runner) RunStrategySweep(name string, baseConfig ExperimentConfig) []Ex
 	strats := []verification.AnsweringStrategy{
 		verification.AnswerHonest,
 		verification.AnswerRandom,
-		verification.AnswerSmart,
-		verification.AnswerBold,
+		verification.AnswerDelayedHonest,
+		verification.AnswerLiesThatMinimal,
 	}
 
 	for _, s := range strats {
