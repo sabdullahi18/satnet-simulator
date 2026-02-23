@@ -14,27 +14,19 @@ const (
 )
 
 type AdversaryConfig struct {
-	AnsweringStr  AnsweringStrategy
-	MaliciousRate float64
+	AnsweringStr AnsweringStrategy
 }
 
 type Oracle struct {
-	Config       AdversaryConfig
-	Packets      map[int]*PacketRecord
-	Queries      int
-	QueryHistory map[int][]QueryRecord // PacketID -> list of previous answers
-}
-
-type QueryRecord struct {
-	Answer Answer
-	Time   float64
+	Config  AdversaryConfig
+	Packets map[int]*PacketRecord
+	Queries int
 }
 
 func NewOracle(config AdversaryConfig) *Oracle {
 	return &Oracle{
-		Config:       config,
-		Packets:      make(map[int]*PacketRecord),
-		QueryHistory: make(map[int][]QueryRecord),
+		Config:  config,
+		Packets: make(map[int]*PacketRecord),
 	}
 }
 
@@ -52,17 +44,7 @@ func (o *Oracle) AnswerQuery(q Query) Answer {
 		return Answer{IsMinimal: true, IsFlagged: false}
 	}
 
-	answer := o.decideAnswer(p)
-
-	if _, exists := o.QueryHistory[q.PktID]; !exists {
-		o.QueryHistory[q.PktID] = make([]QueryRecord, 0)
-	}
-	o.QueryHistory[q.PktID] = append(o.QueryHistory[q.PktID], QueryRecord{
-		Answer: answer,
-		Time:   q.Time,
-	})
-
-	return answer
+	return o.decideAnswer(p)
 }
 
 func (o *Oracle) decideAnswer(p *PacketRecord) Answer {
@@ -104,16 +86,4 @@ func (o *Oracle) decideAnswer(p *PacketRecord) Answer {
 	}
 
 	return Answer{IsMinimal: true, IsFlagged: false}
-}
-
-func (o *Oracle) GetPacket(id int) *PacketRecord {
-	return o.Packets[id]
-}
-
-func (o *Oracle) GetAllPackets() []*PacketRecord {
-	result := make([]*PacketRecord, 0, len(o.Packets))
-	for _, p := range o.Packets {
-		result = append(result, p)
-	}
-	return result
 }

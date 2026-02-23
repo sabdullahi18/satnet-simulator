@@ -33,7 +33,6 @@ type PacketRecord struct {
 	LegitDelay     float64
 	MaliciousDelay float64
 	ActualDelay    float64
-	MinDelay       float64
 	WasDelayed     bool // True if MaliciousDelay > 0
 	HasCongestion  bool // True if packet experienced legitimate congestion
 }

@@ -29,24 +29,6 @@ type DelayComponents struct {
 	LegitDelay     float64
 	MaliciousDelay float64
 	TotalDelay     float64
-	MinPossible    float64
-}
-
-func DefaultDelayModel() *DelayModel {
-	return &DelayModel{
-		BaseDelayMin:   0.020,
-		BaseDelayMax:   0.080,
-		TransitionRate: 0.05,
-		CongestionRate: 0.2,
-		// LogNormal parameters for legit delay (occasional spikes)
-		// mu=-4.6, sigma=0.8 gives median ~10ms, mean ~14ms, 99th %ile ~64ms
-		LegitMu:      -4.6,
-		LegitSigma:   0.8,
-		MaliciousMin: 0.100, // 100ms
-		MaliciousMax: 0.200, // 200ms
-		transitions:  make([]PathTransition, 0),
-		initialised:  false,
-	}
 }
 
 func NewDelayModelConfig(cfg DelayModelConfig) *DelayModel {
@@ -154,25 +136,5 @@ func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasCongestion bool, is
 		LegitDelay:     legitDelay,
 		MaliciousDelay: maliciousDelay,
 		TotalDelay:     baseDelay + legitDelay + maliciousDelay,
-		MinPossible:    baseDelay,
 	}
-}
-
-func (dm *DelayModel) GetTransitionCount() int {
-	return len(dm.transitions)
-}
-
-func (dm *DelayModel) GetTransitions() []PathTransition {
-	result := make([]PathTransition, len(dm.transitions))
-	copy(result, dm.transitions)
-	return result
-}
-
-func (dm *DelayModel) Reset() {
-	dm.transitions = make([]PathTransition, 0)
-	dm.initialised = false
-}
-
-func (dm *DelayModel) IsInitialised() bool {
-	return dm.initialised
 }

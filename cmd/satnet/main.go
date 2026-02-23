@@ -33,7 +33,6 @@ func main() {
 	adversarialConfig.NumTrials = 5
 	adversarialConfig.TargetingConfig = network.DefaultAdversarialTargeting(0.10)
 	adversarialConfig.AdversaryConfig.AnsweringStr = verification.AnswerDelayedHonest
-	adversarialConfig.AdversaryConfig.MaliciousRate = 0.10
 	runner.RunExperiment(adversarialConfig)
 
 	fmt.Println("\n>>> Experiment 3: Adversarial Network (20% targeted, Lies-That-Minimal gaslighting)")
@@ -44,11 +43,7 @@ func main() {
 	adversarialConfig2.NumTrials = 5
 	adversarialConfig2.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
 	adversarialConfig2.AdversaryConfig.AnsweringStr = verification.AnswerLiesThatMinimal
-	adversarialConfig2.AdversaryConfig.MaliciousRate = 0.20
 	runner.RunExperiment(adversarialConfig2)
 
 	runner.PrintSummary()
-
-	// fmt.Println("\n>>> CSV Export:")
-	// fmt.Println(runner.GenerateCSV())
 }
