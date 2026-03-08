@@ -230,6 +230,18 @@ The verifier operates without access to ground truth. It knows only:
 - The `SentTime` of every packet.
 - The oracle's answers to its queries.
 
+### Flagging Before Querying
+
+It is critical to understand the chronological flow of information. The interaction happens in two distinct phases:
+
+- Flagging (Network-Initiated): Before any queries are made, the network must proactively flag packets it claims experienced legitimate congestion
+- Querying (Verifier-Initiated): After observing the delays and the network's congestion flags, the verifier actively queries the network about specific packets
+
+### Classification
+
+- `Honest`: The network accurately reports minimal packets, correctly flags legitimately congested packets, and does not inject malicious delay
+- `Dishonest`: This state encompasses both malicious actors and incompetent networks. If a network lies to cover up targeted delays (malice) or fails to accurately flag severely delayed packets (incompetence), it is classified as Dishonest. From the customer's perspective, both behaviours violate the service level agreement and warrant switching providers
+
 ### Batch Grouping
 
 The verifier groups all `TransmissionRecord`s by `int(SentTime)`, i.e. the send time truncated to the nearest integer second. Every packet sent within the same one-second window forms a batch.
@@ -243,7 +255,7 @@ Batches are shuffled into random order before processing (to avoid systematic bi
 For each batch:
 
 1. Find `minDelay`: the smallest `ActualDelay` observed across all packets in the batch.
-2. For each packet `p` in the batch, query the oracle: _"Was packet `p` minimal?"_
+2. For a packet `p` in the batch, query the oracle: _"Was packet `p` minimal?"_
 3. If `ans.IsMinimal == true` **and** `p.ActualDelay > minDelay`, record a **contradiction**.
 
 If the oracle says packet P was minimal, it is claiming P experienced only the base propagation delay. But another packet Q in the same batch (same send time, same base delay) arrived sooner. Therefore P could not have been minimal — the oracle is lying.
@@ -265,6 +277,47 @@ If `flaggingRate > FlagRateThreshold` (default 30%) and no contradictions were f
 | No contradictions, flag rate <= threshold | `TRUSTED`              | `true`        | `1.0 - flaggingRate` |
 
 The `MALICIOUS` verdict is issued with certainty (`Confidence=1.0`) because a contradiction is a deductive proof of dishonesty: no probabilistic inference is required. The `SUSPICIOUS_FLAG_RATE` verdict is a probabilistic signal, not a proof.
+
+Also, as mentioned in [Flagging Inconsistency](#flagging-inconsistency), if a packet with delay $d_1$ is flagged, but a packet with delay $d_2$ is not flagged (where $d_1 < d_2$), the verifier queries $d_2$. If the oracle claims $d_2$ was minimal, it triggers a direct contradiction. If the oracle claims $d_2$ was not minimal, the network admits it failed to flag a delayed packet. The verifier penalises this incompetence by treating $d_2$ as a packet that should have been flagged, artificially inflating the network's tracked flagging rate. If this rate exceeds the acceptable threshold $\tau$, the network is caught.
+
+### Statistical Framework
+
+The framework evaluates the network's behaviour by tracking the probabilities of three distinct modes: 
+
+- **$H_0$ (Honest):** The SNP operates truthfully, answering queries accurately and flagging only packets that genuinely experienced legitimate congestion
+- **$H_1$ (Incompetent):** The SNP provides unreliable answers due to poor record-keeping
+- **$H_2$ (Malicious):** The SNP deliberately delays targeted packets and strategically answers queries to avoid detection
+
+(Note: $H_1$ and $H_2$ both ultimately result in a "Dishonest" verdict from a customer SLA perspective.)
+
+#### Empirical Delay Distributions
+
+As the network responds to queries, the verifier incrementally constructs and updates empirical probability distributions based on the observed data. Two core distributions are maintained:
+
+- $F_{minimal}$: The distribution of delays for packets the SNP claims achieved minimal delay
+- $F_{flagged}$: The distribution of delays for packets the SNP flags as having experienced congestion
+
+Under honest operation ($H_0$), there should be a clear statistical separation between these two distributions: flagged packets should consistently exhibit higher delays than packets claimed to be minimal. The likelihood of observing a specific delay $d$ under $H_0$ is estimated using the empirical density functions:
+
+- Given a minimal claim: $P(d | \text{SNP claims minimal}, H_0) = \hat{f}_{minimal}(d)$
+- Given a congestion flag: $P(d | \text{SNP flags congestion}, H_0) = \hat{f}_{flagged}(d)$ 
+
+#### Bayesian Updating
+
+As the verifier gathers a sequence of heterogeneous evidence $E_1, E_2, \dots, E_n$ (e.g., contradictions, flagging inconsistencies, congestion), it updates the posterior probability of each hypothesis using Bayes' theorem:
+
+$$P(H_j | E_1, \dots, E_n) \propto P(E_n | H_j) \cdot P(H_j | E_1, \dots, E_{n-1})$$
+
+The likelihoods $P(E_n | H_j)$ dictate how strongly a piece of evidence shifts the probabilities:
+
+- **Logical Contradictions:** An honest network should never produce a false minimal claim, so $P(\text{contradiction} | H_0) \approx 0$. An incompetent network might occasionally err ($P(\text{contradiction} | H_1) > 0$), while a malicious network's probability depends heavily on its specific evasion strategy.
+- **Flagging Rate Anomalies:** If the observed flagging rate $r_{flag}$ significantly exceeds the threshold $\tau_{flag}$, it heavily penalizes $H_0$ and shifts weight toward $H_2$.
+
+#### Sequential Analysis
+
+The framework does not require a fixed number of queries. Instead, it operates sequentially. The verifier continuously issues queries and accumulates evidence until the posterior probability of any single hypothesis exceeds a predefined confidence threshold $\alpha$.
+
+Formally, the protocol halts and issues a definitive verdict when $P(H_j | E_1, \dots, E_n) > \alpha$. This sequential approach guarantees statistical rigour while dynamically minimising the number of network queries required to catch a dishonest provider.
 
 ---
 
