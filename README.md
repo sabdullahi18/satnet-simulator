@@ -99,15 +99,19 @@ Because `sim.Now` is only advanced when an event is actually processed, time onl
 
 **File:** `internal/network/delay_model.go`
 
-Every packet's end-to-end delay is decomposed into three independent, additive components:
+Every packet's end-to-end delay is evaluated on a per-packet basis. The total time it takes for a packet to traverse the network is decomposed into three independent, additive components:
 
 ```
 totalDelay = baseDelay + legitDelay + maliciousDelay
 ```
 
+- Minimal Delay Path: Packets taking the optimal path experience only baseDelay
+- Congested Path: Packets experiencing normal network congestion will take baseDelay + legitDelay
+- Malicious Path: If the network decides to actively target a packet, it will experience baseDelay + legitDelay + maliciousDelay
+
 ### Base Delay
 
-The base delay models the fundamental propagation delay of a satellite path -- the minimum time a signal takes to travel through the network given the current orbital geometry, routing topology, etc. In real satellite networks this varies slowly as satellites move relative to ground stations.
+The base delay models the fundamental propagation delay of a satellite path -- the minimum time a signal takes to travel through the network given the current orbital geometry, routing topology, etc. In real satellite networks this varies slowly as satellites move relative to ground stations. It is identical for all packets sent at the exact same instant (a batch), assuming they take the optimal path.
 
 The base delay is modelled as a piecewise-constant function of time, generated once per trial during `DelayModel.Initialise(duration)`:
 
@@ -136,11 +140,9 @@ The log-normal is a natural choice for queuing delay: it is strictly positive, r
 
 ### Malicious Delay
 
-If a packet is targeted by the adversarial router (see next section), an additional delay is sampled uniformly from `[MaliciousMin, MaliciousMax]`:
+The adversary evaluates manipulation on a per-packet basis, e.g. the router selectively delays every 100th or every 1000th packet. If a packet is targeted by the adversarial router (see next section), an additional delay is sampled uniformly from `[MaliciousMin, MaliciousMax]`:
 
 $$\text{maliciousDelay} \sim \text{Uniform}(\text{MaliciousMin}, \text{MaliciousMax})$$
-
-A uniform distribution represents an adversary who applies a consistent but variable artificial delay without a specific distributional preference.
 
 **Default parameters:** `MaliciousMin=100ms`, `MaliciousMax=200ms`. These values are chosen to be meaningfully larger than typical legitimate congestion, making targeted packets observably slower within a batch.
 
