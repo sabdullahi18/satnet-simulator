@@ -2,8 +2,6 @@
 
 A discrete-event simulator for studying contradiction-based verification of satellite network performance claims. The simulator models an adversarial interaction between a **verifier** (a client auditing a network) and an **oracle** (the network operator being audited), and tests whether the verifier can detect dishonest delay reporting using only observable packet delays and queried claims — without any trusted third party or ground truth access.
 
-This simulator is intended as supplementary material to a thesis on verifiable network performance in satellite networks.
-
 ---
 
 ## Table of Contents
@@ -22,11 +20,11 @@ This simulator is intended as supplementary material to a thesis on verifiable n
 
 ## Overview
 
-Satellite network operators (SNPs) are trusted to report accurate performance metrics to clients who pay for quality-of-service guarantees. A dishonest SNP might selectively delay certain packets while claiming to deliver all traffic at minimal delay. The client, observing only their own packets' arrival times, cannot easily detect malice.
+Satellite network providers (SNPs) are trusted to report accurate performance metrics to clients who pay for quality-of-service guarantees. A dishonest SNP might selectively delay certain packets while claiming to deliver all traffic at minimal delay. The client, observing only their own packets' arrival times, cannot easily detect malice.
 
 This simulator explores a contradiction-based verification scheme: the verifier sends packets in batches sharing the same send time, observes their actual delivery delays, and then queries the oracle with questions of the form _"Did packet P achieve minimal delay?"_ Two packets sent simultaneously traverse the same network path at the same moment, so their base propagation delay is identical. If one packet is maliciously delayed and the oracle claims it was minimal, but the verifier observed another packet from the same batch arrive sooner -- that is a logical contradiction that exposes dishonesty.
 
-The simulator tests several oracle strategies, from fully honest to outright gaslighting, and measures the verifier's ability to detect each one.
+The simulator tests several oracle strategies and measures the verifier's ability to detect each one.
 
 ---
 
