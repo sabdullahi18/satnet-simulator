@@ -195,30 +195,28 @@ The oracle answers with `Answer{IsMinimal bool, IsFlagged bool}`:
 
 The oracle's behaviour is controlled by `AdversaryConfig.AnsweringStr`:
 
-#### `AnswerHonest`
+#### Honest
 
-The oracle tells the truth. A packet is minimal iff it had no congestion and no malicious delay. A packet is flagged iff it had legitimate congestion. This is the baseline for comparison.
+The network is trustworthy and does not maliciously delay any packets. Consequently, the oracle answers every query completely honestly. A packet is reported as minimal if it experienced no congestion, and it is flagged if it experienced legitimate congestion. This serves as our trusted baseline.
 
-```go
-isMinimal := !hasCongestion && !hasMalicious
-isFlagged := hasCongestion
-```
+#### Random
 
-#### `AnswerRandom`
+- `AnswerRandomMinimal`: The oracle coin-flips its answer strictly for the "Was it minimal?" claim, regardless of actual delays
+- `AnswerRandomFlagging`: The oracle coin-flips whether it flags a packet for congestion, regardless of whether it actually experienced congestion or malicious delay
 
-The oracle coin-flips its answers. `IsMinimal` is true with probability 0.5; if not minimal, `IsFlagged` is also independently coin-flipped. This is a naive adversary that makes no attempt at consistency and is trivially caught by the elevated flag rate it produces.
+#### Naive Gaslighting (`AnswerLiesThatMinimal`)
 
-#### `AnswerDelayedHonest`
+The oracle claims that all packets, including the ones that were maliciously delayed, achieved minimal delay. It never flags anything. This is a reckless strategy; it completely denies the existence of any added delay, making it highly vulnerable to contradiction checks when compared to other packets in the same batch.
 
-The oracle accurately reports honest packets, but for maliciously delayed packets, it misattributes the delay as congestion: it reports `IsMinimal=false, IsFlagged=true`. This way, it never claims a targeted packet was minimal (so no direct contradiction is possible), but it covers up the deliberate manipulation by blaming network congestion.
+#### Flagging Inconsistency
 
-The weakness: if enough packets are targeted, the flag rate exceeds the `FlagRateThreshold` and the verifier becomes suspicious.
+If the oracle flags a packet with delay $d_1$ (claiming it was congested) but does not flag a packet with delay $d_2$, and $d_1 < d_2$ is true. If the oracle then claims that $d_2$ was minimal, this results in a clear, easily verified contradiction.
 
-#### `AnswerLiesThatMinimal`
+Otherwise, if the oracle claims that $d_2$ was not minimal, they are effectively admitting they failed to flag a severely delayed packet. This indicates incompetence. In terms of our verification records, we consider this packet as one that should have been flagged, and we artificially increase the oracle's tracked flagging rate. This pushes them closer to the suspicious threshold.
 
-For maliciously delayed packets, the oracle claims they achieved minimal delay: `IsMinimal=true, IsFlagged=false`. It denies the extra delay entirely. For non-targeted packets, it answers honestly.
+### Lying Budget
 
-This strategy is directly vulnerable to the batch-contradiction check: if a targeted packet's actual delay is greater than another packet's actual delay in the same batch (which it almost certainly will be), but the oracle claims it was minimal, that is a provable lie.
+Ultimately, what is the "lying budget" the network is allowed before they get caught? By forcing the network to maintain internal consistency across minimum claims, flagging rates, and observed delays, the verifier constrains the adversary. What is the frequency of lying they can reasonably get away with before hitting a definitive contradiction or exceeding the acceptable flagging rate?  Evaluating this budget is one of the primary outputs of this simulator.
 
 ---
 
