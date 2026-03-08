@@ -152,21 +152,25 @@ $$\text{maliciousDelay} \sim \text{Uniform}(\text{MaliciousMin}, \text{Malicious
 
 **File:** `internal/network/router.go`
 
-The `Router` wraps the delay model and applies adversarial targeting on top of it. Two targeting modes are supported:
+The Router wraps the delay model and applies adversarial targeting on a strictly per-packet basis. Rather than assuming all packets within a batch are maliciously delayed together, the adversary selectively targets specific individual packets.
 
 - `TargetNone` — honest router; no packet is ever maliciously delayed.
 - `TargetRandom` — each packet is independently targeted with probability `TargetFraction`, drawn fresh per packet via `rand.Float64() < TargetFraction`.
+- `TargetPeriodic` — The adversary deterministically targets every $n$-th packet, such as every 100th or 1000th packet.
 
 `TargetRandom` is a Bernoulli sampling scheme: each packet is an independent Bernoulli trial, so the number of targeted packets across a batch follows a Binomial distribution. This means some batches may have zero targeted packets and others may have all packets targeted, purely by chance.
 
 When `Router.Forward(sim, pkt, dest)` is called:
 
-1. It determines whether the packet is targeted (`isTargeted()`) and whether it experiences congestion (independent Bernoulli with `CongestionRate`).
-2. It calls `DelayModel.ComputeTotalDelay(sendTime, hasCongestion, isTargeted)` to get the full delay breakdown.
-3. It schedules a delivery event `totalDelay` seconds into the future via `sim.Schedule`.
-4. When that event fires, it invokes the `OnTransmission` callback (which writes the record to the oracle) and then calls `dest.Receive` to deliver the packet.
+1. It determines whether the packet is targeted based on the targeting mode (TargetRandom or TargetPeriodic)
+2. It determines if the packet independently experiences legitimate congestion based on the `CongestionRate`
+3. It calls DelayModel.ComputeTotalDelay() to get the full delay breakdown
+4. It schedules a delivery event `totalDelay` seconds into the future via `sim.Schedule`
+5. When that event fires, it invokes the `OnTransmission` callback (which writes the record to the oracle) and then calls `dest.Receive` to deliver the packet.
 
 The `OnTransmission` callback is the handoff point between the simulation layer and the verification layer. It fires at the moment of delivery, after all delays have elapsed.
+
+Because targeting is evaluated per-packet rather than per-batch, the packets within a single batch will experience completely different conditions. In a given batch, some packets might take the minimal delay path, some could be legitimately congested, and others could be maliciously delayed.
 
 ---
 
