@@ -58,6 +58,9 @@ type TrialResult struct {
 	QueriesExecuted     int
 	ContradictionsFound int
 	FlaggingRate        float64
+	PosteriorH0         float64
+	PosteriorH1         float64
+	PosteriorH2         float64
 	TrueDelayedPackets  int
 	TrueDelayFraction   float64
 	DetectedCorrectly   bool
@@ -113,8 +116,9 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 
 		trials[trial] = result
 
-		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, contradictions=%d, flagRate=%.2f%%)\n",
-			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.ContradictionsFound, result.FlaggingRate*100)
+		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, contradictions=%d, flagRate=%.2f%%, H0=%.2f H1=%.2f H2=%.2f)\n",
+			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.ContradictionsFound, result.FlaggingRate*100,
+			result.PosteriorH0, result.PosteriorH1, result.PosteriorH2)
 	}
 
 	aggregated := r.aggregateResults(config, trials)
@@ -204,6 +208,9 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 		QueriesExecuted:     result.TotalQueries,
 		ContradictionsFound: result.ContradictionsFound,
 		FlaggingRate:        result.FlaggingRate,
+		PosteriorH0:         result.PosteriorH0,
+		PosteriorH1:         result.PosteriorH1,
+		PosteriorH2:         result.PosteriorH2,
 		TrueDelayedPackets:  delayedCount,
 		TrueDelayFraction:   float64(delayedCount) / float64(config.NumPackets),
 		DetectedCorrectly:   correctDetection,
