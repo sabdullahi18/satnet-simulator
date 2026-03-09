@@ -2,26 +2,25 @@ package verification
 
 import "fmt"
 
+// Query represents the verifier's question: "Was delay X minimal for packets sent at time t?"
 type Query struct {
-	PktID int
-	Time  float64
+	ObservedDelay float64
+	SentTime      float64
 }
 
 func (q Query) String() string {
-	return fmt.Sprintf("Q(t=%.2f): is_minimal(%d)?", q.Time, q.PktID)
+	return fmt.Sprintf("Q(t=%.2f): is_minimal(delay=%.4f)?", q.SentTime, q.ObservedDelay)
 }
 
+// Answer is the prover's response. IsMinimal=true claims the packet experienced only
+// base propagation delay — no congestion, no deliberate delay.
 type Answer struct {
 	IsMinimal bool
-	IsFlagged bool
 }
 
 func (a Answer) String() string {
 	if a.IsMinimal {
 		return "MINIMAL"
-	}
-	if a.IsFlagged {
-		return "FLAGGED"
 	}
 	return "NOT_MINIMAL"
 }
@@ -33,12 +32,16 @@ type PacketRecord struct {
 	IncompetenceDelay float64
 	DeliberateDelay   float64
 	ActualDelay       float64
-	WasDelayed        bool // True if DeliberateDelay > 0
+	WasDelayed        bool // True if DeliberateDelay > 0 (deliberately targeted)
 	HasIncompetence   bool // True if packet experienced incompetence delay
+	IsFlagged         bool // Set by the prover pre-query to admit "honest errors"
 }
 
 func (pr PacketRecord) String() string {
 	extra := ""
+	if pr.IsFlagged {
+		extra += fmt.Sprintf(", FLAGGED")
+	}
 	if pr.HasIncompetence {
 		extra += fmt.Sprintf(", INCOMPETENCE=%.4f", pr.IncompetenceDelay)
 	}

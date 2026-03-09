@@ -130,7 +130,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	delayModel.Initialise(config.SimDuration + 10.0)
 
 	router := network.NewRouter(delayModel, config.TargetingConfig)
-	oracle := verification.NewOracle(config.AdversaryConfig)
+	prover := verification.NewProver(config.AdversaryConfig)
 
 	dest := NewMockGroundStation("DestStation")
 	delayedCount := 0
@@ -147,7 +147,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 			HasIncompetence:   info.HasIncompetence,
 		}
 
-		oracle.RecordTransmission(record)
+		prover.RecordTransmission(record)
 
 		if info.WasDelayed {
 			delayedCount++
@@ -182,14 +182,13 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	sim.Run(config.SimDuration + 10.0)
 
 	finalRecords := make([]verification.TransmissionRecord, 0)
-	for _, pPtr := range oracle.Packets {
+	for _, pPtr := range prover.Packets {
 		finalRecords = append(finalRecords, *pPtr)
 	}
 
 	verifyConfig := config.VerificationConfig
-	// Update secret if needed
 
-	verifier := verification.NewVerifier(oracle, verifyConfig)
+	verifier := verification.NewVerifier(prover, verifyConfig)
 	verifier.IngestRecords(finalRecords)
 	result := verifier.RunVerification()
 

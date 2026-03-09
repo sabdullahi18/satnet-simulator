@@ -1,0 +1,126 @@
+package verification
+
+import (
+	"math"
+	"math/rand"
+)
+
+type AnsweringStrategy string
+
+const (
+	AnswerHonest          AnsweringStrategy = "ANSWER_HONEST"
+	AnswerRandom          AnsweringStrategy = "ANSWER_RANDOM"
+	AnswerDelayedHonest   AnsweringStrategy = "ANSWER_DELAYED_HONEST"   // hides malicious as congestion
+	AnswerLiesThatMinimal AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL" // claims malicious packets are minimal
+)
+
+type AdversaryConfig struct {
+	AnsweringStr AnsweringStrategy
+}
+
+// Prover represents the network operator's self-reporting mechanism. It has access to ground
+// truth (every PacketRecord) because it is the operator. The question is whether it tells the truth.
+//
+// Flagging is network-initiated and happens in RecordTransmission (before any queries). The
+// prover sets IsFlagged on each record according to its strategy, proactively admitting
+// "honest errors" before the verifier asks questions.
+type Prover struct {
+	Config      AdversaryConfig
+	Packets     map[int]*PacketRecord
+	Queries     int
+	byTimeDelay map[int]map[float64]*PacketRecord // secondary index: int(SentTime) -> actualDelay -> record
+}
+
+func NewProver(config AdversaryConfig) *Prover {
+	return &Prover{
+		Config:      config,
+		Packets:     make(map[int]*PacketRecord),
+		byTimeDelay: make(map[int]map[float64]*PacketRecord),
+	}
+}
+
+// RecordTransmission stores the packet's ground truth and sets IsFlagged according to the
+// prover's strategy. This is the pre-query flagging phase.
+func (p *Prover) RecordTransmission(rec PacketRecord) {
+	switch p.Config.AnsweringStr {
+	case AnswerHonest:
+		// Only flag packets that genuinely experienced incompetence delay
+		rec.IsFlagged = rec.HasIncompetence
+
+	case AnswerDelayedHonest:
+		// Flag deliberately delayed packets as "congestion" to provide cover, in addition
+		// to genuinely congested packets. This pushes the flag rate higher, which may
+		// eventually exceed the FlagRateThreshold and trigger SUSPICIOUS_FLAG_RATE.
+		rec.IsFlagged = rec.HasIncompetence || rec.WasDelayed
+
+	case AnswerLiesThatMinimal:
+		// Only flag genuinely congested packets; deliberately delayed packets are not
+		// flagged because the prover intends to claim they were minimal.
+		rec.IsFlagged = rec.HasIncompetence
+
+	case AnswerRandom:
+		rec.IsFlagged = rand.Float64() < 0.5
+
+	default:
+		rec.IsFlagged = rec.HasIncompetence
+	}
+
+	p.Packets[rec.ID] = &rec
+
+	// Populate secondary index by (int(SentTime), ActualDelay) for query lookup
+	timeKey := int(math.Round(rec.SentTime))
+	if p.byTimeDelay[timeKey] == nil {
+		p.byTimeDelay[timeKey] = make(map[float64]*PacketRecord)
+	}
+	p.byTimeDelay[timeKey][rec.ActualDelay] = p.Packets[rec.ID]
+}
+
+// AnswerQuery handles the query: "Was delay X minimal for packets sent at time t?"
+// The prover looks up the packet by (SentTime, ObservedDelay) and answers based on its strategy.
+func (p *Prover) AnswerQuery(q Query) Answer {
+	p.Queries++
+
+	timeKey := int(math.Round(q.SentTime))
+	var rec *PacketRecord
+	if byDelay, ok := p.byTimeDelay[timeKey]; ok {
+		rec = byDelay[q.ObservedDelay]
+	}
+
+	if rec == nil {
+		// Unknown packet — default to claiming minimal (cannot prove otherwise)
+		return Answer{IsMinimal: true}
+	}
+
+	return p.decideAnswer(rec)
+}
+
+func (p *Prover) decideAnswer(rec *PacketRecord) Answer {
+	hasDeliberate := rec.WasDelayed
+	hasIncompetence := rec.HasIncompetence
+
+	switch p.Config.AnsweringStr {
+	case AnswerHonest:
+		// Truthful: minimal only if no extra delay of any kind
+		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
+
+	case AnswerRandom:
+		// Coin-flip: naive adversary with no attempt at consistency
+		return Answer{IsMinimal: rand.Float64() < 0.5}
+
+	case AnswerDelayedHonest:
+		// Never claims IsMinimal for any packet with extra delay. Deliberately delayed
+		// packets were already flagged in RecordTransmission, so the prover's story is
+		// consistent: "it was congested (flagged), so of course not minimal."
+		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
+
+	case AnswerLiesThatMinimal:
+		// Reckless: claim deliberately delayed packets achieved minimal delay.
+		// For non-targeted packets, answer honestly.
+		if hasDeliberate {
+			return Answer{IsMinimal: true}
+		}
+		return Answer{IsMinimal: !hasIncompetence}
+	}
+
+	return Answer{IsMinimal: true}
+}
