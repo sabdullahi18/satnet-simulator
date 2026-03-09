@@ -27,23 +27,23 @@ func (a Answer) String() string {
 }
 
 type PacketRecord struct {
-	ID             int
-	SentTime       float64
-	BaseDelay      float64
-	LegitDelay     float64
-	MaliciousDelay float64
-	ActualDelay    float64
-	WasDelayed     bool // True if MaliciousDelay > 0
-	HasCongestion  bool // True if packet experienced legitimate congestion
+	ID                int
+	SentTime          float64
+	BaseDelay         float64
+	IncompetenceDelay float64
+	DeliberateDelay   float64
+	ActualDelay       float64
+	WasDelayed        bool // True if DeliberateDelay > 0
+	HasIncompetence   bool // True if packet experienced incompetence delay
 }
 
 func (pr PacketRecord) String() string {
 	extra := ""
-	if pr.HasCongestion {
-		extra += fmt.Sprintf(", CONGESTION=%.4f", pr.LegitDelay)
+	if pr.HasIncompetence {
+		extra += fmt.Sprintf(", INCOMPETENCE=%.4f", pr.IncompetenceDelay)
 	}
 	if pr.WasDelayed {
-		extra += fmt.Sprintf(", MALICIOUS=%.4f", pr.MaliciousDelay)
+		extra += fmt.Sprintf(", DELIBERATE=%.4f", pr.DeliberateDelay)
 	}
 	return fmt.Sprintf("Pkt%d: sent=%.2f, base=%.4f, actual=%.4f%s",
 		pr.ID, pr.SentTime, pr.BaseDelay, pr.ActualDelay, extra)

@@ -8,8 +8,9 @@ import (
 type TargetingMode int
 
 const (
-	TargetNone TargetingMode = iota
+	TargetNone     TargetingMode = iota
 	TargetRandom
+	TargetPeriodic
 )
 
 func (m TargetingMode) String() string {
@@ -18,6 +19,8 @@ func (m TargetingMode) String() string {
 		return "HONEST"
 	case TargetRandom:
 		return "RANDOM"
+	case TargetPeriodic:
+		return "PERIODIC"
 	default:
 		return "UNKNOWN"
 	}
@@ -26,6 +29,7 @@ func (m TargetingMode) String() string {
 type TargetingConfig struct {
 	Mode           TargetingMode
 	TargetFraction float64
+	Period         int // For TargetPeriodic: target every Period-th packet
 }
 
 func DefaultHonestTargeting() TargetingConfig {
@@ -42,17 +46,24 @@ func DefaultAdversarialTargeting(fraction float64) TargetingConfig {
 	}
 }
 
+func DefaultPeriodicTargeting(period int) TargetingConfig {
+	return TargetingConfig{
+		Mode:   TargetPeriodic,
+		Period: period,
+	}
+}
+
 type TransmissionCallback func(info TransmissionInfo)
 
 type TransmissionInfo struct {
-	PacketID       int
-	SentTime       float64
-	BaseDelay      float64
-	LegitDelay     float64
-	MaliciousDelay float64
-	TotalDelay     float64
-	WasDelayed     bool
-	HasCongestion  bool
+	PacketID          int
+	SentTime          float64
+	BaseDelay         float64
+	IncompetenceDelay float64
+	DeliberateDelay   float64
+	TotalDelay        float64
+	WasDelayed        bool
+	HasIncompetence   bool
 }
 
 type Router struct {
@@ -71,8 +82,11 @@ func NewRouter(delayModel *DelayModel, targeting TargetingConfig) *Router {
 }
 
 func (r *Router) isTargeted() bool {
-	if r.TargetingCfg.Mode == TargetRandom {
+	switch r.TargetingCfg.Mode {
+	case TargetRandom:
 		return rand.Float64() < r.TargetingCfg.TargetFraction
+	case TargetPeriodic:
+		return r.TargetingCfg.Period > 0 && r.PacketsRouted%r.TargetingCfg.Period == 0
 	}
 	return false
 }
@@ -85,20 +99,20 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 		r.PacketsTargeted++
 	}
 
-	hasCongestion := rand.Float64() < r.DelayModel.CongestionRate
+	hasIncompetence := rand.Float64() < r.DelayModel.IncompetenceRate
 
-	delays := r.DelayModel.ComputeTotalDelay(sendTime, hasCongestion, isTargeted)
+	delays := r.DelayModel.ComputeTotalDelay(sendTime, hasIncompetence, isTargeted)
 	sim.Schedule(delays.TotalDelay, func() {
 		if r.OnTransmission != nil {
 			r.OnTransmission(TransmissionInfo{
-				PacketID:       pkt.ID,
-				SentTime:       sendTime,
-				BaseDelay:      delays.BaseDelay,
-				LegitDelay:     delays.LegitDelay,
-				MaliciousDelay: delays.MaliciousDelay,
-				TotalDelay:     delays.TotalDelay,
-				WasDelayed:     isTargeted,
-				HasCongestion:  hasCongestion,
+				PacketID:          pkt.ID,
+				SentTime:          sendTime,
+				BaseDelay:         delays.BaseDelay,
+				IncompetenceDelay: delays.IncompetenceDelay,
+				DeliberateDelay:   delays.DeliberateDelay,
+				TotalDelay:        delays.TotalDelay,
+				WasDelayed:        isTargeted,
+				HasIncompetence:   hasIncompetence,
 			})
 		}
 

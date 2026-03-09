@@ -30,14 +30,14 @@ func DefaultExperimentConfig() ExperimentConfig {
 		SimDuration: 100.0,
 
 		DelayModelConfig: network.DelayModelConfig{
-			BaseDelayMin:   0.020,
-			BaseDelayMax:   0.080,
-			TransitionRate: 0.05,
-			CongestionRate: 0.2,
-			LegitMu:        -4.6,
-			LegitSigma:     0.8,
-			MaliciousMin:   0.100,
-			MaliciousMax:   0.200,
+			BaseDelayMin:      0.020,
+			BaseDelayMax:      0.080,
+			TransitionRate:    0.05,
+			IncompetenceRate:  0.2,
+			IncompetenceMu:    -4.6,
+			IncompetenceSigma: 0.8,
+			DeliberateMin:     0.100,
+			DeliberateMax:     0.200,
 		},
 
 		TargetingConfig: network.DefaultHonestTargeting(),
@@ -137,14 +137,14 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 
 	router.OnTransmission = func(info network.TransmissionInfo) {
 		record := verification.TransmissionRecord{
-			ID:             info.PacketID,
-			SentTime:       info.SentTime,
-			BaseDelay:      info.BaseDelay,
-			LegitDelay:     info.LegitDelay,
-			MaliciousDelay: info.MaliciousDelay,
-			ActualDelay:    info.TotalDelay,
-			WasDelayed:     info.WasDelayed,
-			HasCongestion:  info.HasCongestion,
+			ID:                info.PacketID,
+			SentTime:          info.SentTime,
+			BaseDelay:         info.BaseDelay,
+			IncompetenceDelay: info.IncompetenceDelay,
+			DeliberateDelay:   info.DeliberateDelay,
+			ActualDelay:       info.TotalDelay,
+			WasDelayed:        info.WasDelayed,
+			HasIncompetence:   info.HasIncompetence,
 		}
 
 		oracle.RecordTransmission(record)

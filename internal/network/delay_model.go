@@ -7,16 +7,16 @@ import (
 )
 
 type DelayModel struct {
-	BaseDelayMin   float64
-	BaseDelayMax   float64
-	TransitionRate float64
-	CongestionRate float64
-	LegitMu        float64
-	LegitSigma     float64
-	MaliciousMin   float64
-	MaliciousMax   float64
-	transitions    []PathTransition
-	initialised    bool
+	BaseDelayMin     float64
+	BaseDelayMax     float64
+	TransitionRate   float64
+	IncompetenceRate float64
+	IncompetenceMu   float64
+	IncompetenceSigma float64
+	DeliberateMin    float64
+	DeliberateMax    float64
+	transitions      []PathTransition
+	initialised      bool
 }
 
 type PathTransition struct {
@@ -25,36 +25,36 @@ type PathTransition struct {
 }
 
 type DelayComponents struct {
-	BaseDelay      float64
-	LegitDelay     float64
-	MaliciousDelay float64
-	TotalDelay     float64
+	BaseDelay        float64
+	IncompetenceDelay float64
+	DeliberateDelay  float64
+	TotalDelay       float64
 }
 
 func NewDelayModelConfig(cfg DelayModelConfig) *DelayModel {
 	return &DelayModel{
-		BaseDelayMin:   cfg.BaseDelayMin,
-		BaseDelayMax:   cfg.BaseDelayMax,
-		TransitionRate: cfg.TransitionRate,
-		CongestionRate: cfg.CongestionRate,
-		LegitMu:        cfg.LegitMu,
-		LegitSigma:     cfg.LegitSigma,
-		MaliciousMin:   cfg.MaliciousMin,
-		MaliciousMax:   cfg.MaliciousMax,
-		transitions:    make([]PathTransition, 0),
-		initialised:    false,
+		BaseDelayMin:      cfg.BaseDelayMin,
+		BaseDelayMax:      cfg.BaseDelayMax,
+		TransitionRate:    cfg.TransitionRate,
+		IncompetenceRate:  cfg.IncompetenceRate,
+		IncompetenceMu:    cfg.IncompetenceMu,
+		IncompetenceSigma: cfg.IncompetenceSigma,
+		DeliberateMin:     cfg.DeliberateMin,
+		DeliberateMax:     cfg.DeliberateMax,
+		transitions:       make([]PathTransition, 0),
+		initialised:       false,
 	}
 }
 
 type DelayModelConfig struct {
-	BaseDelayMin   float64
-	BaseDelayMax   float64
-	TransitionRate float64
-	CongestionRate float64
-	LegitMu        float64
-	LegitSigma     float64
-	MaliciousMin   float64
-	MaliciousMax   float64
+	BaseDelayMin      float64
+	BaseDelayMax      float64
+	TransitionRate    float64
+	IncompetenceRate  float64
+	IncompetenceMu    float64
+	IncompetenceSigma float64
+	DeliberateMin     float64
+	DeliberateMax     float64
 }
 
 func (dm *DelayModel) Initialise(duration float64) {
@@ -107,34 +107,34 @@ func (dm *DelayModel) GetBaseDelay(t float64) float64 {
 	return dm.transitions[idx-1].BaseDelay
 }
 
-func (dm *DelayModel) GetLegitDelay() float64 {
+func (dm *DelayModel) GetIncompetenceDelay() float64 {
 	// LogNormal distribution
 	z := rand.NormFloat64()
-	return math.Exp(dm.LegitMu + dm.LegitSigma*z)
+	return math.Exp(dm.IncompetenceMu + dm.IncompetenceSigma*z)
 }
 
-func (dm *DelayModel) GetMaliciousDelay() float64 {
-	// Uniform distribution for malicious delay
-	return dm.MaliciousMin + rand.Float64()*(dm.MaliciousMax-dm.MaliciousMin)
+func (dm *DelayModel) GetDeliberateDelay() float64 {
+	// Uniform distribution for deliberate delay
+	return dm.DeliberateMin + rand.Float64()*(dm.DeliberateMax-dm.DeliberateMin)
 }
 
-func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasCongestion bool, isMalicious bool) DelayComponents {
+func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasIncompetence bool, isDeliberate bool) DelayComponents {
 	baseDelay := dm.GetBaseDelay(sendTime)
 
-	legitDelay := 0.0
-	if hasCongestion {
-		legitDelay = dm.GetLegitDelay()
+	incompetenceDelay := 0.0
+	if hasIncompetence {
+		incompetenceDelay = dm.GetIncompetenceDelay()
 	}
 
-	maliciousDelay := 0.0
-	if isMalicious {
-		maliciousDelay = dm.GetMaliciousDelay()
+	deliberateDelay := 0.0
+	if isDeliberate {
+		deliberateDelay = dm.GetDeliberateDelay()
 	}
 
 	return DelayComponents{
-		BaseDelay:      baseDelay,
-		LegitDelay:     legitDelay,
-		MaliciousDelay: maliciousDelay,
-		TotalDelay:     baseDelay + legitDelay + maliciousDelay,
+		BaseDelay:         baseDelay,
+		IncompetenceDelay: incompetenceDelay,
+		DeliberateDelay:   deliberateDelay,
+		TotalDelay:        baseDelay + incompetenceDelay + deliberateDelay,
 	}
 }

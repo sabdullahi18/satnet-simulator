@@ -48,14 +48,14 @@ func (o *Oracle) AnswerQuery(q Query) Answer {
 }
 
 func (o *Oracle) decideAnswer(p *PacketRecord) Answer {
-	hasMalicious := p.WasDelayed
-	hasCongestion := p.HasCongestion
+	hasDeliberate := p.WasDelayed
+	hasIncompetence := p.HasIncompetence
 
 	switch o.Config.AnsweringStr {
 	case AnswerHonest:
 		// Honest: report truthfully based on ground truth
-		isMinimal := !hasCongestion && !hasMalicious
-		return Answer{IsMinimal: isMinimal, IsFlagged: hasCongestion}
+		isMinimal := !hasIncompetence && !hasDeliberate
+		return Answer{IsMinimal: isMinimal, IsFlagged: hasIncompetence}
 
 	case AnswerRandom:
 		// Coin-flip IsMinimal; if not minimal, coin-flip IsFlagged
@@ -67,22 +67,22 @@ func (o *Oracle) decideAnswer(p *PacketRecord) Answer {
 		return Answer{IsMinimal: isMinimal, IsFlagged: isFlagged}
 
 	case AnswerDelayedHonest:
-		// Hide malicious delay as congestion: claim malicious packets were flagged (congested)
-		// Non-malicious packets: answer truthfully
-		if hasMalicious {
+		// Hide deliberate delay as incompetence: claim deliberately delayed packets were flagged
+		// Non-deliberately-delayed packets: answer truthfully
+		if hasDeliberate {
 			return Answer{IsMinimal: false, IsFlagged: true}
 		}
-		isMinimal := !hasCongestion
-		return Answer{IsMinimal: isMinimal, IsFlagged: hasCongestion}
+		isMinimal := !hasIncompetence
+		return Answer{IsMinimal: isMinimal, IsFlagged: hasIncompetence}
 
 	case AnswerLiesThatMinimal:
-		// Gaslight: claim malicious packets achieved minimal delay
-		// Non-malicious packets: answer truthfully
-		if hasMalicious {
+		// Gaslight: claim deliberately delayed packets achieved minimal delay
+		// Non-deliberately-delayed packets: answer truthfully
+		if hasDeliberate {
 			return Answer{IsMinimal: true, IsFlagged: false}
 		}
-		isMinimal := !hasCongestion
-		return Answer{IsMinimal: isMinimal, IsFlagged: hasCongestion}
+		isMinimal := !hasIncompetence
+		return Answer{IsMinimal: isMinimal, IsFlagged: hasIncompetence}
 	}
 
 	return Answer{IsMinimal: true, IsFlagged: false}
