@@ -22,7 +22,9 @@ A discrete-event simulator for studying query-based verification of satellite ne
 
 Satellite network providers (SNPs) are trusted to report accurate performance metrics to clients who pay for quality-of-service guarantees. A misbehaving SNP might selectively delay certain packets while claiming to deliver all traffic at minimal delay. The client, observing only their own packets' arrival times, cannot easily detect misbehaviour.
 
-This simulator explores a query-based verification scheme: the verifier sends packets in batches sharing the same send time, observes their actual delivery delays, and then queries the prover with questions of the form _"Was delay X minimal for packets sent at time t"_ where X is the delay that the verifier observed for a randomly selected packet from the batch corresponding to time t. Two packets sent simultaneously traverse the same network path at the same moment, so their base propagation delay is identical. This holds because all packets in a batch enter the network at the same time and therefore encounter the same orbital geometry, the same routing topology, and the same physical path through the satellite constellation, meaning the speed-of-light propagation component is the same for all of them. If one packet experienced additional delay and the prover claims the observed delay was minimal, but the verifier observed another packet from the same batch arrive sooner -- that is a logical contradiction that exposes misbehaviour (whether caused by deliberate manipulation or incompetence).
+This simulator explores a query-based verification scheme: the verifier sends packets in batches sharing the same send time, observes their actual delivery delays, and then queries the prover with questions of the form _"Was delay X minimal for packets sent at time t"_ where X is the delay that the verifier observed for a randomly selected packet from the batch corresponding to time t. Two packets sent simultaneously traverse the same network path at the same moment, so their base propagation delay is identical. This holds because all packets in a batch enter the network at the same time and therefore encounter the same orbital geometry, the same routing topology, and the same physical path through the satellite constellation, meaning the speed-of-light propagation component is the same for all of them. This also assumes that packet prioritisation or bandwidth reservation is in place to guarantee the base propagation remains identical.
+
+If one packet experienced additional delay and the prover claims the observed delay was minimal, but the verifier observed another packet from the same batch arrive sooner -- that is a logical contradiction that exposes misbehaviour (whether caused by deliberate manipulation or incompetence). While exact time contradictions are the base case for this project, in practice, sending packets at the exact same instant can be infeasible, and satellite network paths continuously change delays, so tiny delay differences within a batch may be normal.
 
 The simulator tests several prover strategies and measures the verifier's ability to detect each one. In particular, the architecture enables testing four classes of network behaviour: (i) honest and well-behaving; (ii) honest but incompetent; (iii) malicious and well-behaving; (iv) malicious and incompetent -- all while experimenting with different levels of incompetence and different attack strategies.
 
@@ -107,15 +109,11 @@ Every packet's end-to-end delay is evaluated on a per-packet basis. The total ti
 totalDelay = baseDelay + incompetenceDelay + deliberateDelay
 ```
 
-- Minimal Delay Path: Packets taking the optimal path experience only baseDelay
-- Congested Path: Packets experiencing normal network congestion will take baseDelay + legitDelay
-- Malicious Path: If the network decides to actively target a packet, it will experience baseDelay + legitDelay + maliciousDelay
-
 ### Base Delay
 
 The base delay models the fundamental propagation delay of a satellite path -- the minimum time a signal takes to travel through the network given the current orbital geometry, routing topology, etc. In real satellite networks this varies slowly as satellites move relative to ground stations. It is identical for all packets sent at the exact same instant (a batch), assuming they take the optimal path.
 
-The base delay is modelled as a piecewise-constant function of time, generated once per trial during `DelayModel.Initialise(duration)`:
+The base delay is generated once per trial during `DelayModel.Initialise(duration)`:
 
 1. An initial base delay is sampled uniformly from `[BaseDelayMin, BaseDelayMax]`.
 2. Transition times are generated using a Poisson process with rate `TransitionRate`. The inter-arrival time between successive transitions is sampled via the inverse-CDF method for the Exponential distribution:
@@ -154,11 +152,13 @@ $$\text{deliberateDelay} \sim \text{Uniform}(\text{DeliberateMin}, \text{Deliber
 
 **File:** `internal/network/router.go`
 
-The Router wraps the delay model and applies adversarial targeting on a strictly per-packet basis. Rather than assuming all packets within a batch are maliciously delayed together, the adversary selectively targets specific individual packets.
+The Router wraps the delay model and applies adversarial targeting on a per-packet basis. Rather than assuming all packets within a batch are maliciously delayed together, the adversary selectively targets specific individual packets.
 
 - `TargetNone` — honest router; no packet is ever maliciously delayed.
 - `TargetRandom` — each packet is independently targeted with probability `TargetFraction`, drawn fresh per packet via `rand.Float64() < TargetFraction`.
 - `TargetPeriodic` — The adversary deterministically targets every $n$-th packet, such as every 100th or 1000th packet.
+
+These strategies represent the baseline attacker models: purely probabilistic (`TargetRandom`) and strictly deterministic (`TargetPeriodic`). ADD MORE LATER?!
 
 `TargetRandom` is a Bernoulli sampling scheme: each packet is an independent Bernoulli trial, so the number of targeted packets across a batch follows a Binomial distribution. This means some batches may have zero targeted packets and others may have all packets targeted, purely by chance.
 
@@ -217,11 +217,15 @@ The weakness: if enough packets are targeted, the flag rate exceeds the FlagRate
 
 If the prover flags a packet with delay $d_1$ (claiming it was congested) but does not flag a packet with delay $d_2$, and $d_1 < d_2$ is true. If the oracle then claims that $d_2$ was minimal, this results in a clear, easily verified contradiction.
 
-Otherwise, if the oracle claims that $d_2$ was not minimal, they are effectively admitting they failed to flag a severely delayed packet. This indicates incompetence. In terms of our verification records, we consider this packet as one that should have been flagged, and we artificially increase the oracle's tracked flagging rate. This pushes them closer to the suspicious threshold.
+Otherwise, if the oracle claims that $d_2$ was not minimal, they are effectively admitting they failed to flag a severely delayed packet. This indicates incompetence. In terms of our verification records, we consider this packet as one that should have been flagged, and we increase the oracle's tracked flagging rate. This pushes them closer to the suspicious threshold.
+
+### Flagging Strategies
+
+In addition to answering queries, the network can employ different flagging strategies. While an honest network should always flag packets delivered with non-minimal delay, a dishonest network might strategically flag only a subset of delayed packets, hoping to evade detection on the remaining ones. The simulator can evaluate whether this partial flagging approach is viable for an attacker. More on this in next section.
 
 ### Lying Budget
 
-Ultimately, what is the "lying budget" the network is allowed before they get caught? By forcing the network to maintain internal consistency across minimum claims, flagging rates, and observed delays, the verifier constrains the adversary. What is the frequency of lying they can reasonably get away with before hitting a definitive contradiction or exceeding the acceptable flagging rate?  Evaluating this budget is one of the primary outputs of this simulator.
+Ultimately, what is the "lying budget" the network is allowed before they get caught? What is the frequency of lying they can reasonably get away with before hitting a definitive contradiction or exceeding the acceptable flagging rate? A question for the evaluation is identifying the optimal combination of answering and flagging strategies for malicious networks. By formulating hypotheses about these optimal combinations, we can verify if their success rate is better than all other evaluated strategies.
 
 ---
 
@@ -240,23 +244,23 @@ The verifier operates without access to ground truth. It knows only:
 
 It is critical to understand the chronological flow of information. The interaction happens in two distinct phases:
 
-- Flagging (Network-Initiated): Before any queries are made, the network must proactively flag packets it claims experienced legitimate congestion
+- Flagging (Network-Initiated): Before any queries are made, the network can proactively flag packets it claims experienced legitimate congestion
 - Querying (Verifier-Initiated): After observing the delays and the network's congestion flags, the verifier actively queries the network about specific packets
 
 ### Classification
 
 - `Honest`: The network accurately reports minimal packets, correctly flags packets affected by incompetence, and does not inject deliberate delay
-- `Dishonest`: This state encompasses both malicious actors and incompetent networks. If a network lies to cover up targeted delays (malice) or fails to accurately flag severely delayed packets (incompetence), it is classified as Dishonest. From the customer's perspective, both behaviours violate the service level agreement and warrant switching providers
+- `Dishonest`: This encompasses both malicious actors and incompetent networks. If a network lies to cover up targeted delays (malice) or fails to accurately flag severely delayed packets (incompetence), it is classified as Dishonest. From the customer's perspective, both behaviours violate the service level agreement and warrant switching providers
 
 ### Batch Grouping
 
 The verifier groups all `TransmissionRecord`s by `int(SentTime)`, i.e. the send time truncated to the nearest integer second. Every packet sent within the same one-second window forms a batch.
 
-Because packets in the same batch are sent simultaneously, they all encounter the same base delay (the piecewise-constant base delay function returns the same value for all of them). Any difference in their observed delays must come from either congestion or malicious delay, both of which are the things the oracle is being asked to attest to.
+Because packets in the same batch are sent simultaneously, they all encounter the same base delay (the piecewise-constant base delay function returns the same value for all of them). Any difference in their observed delays must come from either congestion or malicious delay, both of which are the things the prover is being asked to attest to.
 
 ### Contradiction Check
 
-Batches are shuffled into random order before processing (to avoid systematic bias) and iterated up to `MaxQueries` total oracle queries.
+Batches are processed and iterated up to `MaxQueries` total prover queries. NOT SURE BEST WAY TO DEFINE MAXQUERIES...
 
 For each batch:
 
@@ -264,17 +268,17 @@ For each batch:
 2. For a packet `p` in the batch, query the oracle: _"Was delay X minimal for packets sent at time t?"_
 3. If `ans.IsMinimal == true` **and** `p.ActualDelay > minDelay`, record a **contradiction**.
 
-If the prover says delay X was minimal, it is claiming P experienced only the base propagation delay. But another packet Q in the same batch (same send time, same base delay) arrived sooner. Therefore P could not have been minimal — the oracle is lying.
+If the prover says delay X was minimal, it is claiming P experienced only the base propagation delay. But another packet Q in the same batch (same send time, same base delay) arrived sooner. Therefore P could not have been minimal — the prover is lying.
 
-This is a zero-false-positive detection mechanism: it is logically impossible for an honest oracle to produce a contradiction, because an honest oracle would never claim a non-minimal packet was minimal.
+This is a zero-false-positive detection mechanism: it is logically impossible for an honest prover to produce a contradiction, because an honest prover would never claim a non-minimal packet was minimal. In this context, a "false positive" would mean incorrectly classifying an honest network as dishonest, while a "true positive" means successfully catching a genuinely malicious network.
 
 ### Flag Rate Analysis
 
-Independently of contradiction detection, the verifier tracks the fraction of delivered packets where `IsFlagged=true`. A high flag rate suggests the oracle is attributing many packets to congestion, which may indicate it is using congestion as a cover story for deliberate delays (as in the `AnswerDelayedHonest` strategy).
+Independently of contradiction detection, the verifier tracks the fraction of delivered packets where `IsFlagged=true`. A high flag rate suggests the prover is attributing many packets to congestion, which may indicate it is using congestion as a cover story for deliberate delays (as in the `AnswerDelayedHonest` strategy).
 
-If `flaggingRate > FlagRateThreshold` (default 30%) and no contradictions were found, the verdict is `SUSPICIOUS_FLAG_RATE`.
+If `flaggingRate > FlagRateThreshold` (e.g., 5%) and no contradictions were found, the verdict is SUSPICIOUS_FLAG_RATE. In practice, this threshold can be defined by a Service Level Agreement (SLA) that binds the network to avoid delaying more than a specified fraction of packets. This logic dictates the overall evaluation impact after all queries in a trial are processed, rather than the impact of a single query.
 
-### Verdict Logic
+### Result
 
 | Condition                                 | Verdict                | `Trustworthy` | `Confidence`         |
 | ----------------------------------------- | ---------------------- | ------------- | -------------------- |
@@ -284,15 +288,15 @@ If `flaggingRate > FlagRateThreshold` (default 30%) and no contradictions were f
 
 The `DISHONEST` verdict is issued with certainty (`Confidence=1.0`) because a contradiction is a deductive proof of dishonesty: no probabilistic inference is required. The `SUSPICIOUS_FLAG_RATE` verdict is a probabilistic signal, not a proof.
 
-Also, as mentioned in [Flagging Inconsistency](#flagging-inconsistency), if a packet with delay $d_1$ is flagged, but a packet with delay $d_2$ is not flagged (where $d_1 < d_2$), the verifier queries $d_2$. If the oracle claims $d_2$ was minimal, it triggers a direct contradiction. If the oracle claims $d_2$ was not minimal, the network admits it failed to flag a delayed packet. The verifier penalises this incompetence by treating $d_2$ as a packet that should have been flagged, artificially inflating the network's tracked flagging rate. If this rate exceeds the acceptable threshold $\tau$, the network is caught.
+Also, as mentioned in [Flagging Inconsistency](#flagging-inconsistency), if a packet with delay $d_1$ is flagged, but a packet with delay $d_2$ is not flagged (where $d_1 < d_2$), the verifier queries $d_2$. If the prover claims $d_2$ was minimal, it triggers a direct contradiction. If the prover claims $d_2$ was not minimal, the network admits it failed to flag a delayed packet. The verifier penalises this incompetence by treating $d_2$ as a packet that should have been flagged, inflating the network's tracked flagging rate. If this rate exceeds the acceptable threshold $\tau$, the network is caught.
 
 ### Statistical Framework
 
 The framework evaluates the network's behaviour by tracking the probabilities of three distinct modes: 
 
-- **$H_0$ (Honest):** The SNP operates truthfully, answering queries accurately and flagging only packets that genuinely experienced legitimate congestion
-- **$H_1$ (Incompetent):** The SNP provides unreliable answers due to poor record-keeping
-- **$H_2$ (Malicious):** The SNP deliberately delays targeted packets and strategically answers queries to avoid detection
+- **$H_0$ (Honest):** The SNP operates truthfully, answering queries accurately
+- **$H_1$ (Incompetent):** The SNP provides unreliable answers
+- **$H_2$ (Malicious):** The SNP deliberately delays targeted packets
 
 (Note: $H_1$ and $H_2$ both ultimately result in a "Dishonest" verdict from a customer SLA perspective.)
 
