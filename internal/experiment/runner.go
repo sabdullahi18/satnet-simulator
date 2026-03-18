@@ -164,6 +164,13 @@ func flaggingFnForStrategy(strategy verification.AnsweringStrategy) network.Flag
 		}
 
 	case verification.AnswerLiesThatMinimal:
+		// Never flag anything — the prover intends to claim every packet was
+		// minimal, so flagging any packet would contradict that blanket claim.
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return false
+		}
+
+	case verification.AnswerLiesAboutTargeted:
 		// Only flag genuinely congested packets; deliberately delayed packets
 		// are not flagged because the prover intends to claim they were minimal.
 		return func(hasIncompetence, wasDelayed bool) bool {

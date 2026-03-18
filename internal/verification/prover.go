@@ -7,10 +7,11 @@ import (
 type AnsweringStrategy string
 
 const (
-	AnswerHonest          AnsweringStrategy = "ANSWER_HONEST"
-	AnswerRandom          AnsweringStrategy = "ANSWER_RANDOM"
-	AnswerDelayedHonest   AnsweringStrategy = "ANSWER_DELAYED_HONEST"    // hides malicious as congestion
-	AnswerLiesThatMinimal AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL" // claims malicious packets are minimal
+	AnswerHonest            AnsweringStrategy = "ANSWER_HONEST"
+	AnswerRandom            AnsweringStrategy = "ANSWER_RANDOM"
+	AnswerDelayedHonest     AnsweringStrategy = "ANSWER_DELAYED_HONEST"      // hides malicious as congestion
+	AnswerLiesThatMinimal   AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL"   // blanket denial: claims all packets are minimal
+	AnswerLiesAboutTargeted AnsweringStrategy = "ANSWER_LIES_ABOUT_TARGETED" // lies only about deliberately delayed packets
 )
 
 type AdversaryConfig struct {
@@ -89,8 +90,17 @@ func (p *Prover) decideAnswer(rec *PacketRecord) Answer {
 		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
 
 	case AnswerLiesThatMinimal:
-		// Reckless: claim deliberately delayed packets achieved minimal delay.
-		// For non-targeted packets, answer honestly.
+		// Blanket denial: claims every packet achieved minimal delay, regardless of
+		// whether it was targeted, congested, or both. Never flags anything. This is
+		// the most reckless strategy — it completely denies the existence of any added
+		// delay, making it highly vulnerable to contradiction checks.
+		return Answer{IsMinimal: true}
+
+	case AnswerLiesAboutTargeted:
+		// Targeted lie: lies only about deliberately delayed packets, claiming they
+		// achieved minimal delay. Answers honestly about incompetence-affected packets
+		// and flags them as usual. Deliberately delayed packets are not flagged, since
+		// flagging would contradict the minimal claim.
 		if hasDeliberate {
 			return Answer{IsMinimal: true}
 		}

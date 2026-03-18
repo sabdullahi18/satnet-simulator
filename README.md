@@ -203,10 +203,14 @@ The network is trustworthy and does not deliberately delay any packets. Conseque
 #### `AnswerRandom`
 
 The prover coin-flips its answer strictly for the "Was it minimal?" claim, regardless of actual delays. This is a naive adversary that makes no attempt at consistency and is trivially caught.
-  
+
 #### `AnswerLiesThatMinimal`
 
 The prover claims that all packets, including the ones that were deliberately delayed, achieved minimal delay. It never flags anything. This is a reckless strategy; it completely denies the existence of any added delay, making it highly vulnerable to contradiction checks when compared to other packets in the same batch.
+
+#### `AnswerLiesAboutTargeted`
+
+The prover lies only about deliberately delayed packets, claiming they achieved minimal delay, while answering honestly about everything else. A packet that experienced only incompetence delay is correctly reported as non-minimal, and genuinely congested packets are flagged as usual. However, deliberately delayed packets are not flagged, since the prover intends to claim they were minimal. Flagging them would contradict that claim. The weakness is that if the verifier happens to query a targeted packet from a batch where another packet arrived sooner, the minimal claim is a direct contradiction.
 
 #### `AnswerDelayedHonest`
 
@@ -292,7 +296,7 @@ Also, as mentioned in [Flagging Inconsistency](#flagging-inconsistency), if a pa
 
 ### Statistical Framework
 
-The framework evaluates the network's behaviour by tracking the probabilities of three distinct modes: 
+The framework evaluates the network's behaviour by tracking the probabilities of three distinct modes:
 
 - **$H_0$ (Honest):** The SNP operates truthfully, answering queries accurately
 - **$H_1$ (Incompetent):** The SNP provides unreliable answers
@@ -310,7 +314,7 @@ As the network responds to queries, the verifier incrementally constructs and up
 Under honest operation ($H_0$), there should be a clear statistical separation between these two distributions: flagged packets should consistently exhibit higher delays than packets claimed to be minimal. The likelihood of observing a specific delay $d$ under $H_0$ is estimated using the empirical density functions:
 
 - Given a minimal claim: $P(d | \text{SNP claims minimal}, H_0) = \hat{f}_{minimal}(d)$
-- Given a congestion flag: $P(d | \text{SNP flags congestion}, H_0) = \hat{f}_{flagged}(d)$ 
+- Given a congestion flag: $P(d | \text{SNP flags congestion}, H_0) = \hat{f}_{flagged}(d)$
 
 #### Bayesian Updating
 
