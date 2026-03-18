@@ -1,7 +1,6 @@
 package verification
 
 import (
-	"math"
 	"math/rand"
 )
 
