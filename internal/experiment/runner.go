@@ -2,6 +2,7 @@ package experiment
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"satnet-simulator/internal/engine"
@@ -141,6 +142,46 @@ func DefaultExperimentConfig() ExperimentConfig {
 	}
 }
 
+// flaggingFnForStrategy returns the FlaggingFn that the router should use for a
+// given answering strategy. This determines which packets the network proactively
+// flags as having experienced 'honest errors' during forwarding, before the
+// verifier issues any queries.
+func flaggingFnForStrategy(strategy verification.AnsweringStrategy) network.FlaggingFn {
+	switch strategy {
+	case verification.AnswerHonest:
+		// Only flag packets that genuinely experienced incompetence delay.
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return hasIncompetence
+		}
+
+	case verification.AnswerDelayedHonest:
+		// Flag deliberately delayed packets as "congestion" to provide cover,
+		// in addition to genuinely congested packets. This pushes the flag rate
+		// higher, which may eventually exceed the FlagRateThreshold and trigger
+		// SUSPICIOUS_FLAG_RATE.
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return hasIncompetence || wasDelayed
+		}
+
+	case verification.AnswerLiesThatMinimal:
+		// Only flag genuinely congested packets; deliberately delayed packets
+		// are not flagged because the prover intends to claim they were minimal.
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return hasIncompetence
+		}
+
+	case verification.AnswerRandom:
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return rand.Float64() < 0.5
+		}
+
+	default:
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return hasIncompetence
+		}
+	}
+}
+
 type TrialResult struct {
 	TrialNum            int
 	Verdict             string
@@ -224,7 +265,8 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	delayModel := network.NewDelayModelConfig(config.DelayModelConfig)
 	delayModel.Initialise(config.SimDuration + 10.0)
 
-	router := network.NewRouter(delayModel, config.TargetingConfig)
+	flaggingFn := flaggingFnForStrategy(config.AdversaryConfig.AnsweringStr)
+	router := network.NewRouter(delayModel, config.TargetingConfig, flaggingFn)
 	prover := verification.NewProver(config.AdversaryConfig)
 
 	dest := NewMockGroundStation("DestStation")
@@ -240,6 +282,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 			ActualDelay:       info.TotalDelay,
 			WasDelayed:        info.WasDelayed,
 			HasIncompetence:   info.HasIncompetence,
+			IsFlagged:         info.IsFlagged,
 		}
 
 		prover.RecordTransmission(record)

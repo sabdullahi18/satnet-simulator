@@ -10,7 +10,7 @@ type AnsweringStrategy string
 const (
 	AnswerHonest          AnsweringStrategy = "ANSWER_HONEST"
 	AnswerRandom          AnsweringStrategy = "ANSWER_RANDOM"
-	AnswerDelayedHonest   AnsweringStrategy = "ANSWER_DELAYED_HONEST"   // hides malicious as congestion
+	AnswerDelayedHonest   AnsweringStrategy = "ANSWER_DELAYED_HONEST"    // hides malicious as congestion
 	AnswerLiesThatMinimal AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL" // claims malicious packets are minimal
 )
 
@@ -39,36 +39,12 @@ func NewProver(config AdversaryConfig) *Prover {
 	}
 }
 
-// RecordTransmission stores the packet's ground truth and sets IsFlagged according to the
-// prover's strategy. This is the pre-query flagging phase.
+// RecordTransmission stores the packet's ground truth
 func (p *Prover) RecordTransmission(rec PacketRecord) {
-	switch p.Config.AnsweringStr {
-	case AnswerHonest:
-		// Only flag packets that genuinely experienced incompetence delay
-		rec.IsFlagged = rec.HasIncompetence
-
-	case AnswerDelayedHonest:
-		// Flag deliberately delayed packets as "congestion" to provide cover, in addition
-		// to genuinely congested packets. This pushes the flag rate higher, which may
-		// eventually exceed the FlagRateThreshold and trigger SUSPICIOUS_FLAG_RATE.
-		rec.IsFlagged = rec.HasIncompetence || rec.WasDelayed
-
-	case AnswerLiesThatMinimal:
-		// Only flag genuinely congested packets; deliberately delayed packets are not
-		// flagged because the prover intends to claim they were minimal.
-		rec.IsFlagged = rec.HasIncompetence
-
-	case AnswerRandom:
-		rec.IsFlagged = rand.Float64() < 0.5
-
-	default:
-		rec.IsFlagged = rec.HasIncompetence
-	}
-
 	p.Packets[rec.ID] = &rec
 
-	// Populate secondary index by (int(SentTime), ActualDelay) for query lookup
-	timeKey := int(math.Round(rec.SentTime))
+	// Populate secondary index by (BatchKey(SentTime), ActualDelay) for query lookup.
+	timeKey := BatchKey(rec.SentTime)
 	if p.byTimeDelay[timeKey] == nil {
 		p.byTimeDelay[timeKey] = make(map[float64]*PacketRecord)
 	}
@@ -80,7 +56,7 @@ func (p *Prover) RecordTransmission(rec PacketRecord) {
 func (p *Prover) AnswerQuery(q Query) Answer {
 	p.Queries++
 
-	timeKey := int(math.Round(q.SentTime))
+	timeKey := BatchKey(q.SentTime)
 	var rec *PacketRecord
 	if byDelay, ok := p.byTimeDelay[timeKey]; ok {
 		rec = byDelay[q.ObservedDelay]

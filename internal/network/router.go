@@ -8,7 +8,7 @@ import (
 type TargetingMode int
 
 const (
-	TargetNone     TargetingMode = iota
+	TargetNone TargetingMode = iota
 	TargetRandom
 	TargetPeriodic
 )
@@ -54,6 +54,7 @@ func DefaultPeriodicTargeting(period int) TargetingConfig {
 }
 
 type TransmissionCallback func(info TransmissionInfo)
+type FlaggingFn func(hasIncompetence, wasDelayed bool) bool
 
 type TransmissionInfo struct {
 	PacketID          int
@@ -64,20 +65,23 @@ type TransmissionInfo struct {
 	TotalDelay        float64
 	WasDelayed        bool
 	HasIncompetence   bool
+	IsFlagged         bool
 }
 
 type Router struct {
 	DelayModel      *DelayModel
 	TargetingCfg    TargetingConfig
 	OnTransmission  TransmissionCallback
+	Flagging        FlaggingFn
 	PacketsRouted   int
 	PacketsTargeted int
 }
 
-func NewRouter(delayModel *DelayModel, targeting TargetingConfig) *Router {
+func NewRouter(delayModel *DelayModel, targeting TargetingConfig, flagging FlaggingFn) *Router {
 	return &Router{
 		DelayModel:   delayModel,
 		TargetingCfg: targeting,
+		Flagging:     flagging,
 	}
 }
 
@@ -101,6 +105,12 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 
 	hasIncompetence := rand.Float64() < r.DelayModel.IncompetenceRate
 
+	isFlagged := false
+	if r.Flagging != nil {
+		isFlagged = r.Flagging(hasIncompetence, isTargeted)
+	}
+	pkt.IsFlagged = isFlagged
+
 	delays := r.DelayModel.ComputeTotalDelay(sendTime, hasIncompetence, isTargeted)
 	sim.Schedule(delays.TotalDelay, func() {
 		if r.OnTransmission != nil {
@@ -113,6 +123,7 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 				TotalDelay:        delays.TotalDelay,
 				WasDelayed:        isTargeted,
 				HasIncompetence:   hasIncompetence,
+				IsFlagged:         isFlagged,
 			})
 		}
 
