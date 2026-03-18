@@ -31,105 +31,14 @@ func DefaultExperimentConfig() ExperimentConfig {
 		SimDuration: 100.0,
 
 		DelayModelConfig: network.DelayModelConfig{
-			// BaseDelayMin / BaseDelayMax — one-way propagation + ground-segment
-			// delay for a Starlink-class LEO constellation (~550 km altitude).
-			//
-			// Measured Starlink RTT is ~40–60 ms (25th–75th pct), with a
-			// confirmed minimum of 20 ms:
-			//   "The minimum measured latency was 20 ms, as publicly advertised."
-			//   "The RTT to the European anchors remained constant — around 50 ms
-			//    median, ranging from 40 ms (25th percentile) to 60 ms (75th)."
-			//   — APNIC Blog, "Fact-checking Starlink's performance figures"
-			//     (Nov 2022), https://blog.apnic.net/2022/11/28/fact-checking-starlinks-performance-figures/
-			//
-			// Halving the RTT range gives ~20–30 ms one-way under typical load.
-			// The upper bound of 80 ms captures high-load/long-ground-path
-			// conditions where RTT reaches ~150 ms (confirmed in the same dataset
-			// and in SpaceX's own latency improvement reporting).
-			//
-			// See also: Handley, M. (2018). "Delay is Not an Option: Low Latency
-			// Routing in Space." ACM HotNets'18. doi:10.1145/3286062.3286075
-			// (Derives propagation delay from orbital mechanics at 550 km altitude
-			// and shows LEO end-to-end delay is dominated by ground-segment path
-			// length rather than orbital altitude for sub-continental distances.)
-			BaseDelayMin: 0.020,
-			BaseDelayMax: 0.080,
-
-			// TransitionRate — Poisson rate (events/s) at which the piecewise
-			// base delay changes segment (satellite handoff or beam switch).
-			//
-			// Starlink uses a globally time-synchronised controller that reassigns
-			// satellite-to-ground links every 15 seconds:
-			//   "Starlink employs a globally time-synchronized controller to manage
-			//    the association of satellite-to-ground communication links with an
-			//    interval of 15 seconds, at fixed 12-27-42-57 seconds of every
-			//    minute."
-			//   — Multiple measurement studies; confirmed in:
-			//     Kassem et al., "A Browser-Based Measurement Study of Starlink,"
-			//     ACM IMC 2022; and
-			//     "A Detailed Characterization of Starlink One-way Delay,"
-			//     ACM LEO Networking Workshop 2025 (doi:10.1145/3748749.3749090),
-			//     which notes uplink delays are dominated by the 15-second
-			//     reconfiguration cycle.
-			//
-			// A Poisson rate of 0.05/s gives a mean inter-transition time of
-			// 1/0.05 = 20 s, which approximates the 15-second empirical cycle
-			// while adding stochastic variation for paths spanning multiple beams.
-			TransitionRate: 0.05,
-
-			// IncompetenceRate — fraction of packets that incur anomalous extra
-			// delay (misrouting, scheduling jitter, transient congestion bursts).
-			//
-			// 20% is a conservative upper bound for degraded conditions. Under
-			// nominal Starlink operation, Ookla reports <1% packet loss and
-			// infrequent anomalous delay spikes; 20% stress-tests the verifier
-			// without rendering the network entirely unusable.
-			// (Design parameter; no single external citation.)
-			IncompetenceRate: 0.2,
-
-			// IncompetenceMu / IncompetenceSigma — parameters of the log-normal
-			// distribution (natural-log parameterisation) for the anomalous-delay
-			// component.
-			//
-			// Implied statistics:
-			//   median  = exp(-4.6)              ≈ 10 ms
-			//   mean    = exp(-4.6 + 0.8²/2)     ≈ 14 ms
-			//   95th pct = exp(-4.6 + 1.645·0.8) ≈ 38 ms
-			//
-			// Log-normal is well-established for queuing and forwarding delay in
-			// packet networks. A seminal result:
-			//   "At the most loaded time of day, the distribution of average
-			//    queueing delays among different path segments follows closely a
-			//    log-normal distribution."
-			//   — Paxson, V. & Floyd, S. (1994). "Wide-Area Traffic: The Failure
-			//     of Poisson Modeling." ACM SIGCOMM '94 / IEEE/ACM Trans.
-			//     Networking 3(3):226–244 (1995). doi:10.1145/190314.190338
-			//
-			// The parameter values place the median anomalous delay (10 ms) well
-			// below the base delay minimum (20 ms), so incompetence alone is
-			// unlikely to produce delays that look deliberate.
+			BaseDelayMin:      0.020,
+			BaseDelayMax:      0.080,
+			TransitionRate:    0.05,
+			IncompetenceRate:  0.2,
 			IncompetenceMu:    -4.6,
 			IncompetenceSigma: 0.8,
-
-			// DeliberateMin / DeliberateMax — uniform extra delay (s) injected by
-			// an adversarial relay attempting to manipulate timing.
-			//
-			// The 100–200 ms range is chosen to be materially larger than the
-			// base delay (20–80 ms) and the anomalous-delay 95th percentile
-			// (~38 ms), so the verifier can statistically distinguish deliberate
-			// manipulation from natural network variation.
-			//
-			// The floor of 100 ms is consistent with the threshold at which human
-			// users perceive interactive-communication degradation (the ITU-T G.114
-			// recommendation cites 150 ms one-way as the limit for "most
-			// applications"; 100 ms is therefore the lower bound at which an
-			// adversary begins imposing noticeable harm):
-			//   ITU-T G.114 (2003). "One-way transmission time." §7: "The
-			//   preferred maximum one-way delay is 150 ms."
-			// (Design parameter; upper bound of 200 ms chosen to remain within a
-			// single order of magnitude of the base delay for model tractability.)
-			DeliberateMin: 0.100,
-			DeliberateMax: 0.200,
+			DeliberateMin:     0.100,
+			DeliberateMax:     0.200,
 		},
 
 		TargetingConfig: network.DefaultHonestTargeting(),
@@ -149,16 +58,13 @@ func DefaultExperimentConfig() ExperimentConfig {
 func flaggingFnForStrategy(strategy verification.AnsweringStrategy) network.FlaggingFn {
 	switch strategy {
 	case verification.AnswerHonest:
-		// Only flag packets that genuinely experienced incompetence delay.
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return hasIncompetence
 		}
 
 	case verification.AnswerDelayedHonest:
 		// Flag deliberately delayed packets as "congestion" to provide cover,
-		// in addition to genuinely congested packets. This pushes the flag rate
-		// higher, which may eventually exceed the FlagRateThreshold and trigger
-		// SUSPICIOUS_FLAG_RATE.
+		// in addition to genuinely congested packets.
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return hasIncompetence || wasDelayed
 		}
@@ -196,7 +102,6 @@ type TrialResult struct {
 	Trustworthy         bool
 	QueriesExecuted     int
 	ContradictionsFound int
-	FlaggingRate        float64
 	PosteriorH0         float64
 	PosteriorH1         float64
 	PosteriorH2         float64
@@ -208,13 +113,18 @@ type TrialResult struct {
 
 type ExperimentResult struct {
 	Config                  ExperimentConfig
+	EtaValue                float64 // η used for this result (mirrors Config.VerificationConfig.ErrorTolerance)
 	Trials                  []TrialResult
 	TruePositiveRate        float64
 	FalsePositiveRate       float64
 	TrueNegativeRate        float64
 	FalseNegativeRate       float64
-	MeanQueriesPerDetection float64
+	MeanQueriesPerTrial     float64 // mean queries to verdict across all trials
 	MeanConfidence          float64
+	MeanPosteriorH0         float64 // mean terminal P(H0) across trials
+	MeanPosteriorH1         float64 // mean terminal P(H1) across trials
+	MeanPosteriorH2         float64 // mean terminal P(H2) across trials
+	MeanContradictions      float64 // mean contradiction count across trials
 	WasAdversarial          bool
 	TargetDelayFraction     float64
 }
@@ -243,7 +153,8 @@ func NewRunner() *Runner {
 }
 
 func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
-	fmt.Printf("\n>>> Running experiment: %s (%d trials)\n", config.Name, config.NumTrials)
+	fmt.Printf("\n>>> Running experiment: %s (η=%.3f, %d trials)\n",
+		config.Name, config.VerificationConfig.ErrorTolerance, config.NumTrials)
 	fmt.Printf("    Strategy: %s, Targeting: %s\n", config.AdversaryConfig.AnsweringStr, config.TargetingConfig.Mode)
 
 	trials := make([]TrialResult, config.NumTrials)
@@ -255,8 +166,8 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 
 		trials[trial] = result
 
-		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, contradictions=%d, flagRate=%.2f%%, H0=%.2f H1=%.2f H2=%.2f)\n",
-			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.ContradictionsFound, result.FlaggingRate*100,
+		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, contradictions=%d, H0=%.2f H1=%.2f H2=%.2f)\n",
+			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.ContradictionsFound,
 			result.PosteriorH0, result.PosteriorH1, result.PosteriorH2)
 	}
 
@@ -264,6 +175,24 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 	r.Results = append(r.Results, aggregated)
 
 	return aggregated
+}
+
+// RunEtaSweep runs one experiment per η value, overriding the base config's
+// ErrorTolerance for each iteration. Results are grouped by η in the output.
+func (r *Runner) RunEtaSweep(baseConfig ExperimentConfig, etaValues []float64) []ExperimentResult {
+	fmt.Printf("\n=== η-sweep: %s | Strategy: %s | Targeting: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr, baseConfig.TargetingConfig.Mode)
+
+	results := make([]ExperimentResult, 0, len(etaValues))
+	for _, eta := range etaValues {
+		cfg := baseConfig
+		cfg.VerificationConfig.ErrorTolerance = eta
+		cfg.Name = fmt.Sprintf("%s_eta%.3f", baseConfig.Name, eta)
+		result := r.RunExperiment(cfg)
+		result.EtaValue = eta
+		results = append(results, result)
+	}
+	return results
 }
 
 func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResult {
@@ -299,7 +228,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 		}
 	}
 
-	// Schedule packets in batches — all packets in a batch share the same send time
+	// Schedule packets in batches — all packets in a batch share the same send time.
 	batchSize := config.BatchSize
 	if batchSize < 2 {
 		batchSize = 2
@@ -331,9 +260,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 		finalRecords = append(finalRecords, *pPtr)
 	}
 
-	verifyConfig := config.VerificationConfig
-
-	verifier := verification.NewVerifier(prover, verifyConfig)
+	verifier := verification.NewVerifier(prover, config.VerificationConfig)
 	verifier.IngestRecords(finalRecords)
 	result := verifier.RunVerification()
 
@@ -348,7 +275,6 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 		Trustworthy:         result.Trustworthy,
 		QueriesExecuted:     result.TotalQueries,
 		ContradictionsFound: result.ContradictionsFound,
-		FlaggingRate:        result.FlaggingRate,
 		PosteriorH0:         result.PosteriorH0,
 		PosteriorH1:         result.PosteriorH1,
 		PosteriorH2:         result.PosteriorH2,
@@ -368,8 +294,10 @@ func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult)
 
 	totalQueries := 0
 	totalConfidence := 0.0
-	detectionsQueries := 0
-	detectionsCount := 0
+	totalH0 := 0.0
+	totalH1 := 0.0
+	totalH2 := 0.0
+	totalContradictions := 0.0
 
 	for _, trial := range trials {
 		detectedDishonest := !trial.Trustworthy
@@ -377,8 +305,6 @@ func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult)
 		if wasAdversarial {
 			if detectedDishonest {
 				truePositives++
-				detectionsQueries += trial.QueriesExecuted
-				detectionsCount++
 			} else {
 				falseNegatives++
 			}
@@ -392,28 +318,34 @@ func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult)
 
 		totalQueries += trial.QueriesExecuted
 		totalConfidence += trial.Confidence
+		totalH0 += trial.PosteriorH0
+		totalH1 += trial.PosteriorH1
+		totalH2 += trial.PosteriorH2
+		totalContradictions += float64(trial.ContradictionsFound)
 	}
 
 	n := float64(len(trials))
 
 	result := ExperimentResult{
 		Config:              config,
+		EtaValue:            config.VerificationConfig.ErrorTolerance,
 		Trials:              trials,
 		WasAdversarial:      wasAdversarial,
 		TargetDelayFraction: config.TargetingConfig.TargetFraction,
 		MeanConfidence:      totalConfidence / n,
+		MeanQueriesPerTrial: float64(totalQueries) / n,
+		MeanPosteriorH0:     totalH0 / n,
+		MeanPosteriorH1:     totalH1 / n,
+		MeanPosteriorH2:     totalH2 / n,
+		MeanContradictions:  totalContradictions / n,
 	}
 
 	if wasAdversarial {
 		result.TruePositiveRate = float64(truePositives) / n
 		result.FalseNegativeRate = float64(falseNegatives) / n
-		if detectionsCount > 0 {
-			result.MeanQueriesPerDetection = float64(detectionsQueries) / float64(detectionsCount)
-		}
 	} else {
 		result.TrueNegativeRate = float64(trueNegatives) / n
 		result.FalsePositiveRate = float64(falsePositives) / n
-		result.MeanQueriesPerDetection = float64(totalQueries) / n
 	}
 
 	return result
@@ -425,19 +357,21 @@ func (r *Runner) PrintSummary() {
 	fmt.Println("================================================================================")
 
 	for _, result := range r.Results {
-		fmt.Printf("\n%s:\n", result.Config.Name)
+		fmt.Printf("\n%s (η=%.3f):\n", result.Config.Name, result.EtaValue)
 		fmt.Printf("  Strategy: %s\n", result.Config.AdversaryConfig.AnsweringStr)
+		fmt.Printf("  Mean queries: %.1f, Mean contradictions: %.1f\n",
+			result.MeanQueriesPerTrial, result.MeanContradictions)
+		fmt.Printf("  Mean posteriors: H0=%.3f H1=%.3f H2=%.3f\n",
+			result.MeanPosteriorH0, result.MeanPosteriorH1, result.MeanPosteriorH2)
 
 		if result.WasAdversarial {
-			fmt.Printf("  TPR: %.1f%%, FNR: %.1f%%, Mean Queries: %.1f\n",
+			fmt.Printf("  TPR: %.1f%%, FNR: %.1f%%\n",
 				result.TruePositiveRate*100,
-				result.FalseNegativeRate*100,
-				result.MeanQueriesPerDetection)
+				result.FalseNegativeRate*100)
 		} else {
-			fmt.Printf("  TNR: %.1f%%, FPR: %.1f%%, Mean Queries: %.1f\n",
+			fmt.Printf("  TNR: %.1f%%, FPR: %.1f%%\n",
 				result.TrueNegativeRate*100,
-				result.FalsePositiveRate*100,
-				result.MeanQueriesPerDetection)
+				result.FalsePositiveRate*100)
 		}
 	}
 

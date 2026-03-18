@@ -15,35 +15,48 @@ func main() {
 
 	runner := experiment.NewRunner()
 
-	fmt.Println("\n>>> Experiment 1: Honest Network (baseline)")
-	honestConfig := experiment.DefaultExperimentConfig()
-	honestConfig.Name = "honest_baseline"
-	honestConfig.NumPackets = 100
-	honestConfig.BatchSize = 2
-	honestConfig.NumTrials = 5
-	honestConfig.TargetingConfig = network.DefaultHonestTargeting()
-	honestConfig.AdversaryConfig.AnsweringStr = verification.AnswerHonest
-	runner.RunExperiment(honestConfig)
+	// Primary experimental axis: sweep η ∈ {0.001, 0.005, 0.01, 0.05, 0.10, 0.20}.
+	// For each (prover strategy, η), multiple independent trials are executed.
+	etaValues := []float64{0.001, 0.005, 0.01, 0.05, 0.10, 0.20}
 
-	fmt.Println("\n>>> Experiment 2: Adversarial Network (10% targeted, Delayed-Honest strategy)")
-	adversarialConfig := experiment.DefaultExperimentConfig()
-	adversarialConfig.Name = "adversarial_10pct_delayed_honest"
-	adversarialConfig.NumPackets = 100
-	adversarialConfig.BatchSize = 2
-	adversarialConfig.NumTrials = 5
-	adversarialConfig.TargetingConfig = network.DefaultAdversarialTargeting(0.10)
-	adversarialConfig.AdversaryConfig.AnsweringStr = verification.AnswerDelayedHonest
-	runner.RunExperiment(adversarialConfig)
+	base := experiment.DefaultExperimentConfig()
+	base.NumPackets = 200
+	base.BatchSize = 5
+	base.NumTrials = 10
+	base.SimDuration = 100.0
 
-	fmt.Println("\n>>> Experiment 3: Adversarial Network (20% targeted, Lies-That-Minimal gaslighting)")
-	adversarialConfig2 := experiment.DefaultExperimentConfig()
-	adversarialConfig2.Name = "adversarial_20pct_lies_that_minimal"
-	adversarialConfig2.NumPackets = 100
-	adversarialConfig2.BatchSize = 2
-	adversarialConfig2.NumTrials = 5
-	adversarialConfig2.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
-	adversarialConfig2.AdversaryConfig.AnsweringStr = verification.AnswerLiesThatMinimal
-	runner.RunExperiment(adversarialConfig2)
+	// Experiment 1: Honest baseline — measures false positive rate across η.
+	// H0 should be identified as TRUSTED; any DISHONEST verdict is a false positive.
+	honestBase := base
+	honestBase.Name = "honest_baseline"
+	honestBase.TargetingConfig = network.DefaultHonestTargeting()
+	honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
+	runner.RunEtaSweep(honestBase, etaValues)
+
+	// Experiment 2: Lies-that-minimal — blanket denial; claims every packet was minimal.
+	// Most reckless strategy, highly vulnerable to contradiction checks.
+	liesMBase := base
+	liesMBase.Name = "lies_that_minimal"
+	liesMBase.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
+	liesMBase.AdversaryConfig.AnsweringStr = verification.AnswerLiesThatMinimal
+	runner.RunEtaSweep(liesMBase, etaValues)
+
+	// Experiment 3: Lies-about-targeted — lies only for deliberately delayed packets.
+	// More careful strategy; exploits the fact that queried packets may not be targeted.
+	liesABase := base
+	liesABase.Name = "lies_about_targeted"
+	liesABase.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
+	liesABase.AdversaryConfig.AnsweringStr = verification.AnswerLiesAboutTargeted
+	runner.RunEtaSweep(liesABase, etaValues)
+
+	// Experiment 4: Delayed-honest — uses flagging to cover deliberate delays.
+	// Never claims a targeted packet was minimal; instead flags them as congested.
+	// Raises the flag rate, but avoids direct contradictions.
+	delayedHBase := base
+	delayedHBase.Name = "delayed_honest"
+	delayedHBase.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
+	delayedHBase.AdversaryConfig.AnsweringStr = verification.AnswerDelayedHonest
+	runner.RunEtaSweep(delayedHBase, etaValues)
 
 	runner.PrintSummary()
 }
