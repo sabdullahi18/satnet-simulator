@@ -1,6 +1,16 @@
 package verification
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+)
+
+// BatchKey computes the canonical batch identifier for a given send time.
+// Both the prover (for indexing/lookup) and the verifier (for grouping) must
+// use this same function to ensure consistent batch assignment.
+func BatchKey(t float64) int {
+	return int(math.Round(t))
+}
 
 // Query represents the verifier's question: "Was delay X minimal for packets sent at time t?"
 type Query struct {
