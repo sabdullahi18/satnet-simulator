@@ -276,22 +276,6 @@ If the prover says delay X was minimal, it is claiming P experienced only the ba
 
 This is a zero-false-positive detection mechanism: it is logically impossible for an honest prover to produce a contradiction, because an honest prover would never claim a non-minimal packet was minimal. In this context, a "false positive" would mean incorrectly classifying an honest network as dishonest, while a "true positive" means successfully catching a genuinely malicious network.
 
-### Flag Rate Analysis
-
-Independently of contradiction detection, the verifier tracks the fraction of delivered packets where `IsFlagged=true`. A high flag rate suggests the prover is attributing many packets to congestion, which may indicate it is using congestion as a cover story for deliberate delays (as in the `AnswerDelayedHonest` strategy).
-
-If `flaggingRate > FlagRateThreshold` (e.g., 5%) and no contradictions were found, the verdict is SUSPICIOUS_FLAG_RATE. In practice, this threshold can be defined by a Service Level Agreement (SLA) that binds the network to avoid delaying more than a specified fraction of packets. This logic dictates the overall evaluation impact after all queries in a trial are processed, rather than the impact of a single query.
-
-### Result
-
-| Condition                                 | Verdict                | `Trustworthy` | `Confidence`         |
-| ----------------------------------------- | ---------------------- | ------------- | -------------------- |
-| Any contradictions found                  | `DISHONEST`            | `false`       | `1.0`                |
-| No contradictions, flag rate > threshold  | `SUSPICIOUS_FLAG_RATE` | `false`       | `flaggingRate`       |
-| No contradictions, flag rate <= threshold | `TRUSTED`              | `true`        | `1.0 - flaggingRate` |
-
-The `DISHONEST` verdict is issued with certainty (`Confidence=1.0`) because a contradiction is a deductive proof of dishonesty: no probabilistic inference is required. The `SUSPICIOUS_FLAG_RATE` verdict is a probabilistic signal, not a proof.
-
 Also, as mentioned in [Flagging Inconsistency](#flagging-inconsistency), if a packet with delay $d_1$ is flagged, but a packet with delay $d_2$ is not flagged (where $d_1 < d_2$), the verifier queries $d_2$. If the prover claims $d_2$ was minimal, it triggers a direct contradiction. If the prover claims $d_2$ was not minimal, the network admits it failed to flag a delayed packet. The verifier penalises this incompetence by treating $d_2$ as a packet that should have been flagged, inflating the network's tracked flagging rate. If this rate exceeds the acceptable threshold $\tau$, the network is caught.
 
 ### Statistical Framework
@@ -304,35 +288,97 @@ The framework evaluates the network's behaviour by tracking the probabilities of
 
 (Note: $H_1$ and $H_2$ both ultimately result in a "Dishonest" verdict from a customer SLA perspective.)
 
-#### Empirical Delay Distributions
+#### Prior Distribution
 
-As the network responds to queries, the verifier incrementally constructs and updates empirical probability distributions based on the observed data. Two core distributions are maintained:
-
-- $F_{minimal}$: The distribution of delays for packets the SNP claims achieved minimal delay
-- $F_{flagged}$: The distribution of delays for packets the SNP flags as having experienced congestion
-
-Under honest operation ($H_0$), there should be a clear statistical separation between these two distributions: flagged packets should consistently exhibit higher delays than packets claimed to be minimal. The likelihood of observing a specific delay $d$ under $H_0$ is estimated using the empirical density functions:
-
-- Given a minimal claim: $P(d | \text{SNP claims minimal}, H_0) = \hat{f}_{minimal}(d)$
-- Given a congestion flag: $P(d | \text{SNP flags congestion}, H_0) = \hat{f}_{flagged}(d)$
+The verifier begins each trial with no prior knowledge of the SNP's behaviour. Initialise the posterior with a uniform (uninformative) prior:
+$$P(H_0) = P(H_1) = P(H_2) = \frac{1}{3}$$
 
 #### Bayesian Updating
+ 
+As the verifier processes batches and accumulates evidence $E_1, E_2, \dots, E_n$, it updates the posterior probability of each hypothesis using Bayes' theorem. After observing evidence $E_n$, the posterior is updated as:
+ 
+$$P(H_j \mid E_1, \dots, E_n) = \frac{P(E_n \mid H_j) \cdot P(H_j \mid E_1, \dots, E_{n-1})}{\sum_{k=0}^{2} P(E_n \mid H_k) \cdot P(H_k \mid E_1, \dots, E_{n-1})}$$
+ 
+where $P(E_n \mid H_j)$ is the likelihood of the observed evidence under hypothesis $H_j$, and the denominator is a normalising constant ensuring the posteriors sum to 1.
 
-As the verifier gathers a sequence of heterogeneous evidence $E_1, E_2, \dots, E_n$ (e.g., contradictions, flagging inconsistencies, congestion), it updates the posterior probability of each hypothesis using Bayes' theorem:
-
-$$P(H_j | E_1, \dots, E_n) \propto P(E_n | H_j) \cdot P(H_j | E_1, \dots, E_{n-1})$$
-
-The likelihoods $P(E_n | H_j)$ dictate how strongly a piece of evidence shifts the probabilities:
-
-- **Logical Contradictions:** An honest network should never produce a false minimal claim, so $P(\text{contradiction} | H_0) \approx 0$. An incompetent network might occasionally err ($P(\text{contradiction} | H_1) > 0$), while a malicious network's probability depends heavily on its specific evasion strategy.
-- **Flagging Rate Anomalies:** If the observed flagging rate $r_{flag}$ significantly exceeds the threshold $\tau_{flag}$, it heavily penalizes $H_0$ and shifts weight toward $H_2$.
-
-#### Sequential Analysis
-
-The framework does not require a fixed number of queries. Instead, it operates sequentially. The verifier continuously issues queries and accumulates evidence until the posterior probability of any single hypothesis exceeds a predefined confidence threshold $\alpha$.
-
-Formally, the protocol halts and issues a definitive verdict when $P(H_j | E_1, \dots, E_n) > \alpha$. This sequential approach guarantees statistical rigour while dynamically minimising the number of network queries required to catch a dishonest provider.
-
+#### Logical Contradictions
+ 
+**Under $H_0$ (Honest):** An honest prover never claims a non-minimal packet was minimal:
+ 
+$$P(\text{contradiction} \mid H_0) = \epsilon \approx 10^{-9}$$
+ 
+This is set to a near-zero value (rather than exactly zero) to prevent numerical issues where a single contradiction would drive $P(H_0 \mid E) = 0$ irrecoverably. Conceptually, this represents the vanishingly small probability of a system-level error.
+ 
+**Under $H_1$ (Incompetent):** An incompetent prover is not actively trying to deceive but may give unreliable answers. The probability of an incompetent prover accidentally producing a contradiction is also near zero:
+ 
+$$P(\text{contradiction} \mid H_1) = \epsilon \approx 10^{-9}$$
+ 
+**Under $H_2$ (Malicious):** A malicious prover deliberately delays packets and then could lie about them. When queried about a targeted packet, it risks claiming it was minimal when another packet in the same batch arrived sooner. The probability of a contradiction under $H_2$ is high:
+ 
+$$P(\text{contradiction} \mid H_2) = 1 - \epsilon \approx 1.0$$
+ 
+A single contradiction therefore produces an overwhelming Bayesian shift toward $H_2$, reflecting the fact that contradictions are essentially impossible under honest or merely incompetent operation but are a natural consequence of malicious lying.
+ 
+#### Clean Queries (No Contradiction)
+ 
+When a query produces no contradiction, this is mild evidence in favour of honesty. The likelihoods are the complements of the contradiction likelihoods:
+ 
+$$P(\text{clean} \mid H_0) = 1 - \epsilon \approx 1.0$$
+ 
+$$P(\text{clean} \mid H_1) = 1 - \eta$$
+ 
+$$P(\text{clean} \mid H_2) = \eta$$
+ 
+A single clean query barely moves the posteriors, but many consecutive clean queries gradually accumulate evidence for $H_0$ and against $H_2$. The rate at which this accumulation occurs is governed by $\eta$: a small $\eta$ means each clean query provides stronger evidence against malice (since $P(\text{clean} \mid H_2) = \eta$ is very small), while a large $\eta$ makes each clean query less informative.
+ 
+#### Flagging Inconsistencies
+ 
+When the verifier detects an unflagged packet whose delay exceeds a flagged packet in the same batch, and the prover admits it was not minimal, this is evidence of operational incompetence. The likelihoods penalise $H_0$ (honest networks should flag consistently) and favour $H_1$:
+ 
+$$P(\text{flag inconsistency} \mid H_0) \ll P(\text{flag inconsistency} \mid H_1)$$
+ 
+#### The Error Tolerance Parameter $\eta$
+ 
+Rather than hard-coding the likelihood constants, the framework introduces a single tunable parameter $\eta \in (0, 1)$ that represents the **maximum tolerable error rate** — the fraction of the time the network is permitted to give an incorrect answer before the verifier considers it dishonest.
+ 
+This parameter governs the sensitivity of the Bayesian update. Setting $\eta = 0.01$ means _"the network cannot be wrong more than 1% of the time."_ The likelihoods for contradiction evidence are then derived from $\eta$:
+ 
+$$P(\text{contradiction} \mid H_0) = \epsilon \quad \text{(system-level error, fixed at } \approx 10^{-9}\text{)}$$
+ 
+$$P(\text{contradiction} \mid H_1) = \eta \quad \text{(incompetent prover's error rate)}$$
+ 
+$$P(\text{contradiction} \mid H_2) = 1 - \eta \quad \text{(malicious prover, high contradiction risk)}$$
+ 
+By adjusting $\eta$, we control how forgiving the verifier is toward the network. A smaller $\eta$ (e.g., 0.001) makes the verifier very strict — even rare contradictions strongly implicate dishonesty. A larger $\eta$ (e.g., 0.10) allows more room for legitimate errors before the posteriors shift decisively.
+ 
+The experimental evaluation systematically sweeps over $\eta$ to determine:
+- At what tolerance levels can the verifier reliably distinguish honest from dishonest networks?
+- How does the number of queries required to reach a confident verdict change with $\eta$?
+- What is the "lying budget" — the maximum fraction of dishonest answers the network can give while remaining undetected under a given $\eta$?
+ 
+#### Sequential Stopping
+ 
+The framework does not require a fixed number of queries. Instead, it operates sequentially. The verifier continuously issues queries and accumulates evidence until the posterior probability of any single hypothesis exceeds a predefined confidence threshold $\alpha$ (e.g., 0.95).
+ 
+Formally, the protocol halts and issues a definitive verdict when:
+ 
+$$\max_j \, P(H_j \mid E_1, \dots, E_n) > \alpha$$
+ 
+This sequential approach guarantees statistical rigour while dynamically minimising the number of network queries required to catch a dishonest provider. Alternatively, the verifier halts if it exhausts all available batches.
+ 
+#### Verdict Derivation
+ 
+After processing concludes (either by reaching the confidence threshold or exhausting batches), the verifier issues a verdict:
+ 
+| Condition                          | Verdict       | `Trustworthy` |
+| ---------------------------------- | ------------- | ------------- |
+| $P(H_0 \mid E) > \alpha$          | `TRUSTED`     | `true`        |
+| $P(H_1 \mid E) > \alpha$          | `DISHONEST`   | `false`       |
+| $P(H_2 \mid E) > \alpha$          | `DISHONEST`   | `false`       |
+| No posterior exceeds $\alpha$      | `INCONCLUSIVE`| depends on $P(H_0)$ |
+ 
+Both $H_1$ and $H_2$ map to `DISHONEST` because, from the customer's SLA perspective, an incompetent network that fails to flag delayed packets is indistinguishable from a malicious one — both result in degraded service that the provider misrepresents.
+ 
 ---
 
 ## Experiment Structure
@@ -361,6 +407,17 @@ Each trial:
 6. Instantiates a `Verifier`, ingests the records, and runs verification.
 7. Returns a `TrialResult` with verdict, confidence, query count, contradiction count, and ground-truth statistics.
 
+### Sweeping the Error Tolerance $\eta$
+ 
+The primary experimental axis is the error tolerance parameter $\eta$. For each prover strategy, the simulator runs a sweep over a range of $\eta$ values (e.g., $\eta \in \{0.001, 0.005, 0.01, 0.05, 0.10, 0.20\}$) and records how the detection outcome changes. This reveals the relationship between the verifier's strictness and its ability to classify different types of network behaviour.
+ 
+For each combination of (prover strategy, $\eta$ value), multiple independent trials are executed to produce statistically stable results. The key metrics recorded per configuration are:
+ 
+- **Detection rate:** fraction of trials that correctly classified the network's true behaviour
+- **Mean queries to verdict:** how many prover queries were needed before $\alpha$ was reached
+- **Final posterior distribution:** the terminal values of $P(H_0)$, $P(H_1)$, and $P(H_2)$
+- **Contradiction count:** how many logical contradictions were observed
+
 ### Aggregate Metrics
 
 After all trials, the runner computes standard binary classification metrics over the trial verdicts, treating each trial as a binary classification of whether the prover was adversarial:
@@ -369,16 +426,6 @@ After all trials, the runner computes standard binary classification metrics ove
 - **False Negative Rate (FNR):** fraction of adversarial trials incorrectly trusted.
 - **True Negative Rate (TNR):** fraction of honest trials correctly trusted.
 - **False Positive Rate (FPR):** fraction of honest trials incorrectly flagged.
-
-### Experiments Defined in `main.go`
-
-Three experiments are run by default:
-
-| Experiment                            | Targeting | Fraction | Prover Strategy         | Expected Detection                       |
-| ------------------------------------- | --------- | -------- | ----------------------- | ---------------------------------------- |
-| `honest_baseline`                     | None      | —        | `AnswerHonest`          | Should be trusted (low FPR)              |
-| `adversarial_10pct_delayed_honest`    | Random    | 10%      | `AnswerDelayedHonest`   | Elevated flag rate may trigger suspicion |
-| `adversarial_20pct_lies_that_minimal` | Random    | 20%      | `AnswerLiesThatMinimal` | Direct contradiction -> MALICIOUS        |
 
 ---
 
@@ -397,13 +444,13 @@ go build -o satnet ./cmd/satnet
 ```
 
 ### Output
-
-Each trial prints its verdict, confidence, query count, contradiction count, and flag rate. After all experiments, a summary table prints TPR/FNR or TNR/FPR for each experiment, along with the mean number of queries executed per detection.
-
+ 
+Each trial prints its verdict, posterior probabilities ($P(H_0)$, $P(H_1)$, $P(H_2)$), query count, and contradiction count. After all trials for a given configuration, a summary reports TPR/FNR or TNR/FPR. When running an $\eta$-sweep, results are grouped by tolerance level so the effect of the parameter is immediately visible.
+ 
 ### Configuration
-
+ 
 All experiment parameters are set in `cmd/satnet/main.go` by constructing an `ExperimentConfig`. The key fields are:
-
+ 
 ```go
 experiment.ExperimentConfig{
     Name:        string,         // Label for output
@@ -411,33 +458,34 @@ experiment.ExperimentConfig{
     BatchSize:   int,            // Packets sent simultaneously (>= 2 required)
     NumTrials:   int,            // Independent repetitions
     SimDuration: float64,        // Simulated seconds
-
+ 
     DelayModelConfig: network.DelayModelConfig{
-        BaseDelayMin:   float64, // Minimum base propagation delay (seconds)
-        BaseDelayMax:   float64, // Maximum base propagation delay (seconds)
-        TransitionRate: float64, // Poisson rate of base delay transitions (per second)
-        CongestionRate: float64, // Per-packet probability of legitimate congestion
-        LegitMu:        float64, // Log-normal mu for congestion delay
-        LegitSigma:     float64, // Log-normal sigma for congestion delay
-        MaliciousMin:   float64, // Minimum adversarial delay added to targeted packets
-        MaliciousMax:   float64, // Maximum adversarial delay added to targeted packets
+        BaseDelayMin:      float64, // Minimum base propagation delay (seconds)
+        BaseDelayMax:      float64, // Maximum base propagation delay (seconds)
+        TransitionRate:    float64, // Poisson rate of base delay transitions (per second)
+        IncompetenceRate:  float64, // Per-packet probability of legitimate congestion
+        IncompetenceMu:    float64, // Log-normal mu for congestion delay
+        IncompetenceSigma: float64, // Log-normal sigma for congestion delay
+        DeliberateMin:     float64, // Minimum adversarial delay added to targeted packets
+        DeliberateMax:     float64, // Maximum adversarial delay added to targeted packets
     },
-
+ 
     TargetingConfig: network.TargetingConfig{
         Mode:           network.TargetNone | network.TargetRandom,
         TargetFraction: float64, // Fraction of packets targeted (for TargetRandom)
     },
-
+ 
     AdversaryConfig: verification.AdversaryConfig{
         AnsweringStr: verification.AnswerHonest |
                       verification.AnswerRandom |
                       verification.AnswerDelayedHonest |
                       verification.AnswerLiesThatMinimal,
     },
-
+ 
     VerificationConfig: verification.VerificationConfig{
-        MaxQueries:        int,     // Maximum prover queries per trial
-        FlagRateThreshold: float64, // Flag rate above which SUSPICIOUS_FLAG_RATE is issued
+        ErrorTolerance:      float64, // η — maximum tolerable error rate
+        ConfidenceThreshold: float64, // α — posterior threshold for verdict (e.g. 0.95)
+        MaxQueries:          int,     // Safety cap on total prover queries
     },
 }
 ```
