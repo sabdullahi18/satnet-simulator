@@ -168,7 +168,7 @@ When `Router.Forward(sim, pkt, dest)` is called:
 2. It calls DelayModel.ComputeTotalDelay() to get the full delay breakdown
 3. It sets the `IsFlagged` metadata on the packet if the network determines it experienced an incompetence event. This flag is the network proactively admitting 'honest errors' in packet delivery before the verifier can discover them through queries
 4. It schedules a delivery event `totalDelay` seconds into the future via `sim.Schedule`
-5. When that event fires, it invokes the `OnTransmission` callback (which writes the record to the oracle) and then calls `dest.Receive` to deliver the packet.
+5. When that event fires, it invokes the `OnTransmission` callback (which writes the record to the prover) and then calls `dest.Receive` to deliver the packet.
 
 The `OnTransmission` callback is the handoff point between the simulation layer and the verification layer. It fires at the moment of delivery, after all delays have elapsed.
 
@@ -215,9 +215,9 @@ The weakness: if enough packets are targeted, the flag rate exceeds the FlagRate
 
 #### Flagging Inconsistency
 
-If the prover flags a packet with delay $d_1$ (claiming it was congested) but does not flag a packet with delay $d_2$, and $d_1 < d_2$ is true. If the oracle then claims that $d_2$ was minimal, this results in a clear, easily verified contradiction.
+If the prover flags a packet with delay $d_1$ (claiming it was congested) but does not flag a packet with delay $d_2$, and $d_1 < d_2$ is true. If the prover then claims that $d_2$ was minimal, this results in a clear, easily verified contradiction.
 
-Otherwise, if the oracle claims that $d_2$ was not minimal, they are effectively admitting they failed to flag a severely delayed packet. This indicates incompetence. In terms of our verification records, we consider this packet as one that should have been flagged, and we increase the oracle's tracked flagging rate. This pushes them closer to the suspicious threshold.
+Otherwise, if the prover claims that $d_2$ was not minimal, they are effectively admitting they failed to flag a severely delayed packet. This indicates incompetence. In terms of our verification records, we consider this packet as one that should have been flagged, and we increase the prover's tracked flagging rate. This pushes them closer to the suspicious threshold.
 
 ### Flagging Strategies
 
@@ -265,7 +265,7 @@ Batches are processed and iterated up to `MaxQueries` total prover queries. NOT 
 For each batch:
 
 1. Find `minDelay`: the smallest `ActualDelay` observed across all packets in the batch.
-2. For a packet `p` in the batch, query the oracle: _"Was delay X minimal for packets sent at time t?"_
+2. For a packet `p` in the batch, query the prover: _"Was delay X minimal for packets sent at time t?"_
 3. If `ans.IsMinimal == true` **and** `p.ActualDelay > minDelay`, record a **contradiction**.
 
 If the prover says delay X was minimal, it is claiming P experienced only the base propagation delay. But another packet Q in the same batch (same send time, same base delay) arrived sooner. Therefore P could not have been minimal — the prover is lying.
@@ -349,17 +349,17 @@ All packets within a batch are scheduled at exactly the same `sendTime`, which i
 
 Each trial:
 
-1. Creates a fresh simulation, delay model, router, and oracle.
+1. Creates a fresh simulation, delay model, router, and prover.
 2. Initialises the delay model (generates the piecewise-constant base delay function for the trial's duration).
 3. Schedules all packets.
 4. Runs the simulation to completion.
-5. Collects all `PacketRecord`s from the oracle into a flat list.
+5. Collects all `PacketRecord`s from the prover into a flat list.
 6. Instantiates a `Verifier`, ingests the records, and runs verification.
 7. Returns a `TrialResult` with verdict, confidence, query count, contradiction count, and ground-truth statistics.
 
 ### Aggregate Metrics
 
-After all trials, the runner computes standard binary classification metrics over the trial verdicts, treating each trial as a binary classification of whether the oracle was adversarial:
+After all trials, the runner computes standard binary classification metrics over the trial verdicts, treating each trial as a binary classification of whether the prover was adversarial:
 
 - **True Positive Rate (TPR):** fraction of adversarial trials correctly identified as untrustworthy.
 - **False Negative Rate (FNR):** fraction of adversarial trials incorrectly trusted.
@@ -370,7 +370,7 @@ After all trials, the runner computes standard binary classification metrics ove
 
 Three experiments are run by default:
 
-| Experiment                            | Targeting | Fraction | Oracle Strategy         | Expected Detection                       |
+| Experiment                            | Targeting | Fraction | Prover Strategy         | Expected Detection                       |
 | ------------------------------------- | --------- | -------- | ----------------------- | ---------------------------------------- |
 | `honest_baseline`                     | None      | —        | `AnswerHonest`          | Should be trusted (low FPR)              |
 | `adversarial_10pct_delayed_honest`    | Random    | 10%      | `AnswerDelayedHonest`   | Elevated flag rate may trigger suspicion |
@@ -432,7 +432,7 @@ experiment.ExperimentConfig{
     },
 
     VerificationConfig: verification.VerificationConfig{
-        MaxQueries:        int,     // Maximum oracle queries per trial
+        MaxQueries:        int,     // Maximum prover queries per trial
         FlagRateThreshold: float64, // Flag rate above which SUSPICIOUS_FLAG_RATE is issued
     },
 }
