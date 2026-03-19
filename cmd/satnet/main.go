@@ -20,8 +20,8 @@ func main() {
 	etaValues := []float64{0.001, 0.005, 0.01, 0.05, 0.10, 0.20}
 
 	base := experiment.DefaultExperimentConfig()
-	base.NumPackets = 200
-	base.BatchSize = 5
+	base.NumPackets = 1000
+	base.BatchSize = 10
 	base.NumTrials = 10
 	base.SimDuration = 100.0
 
