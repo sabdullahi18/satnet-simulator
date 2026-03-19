@@ -10,16 +10,18 @@ const epsilon = 1e-9
 
 // VerificationConfig holds the parameters for the Bayesian verifier.
 type VerificationConfig struct {
-	ErrorTolerance      float64 // η — maximum tolerable error rate; governs all Bayesian likelihoods
-	ConfidenceThreshold float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
-	MaxQueries          int     // safety cap on total prover queries
+	ErrorTolerance       float64 // η — maximum tolerable error rate; governs all Bayesian likelihoods
+	ConfidenceThreshold  float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
+	MaxQueries           int     // safety cap on total prover queries
+	FlaggingRateThreshold float64 // maximum tolerable fraction of flagged packets; excess implies incompetence
 }
 
 func DefaultVerificationConfig() VerificationConfig {
 	return VerificationConfig{
-		ErrorTolerance:      0.05,
-		ConfidenceThreshold: 0.95,
-		MaxQueries:          500,
+		ErrorTolerance:        0.05,
+		ConfidenceThreshold:   0.95,
+		MaxQueries:            500,
+		FlaggingRateThreshold: 0.30,
 	}
 }
 
@@ -56,6 +58,30 @@ func (v *Verifier) RunVerification() VerificationResult {
 		return VerificationResult{
 			Verdict: "INSUFFICIENT_DATA", Trustworthy: true,
 			PosteriorH0: 1.0 / 3, PosteriorH1: 1.0 / 3, PosteriorH2: 1.0 / 3,
+		}
+	}
+
+	// Flagging rate check: if the fraction of flagged records exceeds the threshold,
+	// the network is reporting an implausibly high congestion rate. It is either
+	// genuinely incompetent (H1) or masking deliberate delays as congestion (H2).
+	// Either way, the flag rate alone is sufficient to classify it as incompetent.
+	if v.Config.FlaggingRateThreshold > 0 {
+		flagged := 0
+		for _, r := range v.Records {
+			if r.IsFlagged {
+				flagged++
+			}
+		}
+		flagRate := float64(flagged) / float64(len(v.Records))
+		if flagRate > v.Config.FlaggingRateThreshold {
+			return VerificationResult{
+				Verdict:     "DISHONEST",
+				Confidence:  1.0,
+				Trustworthy: false,
+				PosteriorH0: 0.0,
+				PosteriorH1: 1.0,
+				PosteriorH2: 0.0,
+			}
 		}
 	}
 
