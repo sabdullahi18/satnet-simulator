@@ -90,16 +90,17 @@ func (v *Verifier) RunVerification() VerificationResult {
 	// All likelihoods are derived from η (error tolerance).
 	//
 	// Contradiction evidence — prover claims minimal, another packet arrived sooner:
-	//   P(C|H0) = η        honest networks do not produce logical contradictions (at most η rate)
-	//   P(C|H1) = η        incompetent networks make routing mistakes but not logical contradictions
+	//   P(C|H0) = ε        honest networks essentially never produce logical contradictions
+	//   P(C|H1) = ε        incompetent networks truthfully answer IsMinimal=false when delayed,
+	//                      so they do not lie and do not produce contradictions either
 	//   P(C|H2) = 1-η      malicious prover almost certainly contradicts on a targeted packet
 	//
 	// Flagging inconsistency — unflagged packet with delay > flagged packet, prover admits non-minimal:
 	//   P(F|H0) = η        honest networks rarely fail to flag delayed packets
 	//   P(F|H1) = 1-η      incompetent networks commonly miss flags (strongly favours H1)
 	//   P(F|H2) = η        malicious networks have a similar low miss-flag rate as honest
-	pContraH0 := eta
-	pContraH1 := eta
+	pContraH0 := epsilon
+	pContraH1 := epsilon
 	pContraH2 := 1 - eta
 
 	pFlagH0 := eta
@@ -173,12 +174,21 @@ func (v *Verifier) RunVerification() VerificationResult {
 			post = bayesUpdate(post, 1-pContraH0, 1-pContraH1, 1-pContraH2)
 		}
 
-		// Flagging inconsistency check: if a flagged packet with delay d1 exists in the
-		// batch, the queried packet (delay d2 > d1) was not flagged, and the prover admits
-		// d2 was not minimal — the network failed to flag a congested packet (incompetence).
-		// When ans.IsMinimal, d2 > d1 >= minDelay so the main contradiction check already fired.
-		if !p.IsFlagged && minFlaggedInBatch < math.MaxFloat64 && p.ActualDelay > minFlaggedInBatch && !ans.IsMinimal {
-			post = bayesUpdate(post, pFlagH0, pFlagH1, pFlagH2)
+		// Flagging consistency check: if the queried packet has delay > the minimum flagged
+		// delay in this batch, it should have been flagged too.
+		//
+		//   Inconsistency — not flagged, prover admits non-minimal:
+		//     network failed to flag a congested packet (strongly favours H1).
+		//     When ans.IsMinimal, d2 > d1 >= minDelay so the contradiction check already fired.
+		//
+		//   Correct flagging — packet is flagged as it should be:
+		//     reward H0 and penalise H1; an incompetent network correctly flagging is unlikely.
+		if minFlaggedInBatch < math.MaxFloat64 && p.ActualDelay > minFlaggedInBatch {
+			if !p.IsFlagged && !ans.IsMinimal {
+				post = bayesUpdate(post, pFlagH0, pFlagH1, pFlagH2)
+			} else if p.IsFlagged {
+				post = bayesUpdate(post, 1-pFlagH0, 1-pFlagH1, 1-pFlagH2)
+			}
 		}
 	}
 
