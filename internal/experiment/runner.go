@@ -1,8 +1,11 @@
 package experiment
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
+	"path/filepath"
 	"time"
 
 	"satnet-simulator/internal/engine"
@@ -175,6 +178,48 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 	r.Results = append(r.Results, aggregated)
 
 	return aggregated
+}
+
+// RunEtaFractionSweep runs one experiment per (η, fraction) combination, sweeping
+// both axes. Results are appended to r.Results and returned.
+func (r *Runner) RunEtaFractionSweep(baseConfig ExperimentConfig, etaValues, fractionValues []float64) []ExperimentResult {
+	fmt.Printf("\n=== η×fraction-sweep: %s | Strategy: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
+
+	results := make([]ExperimentResult, 0, len(etaValues)*len(fractionValues))
+	for _, eta := range etaValues {
+		for _, f := range fractionValues {
+			cfg := baseConfig
+			cfg.VerificationConfig.ErrorTolerance = eta
+			cfg.TargetingConfig.TargetFraction = f
+			cfg.Name = fmt.Sprintf("%s_eta%.3f_frac%.2f", baseConfig.Name, eta, f)
+			result := r.RunExperiment(cfg)
+			result.EtaValue = eta
+			results = append(results, result)
+		}
+	}
+	return results
+}
+
+// SaveResultsToFile writes results to a JSON file, creating parent directories
+// as needed.
+func (r *Runner) SaveResultsToFile(path string, results []ExperimentResult) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(results); err != nil {
+		return err
+	}
+	fmt.Printf("  Results saved to %s\n", path)
+	return nil
 }
 
 // RunEtaSweep runs one experiment per η value, overriding the base config's

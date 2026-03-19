@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"satnet-simulator/internal/experiment"
 	"satnet-simulator/internal/network"
 	"satnet-simulator/internal/verification"
@@ -15,48 +16,56 @@ func main() {
 
 	runner := experiment.NewRunner()
 
-	// Primary experimental axis: sweep η ∈ {0.001, 0.005, 0.01, 0.05, 0.10, 0.20}.
-	// For each (prover strategy, η), multiple independent trials are executed.
+	// η × targeting-fraction grid: every combination is run.
 	etaValues := []float64{0.001, 0.005, 0.01, 0.05, 0.10, 0.20}
+	fractionValues := []float64{0.05, 0.10, 0.20, 0.40, 0.60, 0.80}
 
 	base := experiment.DefaultExperimentConfig()
-	base.NumPackets = 1000
-	base.BatchSize = 10
-	base.NumTrials = 10
+	base.NumPackets = 5000
+	base.BatchSize = 50
+	base.NumTrials = 75
 	base.SimDuration = 100.0
 
 	// Experiment 1: Honest baseline — measures false positive rate across η.
-	// H0 should be identified as TRUSTED; any DISHONEST verdict is a false positive.
+	// No targeting fraction to vary; η sweep only.
 	honestBase := base
 	honestBase.Name = "honest_baseline"
 	honestBase.TargetingConfig = network.DefaultHonestTargeting()
 	honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
-	runner.RunEtaSweep(honestBase, etaValues)
+	honestResults := runner.RunEtaSweep(honestBase, etaValues)
+	if err := runner.SaveResultsToFile("results/honest_baseline.json", honestResults); err != nil {
+		log.Printf("warning: could not save honest_baseline results: %v", err)
+	}
 
 	// Experiment 2: Lies-that-minimal — blanket denial; claims every packet was minimal.
-	// Most reckless strategy, highly vulnerable to contradiction checks.
 	liesMBase := base
 	liesMBase.Name = "lies_that_minimal"
 	liesMBase.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
 	liesMBase.AdversaryConfig.AnsweringStr = verification.AnswerLiesThatMinimal
-	runner.RunEtaSweep(liesMBase, etaValues)
+	liesMResults := runner.RunEtaFractionSweep(liesMBase, etaValues, fractionValues)
+	if err := runner.SaveResultsToFile("results/lies_that_minimal.json", liesMResults); err != nil {
+		log.Printf("warning: could not save lies_that_minimal results: %v", err)
+	}
 
 	// Experiment 3: Lies-about-targeted — lies only for deliberately delayed packets.
-	// More careful strategy; exploits the fact that queried packets may not be targeted.
 	liesABase := base
 	liesABase.Name = "lies_about_targeted"
 	liesABase.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
 	liesABase.AdversaryConfig.AnsweringStr = verification.AnswerLiesAboutTargeted
-	runner.RunEtaSweep(liesABase, etaValues)
+	liesAResults := runner.RunEtaFractionSweep(liesABase, etaValues, fractionValues)
+	if err := runner.SaveResultsToFile("results/lies_about_targeted.json", liesAResults); err != nil {
+		log.Printf("warning: could not save lies_about_targeted results: %v", err)
+	}
 
 	// Experiment 4: Delayed-honest — uses flagging to cover deliberate delays.
-	// Never claims a targeted packet was minimal; instead flags them as congested.
-	// Raises the flag rate, but avoids direct contradictions.
 	delayedHBase := base
 	delayedHBase.Name = "delayed_honest"
 	delayedHBase.TargetingConfig = network.DefaultAdversarialTargeting(0.20)
 	delayedHBase.AdversaryConfig.AnsweringStr = verification.AnswerDelayedHonest
-	runner.RunEtaSweep(delayedHBase, etaValues)
+	delayedHResults := runner.RunEtaFractionSweep(delayedHBase, etaValues, fractionValues)
+	if err := runner.SaveResultsToFile("results/delayed_honest.json", delayedHResults); err != nil {
+		log.Printf("warning: could not save delayed_honest results: %v", err)
+	}
 
 	runner.PrintSummary()
 }
