@@ -90,26 +90,22 @@ func (v *Verifier) RunVerification() VerificationResult {
 	// All likelihoods are derived from η (error tolerance).
 	//
 	// Contradiction evidence — prover claims minimal, another packet arrived sooner:
-	//   P(C|H0) = ε        honest networks cannot produce contradictions (system error only)
-	//   P(C|H1) = η        incompetent prover's error rate
-	//   P(C|H2) = 1-η      malicious prover, high contradiction risk
+	//   P(C|H0) = η        honest networks do not produce logical contradictions (at most η rate)
+	//   P(C|H1) = η        incompetent networks make routing mistakes but not logical contradictions
+	//   P(C|H2) = 1-η      malicious prover almost certainly contradicts on a targeted packet
 	//
-	// Clean query — no contradiction detected:
-	//   P(K|H0) = 1-ε      complement of H0 contradiction rate
-	//   P(K|H1) = 1-η      complement of H1 contradiction rate
-	//   P(K|H2) = η        malicious prover occasionally avoids contradiction
+	// Clean query — no contradiction detected (complement of contradiction likelihoods):
+	//   P(K|H0) = 1-η
+	//   P(K|H1) = 1-η
+	//   P(K|H2) = η
 	//
 	// Flagging inconsistency — unflagged packet with delay > flagged packet, prover admits non-minimal:
 	//   P(F|H0) = η        honest networks rarely fail to flag delayed packets
 	//   P(F|H1) = 1-η      incompetent networks commonly miss flags (strongly favours H1)
 	//   P(F|H2) = η        malicious networks have a similar low miss-flag rate as honest
-	pContraH0 := epsilon
+	pContraH0 := eta
 	pContraH1 := eta
 	pContraH2 := 1 - eta
-
-	pCleanH0 := 1 - epsilon
-	pCleanH1 := 1 - eta
-	pCleanH2 := eta
 
 	pFlagH0 := eta
 	pFlagH1 := 1 - eta
@@ -179,7 +175,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 			contradictions++
 			post = bayesUpdate(post, pContraH0, pContraH1, pContraH2)
 		} else {
-			post = bayesUpdate(post, pCleanH0, pCleanH1, pCleanH2)
+			post = bayesUpdate(post, 1-pContraH0, 1-pContraH1, 1-pContraH2)
 		}
 
 		// Flagging inconsistency check: if a flagged packet with delay d1 exists in the
@@ -199,10 +195,21 @@ func (v *Verifier) RunVerification() VerificationResult {
 	//
 	// A logical contradiction is a deductive proof of dishonesty — confidence is certain.
 	if contradictions > 0 {
+		// The running posterior can show H2≈0 if contradictions arrived late (after many
+		// clean queries drove H2 to zero). Recompute from a uniform prior using only the
+		// contradiction/clean counts so the displayed posteriors match the verdict.
+		cleanQueries := queries - contradictions
+		displayPost := [3]float64{1.0 / 3, 1.0 / 3, 1.0 / 3}
+		for i := 0; i < contradictions; i++ {
+			displayPost = bayesUpdate(displayPost, pContraH0, pContraH1, pContraH2)
+		}
+		for i := 0; i < cleanQueries; i++ {
+			displayPost = bayesUpdate(displayPost, 1-pContraH0, 1-pContraH1, 1-pContraH2)
+		}
 		return VerificationResult{
 			Verdict: "DISHONEST", Confidence: 1.0, Trustworthy: false,
 			TotalQueries: queries, ContradictionsFound: contradictions,
-			PosteriorH0: post[0], PosteriorH1: post[1], PosteriorH2: post[2],
+			PosteriorH0: displayPost[0], PosteriorH1: displayPost[1], PosteriorH2: displayPost[2],
 		}
 	}
 
