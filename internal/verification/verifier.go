@@ -10,9 +10,9 @@ const epsilon = 1e-9
 
 // VerificationConfig holds the parameters for the Bayesian verifier.
 type VerificationConfig struct {
-	ErrorTolerance       float64 // η — maximum tolerable error rate; governs all Bayesian likelihoods
-	ConfidenceThreshold  float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
-	MaxQueries           int     // safety cap on total prover queries
+	ErrorTolerance        float64 // η — maximum tolerable error rate; governs all Bayesian likelihoods
+	ConfidenceThreshold   float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
+	MaxQueries            int     // safety cap on total prover queries
 	FlaggingRateThreshold float64 // maximum tolerable fraction of flagged packets; excess implies incompetence
 }
 
@@ -93,11 +93,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 	//   P(C|H0) = η        honest networks do not produce logical contradictions (at most η rate)
 	//   P(C|H1) = η        incompetent networks make routing mistakes but not logical contradictions
 	//   P(C|H2) = 1-η      malicious prover almost certainly contradicts on a targeted packet
-	//
-	// Clean query — no contradiction detected (complement of contradiction likelihoods):
-	//   P(K|H0) = 1-η
-	//   P(K|H1) = 1-η
-	//   P(K|H2) = η
 	//
 	// Flagging inconsistency — unflagged packet with delay > flagged packet, prover admits non-minimal:
 	//   P(F|H0) = η        honest networks rarely fail to flag delayed packets
