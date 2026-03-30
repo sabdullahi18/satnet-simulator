@@ -11,7 +11,6 @@ const epsilon = 1e-9
 type VerificationConfig struct {
 	ErrorTolerance        float64 // η — maximum tolerable error rate; governs all Bayesian likelihoods
 	ConfidenceThreshold   float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
-	MaxQueries            int     // safety cap on total prover queries
 	FlaggingRateThreshold float64 // maximum tolerable fraction of flagged packets; excess implies incompetence
 }
 
@@ -19,7 +18,6 @@ func DefaultVerificationConfig() VerificationConfig {
 	return VerificationConfig{
 		ErrorTolerance:        0.05,
 		ConfidenceThreshold:   0.95,
-		MaxQueries:            500,
 		FlaggingRateThreshold: 0.30,
 	}
 }
@@ -129,9 +127,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 	for _, bid := range times {
 		// Sequential stopping: halt when any posterior exceeds α.
 		if maxf(post[0], post[1], post[2]) > alpha {
-			break
-		}
-		if queries >= v.Config.MaxQueries {
 			break
 		}
 
