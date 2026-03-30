@@ -32,27 +32,7 @@ The simulator tests several prover strategies and measures the verifier's abilit
 
 ## System Architecture
 
-```
-satnet-simulator/
-├── cmd/satnet/
-│   └── main.go                   # Entry point; defines and runs experiments
-├── internal/
-│   ├── engine/
-│   │   └── simulation.go         # Discrete-event simulation engine
-│   ├── experiment/
-│   │   └── runner.go             # Experiment and trial orchestration
-│   ├── network/
-│   │   ├── packet.go             # Packet type
-│   │   ├── delay_model.go        # Statistical delay model
-│   │   └── router.go             # Adversarial router with targeting logic
-│   └── verification/
-│       ├── types.go              # Query, Answer, and PacketRecord types
-│       ├── prover.go             # Prover with configurable answering strategies
-│       └── verifier.go           # Verifier with contradiction detection
-├── go.mod
-└── README.md
-```
-
+ADD SYSTEM ARCHITECTURE
 The flow through the system during a single trial is:
 
 ```
