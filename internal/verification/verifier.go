@@ -90,7 +90,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 	//
 	// Contradiction evidence — prover claims minimal, another packet arrived sooner:
 	//   P(C|H0) = ε        honest networks essentially never produce logical contradictions
-	//   P(C|H1) = ε        incompetent networks truthfully answer IsMinimal=false when delayed,
+	//   P(C|H1) = η        incompetent networks truthfully answer IsMinimal=false when delayed,
 	//                      so they do not lie and do not produce contradictions either
 	//   P(C|H2) = 1-η      malicious prover almost certainly contradicts on a targeted packet
 	//
@@ -99,12 +99,8 @@ func (v *Verifier) RunVerification() VerificationResult {
 	//   P(F|H1) = 1-η      incompetent networks commonly miss flags (strongly favours H1)
 	//   P(F|H2) = η        malicious networks have a similar low miss-flag rate as honest
 	pContraH0 := epsilon
-	pContraH1 := epsilon
+	pContraH1 := eta
 	pContraH2 := 1 - eta
-
-	pFlagH0 := eta
-	pFlagH1 := 1 - eta
-	pFlagH2 := eta
 
 	batches := v.groupByBatch()
 
@@ -173,16 +169,13 @@ func (v *Verifier) RunVerification() VerificationResult {
 		// Flagging consistency check: if the queried packet has delay > the minimum flagged
 		// delay in this batch, it should have been flagged too.
 		//
-		//   Inconsistency — not flagged, prover admits non-minimal:
-		//     network failed to flag a congested packet (strongly favours H1).
-		//     When ans.IsMinimal, d2 > d1 >= minDelay so the contradiction check already fired.
-		//
-		//   Correct flagging — packet is flagged as it should be:
-		//     reward H0 and penalise H1; an incompetent network correctly flagging is unlikely.
+		// Flagging evidence is NOT fed into the Bayesian posterior. The two detection
+		// mechanisms are kept separate so results are easier to attribute:
+		//   - Bayesian posterior: contradiction/clean evidence only (H0 vs H2).
+		//   - Flagging rate threshold: incompetence detection (H1) as a mechanistic check.
 		if minFlaggedInBatch < math.MaxFloat64 && p.ActualDelay > minFlaggedInBatch {
 			if !p.IsFlagged && !ans.IsMinimal {
 				flaggedCount++
-				post = bayesUpdate(post, pFlagH0, pFlagH1, pFlagH2)
 				if v.Config.FlaggingRateThreshold > 0 {
 					inflatedRate := float64(flaggedCount) / float64(totalPackets)
 					if inflatedRate > v.Config.FlaggingRateThreshold {
@@ -198,8 +191,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 						}
 					}
 				}
-			} else if p.IsFlagged {
-				post = bayesUpdate(post, 1-pFlagH0, 1-pFlagH1, 1-pFlagH2)
 			}
 		}
 	}
