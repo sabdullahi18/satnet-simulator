@@ -129,6 +129,8 @@ $$\text{deliberateDelay} \sim \text{Uniform}(\text{DeliberateMin}, \text{Deliber
 
 $\color{Red}{\textsf{JUSTIFY THESE PARAMS}}$
 
+$\color{Red}{\textsf{MENTION THAT WE don't need the case where it's malicious AND incompetent}}$
+
 ---
 
 ## Packet Targeting
