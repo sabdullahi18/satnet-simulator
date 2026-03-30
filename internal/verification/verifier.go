@@ -61,18 +61,20 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
+	totalPackets := len(v.Records)
+	flaggedCount := 0
+	for _, r := range v.Records {
+		if r.IsFlagged {
+			flaggedCount++
+		}
+	}
+
 	// Flagging rate check: if the fraction of flagged records exceeds the threshold,
 	// the network is reporting an implausibly high congestion rate. It is either
 	// genuinely incompetent (H1) or masking deliberate delays as congestion (H2).
 	// Either way, the flag rate alone is sufficient to classify it as incompetent.
 	if v.Config.FlaggingRateThreshold > 0 {
-		flagged := 0
-		for _, r := range v.Records {
-			if r.IsFlagged {
-				flagged++
-			}
-		}
-		flagRate := float64(flagged) / float64(len(v.Records))
+		flagRate := float64(flaggedCount) / float64(totalPackets)
 		if flagRate > v.Config.FlaggingRateThreshold {
 			return VerificationResult{
 				Verdict:     "DISHONEST",
@@ -185,7 +187,23 @@ func (v *Verifier) RunVerification() VerificationResult {
 		//     reward H0 and penalise H1; an incompetent network correctly flagging is unlikely.
 		if minFlaggedInBatch < math.MaxFloat64 && p.ActualDelay > minFlaggedInBatch {
 			if !p.IsFlagged && !ans.IsMinimal {
+				flaggedCount++
 				post = bayesUpdate(post, pFlagH0, pFlagH1, pFlagH2)
+				if v.Config.FlaggingRateThreshold > 0 {
+					inflatedRate := float64(flaggedCount) / float64(totalPackets)
+					if inflatedRate > v.Config.FlaggingRateThreshold {
+						return VerificationResult{
+							Verdict:             "DISHONEST",
+							Confidence:          1.0,
+							Trustworthy:         false,
+							TotalQueries:        queries,
+							ContradictionsFound: contradictions,
+							PosteriorH0:         post[0],
+							PosteriorH1:         post[1],
+							PosteriorH2:         post[2],
+						}
+					}
+				}
 			} else if p.IsFlagged {
 				post = bayesUpdate(post, 1-pFlagH0, 1-pFlagH1, 1-pFlagH2)
 			}
