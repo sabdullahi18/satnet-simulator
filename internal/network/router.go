@@ -96,9 +96,9 @@ func (r *Router) isTargeted() bool {
 }
 
 func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
-	r.PacketsRouted++
 	sendTime := sim.Now
 	isTargeted := r.isTargeted()
+	r.PacketsRouted++
 	if isTargeted {
 		r.PacketsTargeted++
 	}
