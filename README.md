@@ -32,7 +32,8 @@ The simulator tests several prover strategies and measures the verifier's abilit
 
 ## System Architecture
 
-ADD SYSTEM ARCHITECTURE
+$\color{Red}{\textsf{ADD SYSTEM ARCHITECTURE}}$
+
 The flow through the system during a single trial is:
 
 ```
@@ -126,6 +127,8 @@ $$\text{deliberateDelay} \sim \text{Uniform}(\text{DeliberateMin}, \text{Deliber
 
 **Default parameters:** `DeliberateMin=100ms`, `DeliberateMax=200ms`. These values are chosen to be meaningfully larger than typical incompetence delays, making targeted packets observably slower within a batch.
 
+$\color{Red}{\textsf{JUSTIFY THESE PARAMS}}$
+
 ---
 
 ## Packet Targeting
@@ -138,7 +141,7 @@ The Router wraps the delay model and applies adversarial targeting on a per-pack
 - `TargetRandom` — each packet is independently targeted with probability `TargetFraction`, drawn fresh per packet via `rand.Float64() < TargetFraction`.
 - `TargetPeriodic` — The adversary deterministically targets every $n$-th packet, such as every 100th or 1000th packet.
 
-These strategies represent the baseline attacker models: purely probabilistic (`TargetRandom`) and strictly deterministic (`TargetPeriodic`). ADD MORE LATER?!
+These strategies represent the baseline attacker models: purely probabilistic (`TargetRandom`) and strictly deterministic (`TargetPeriodic`). $\color{Red}{\textsf{WHY SHOULD WE FOCUS ON THESE STRATS?}}$
 
 `TargetRandom` is a Bernoulli sampling scheme: each packet is an independent Bernoulli trial, so the number of targeted packets across a batch follows a Binomial distribution. This means some batches may have zero targeted packets and others may have all packets targeted, purely by chance.
 
@@ -211,6 +214,8 @@ In addition to answering queries, the network can employ different flagging stra
 
 Ultimately, what is the "lying budget" the network is allowed before they get caught? What is the frequency of lying they can reasonably get away with before hitting a definitive contradiction or exceeding the acceptable flagging rate? A question for the evaluation is identifying the optimal combination of answering and flagging strategies for malicious networks. By formulating hypotheses about these optimal combinations, we can verify if their success rate is better than all other evaluated strategies.
 
+$\color{Red}{\textsf{THERE ARE MORE ADVERSARIAL STRATEGIES}}$
+
 ---
 
 ## Verifier and Contradiction Detection
@@ -244,7 +249,7 @@ Because packets in the same batch are sent simultaneously, they all encounter th
 
 ### Contradiction Check
 
-Batches are processed and iterated up to `MaxQueries` total prover queries. NOT SURE BEST WAY TO DEFINE MAXQUERIES...
+Batches are processed and iterated up to `MaxQueries` total prover queries. $\color{Red}{\textsf{DO WE NEED MAX QUERIES?}}$
 
 For each batch:
 
@@ -358,6 +363,8 @@ After processing concludes (either by reaching the confidence threshold or exhau
 | No posterior exceeds $\alpha$      | `INCONCLUSIVE`| depends on $P(H_0)$ |
  
 Both $H_1$ and $H_2$ map to `DISHONEST` because, from the customer's SLA perspective, an incompetent network that fails to flag delayed packets is indistinguishable from a malicious one — both result in degraded service that the provider misrepresents.
+
+$\color{Red}{\textsf{DOUBLE CHECK PARAMETERS HERE}}$
  
 ---
 
@@ -431,41 +438,4 @@ Each trial prints its verdict, posterior probabilities ($P(H_0)$, $P(H_1)$, $P(H
  
 All experiment parameters are set in `cmd/satnet/main.go` by constructing an `ExperimentConfig`. The key fields are:
  
-```go
-experiment.ExperimentConfig{
-    Name:        string,         // Label for output
-    NumPackets:  int,            // Total packets per trial
-    BatchSize:   int,            // Packets sent simultaneously (>= 2 required)
-    NumTrials:   int,            // Independent repetitions
-    SimDuration: float64,        // Simulated seconds
- 
-    DelayModelConfig: network.DelayModelConfig{
-        BaseDelayMin:      float64, // Minimum base propagation delay (seconds)
-        BaseDelayMax:      float64, // Maximum base propagation delay (seconds)
-        TransitionRate:    float64, // Poisson rate of base delay transitions (per second)
-        IncompetenceRate:  float64, // Per-packet probability of legitimate congestion
-        IncompetenceMu:    float64, // Log-normal mu for congestion delay
-        IncompetenceSigma: float64, // Log-normal sigma for congestion delay
-        DeliberateMin:     float64, // Minimum adversarial delay added to targeted packets
-        DeliberateMax:     float64, // Maximum adversarial delay added to targeted packets
-    },
- 
-    TargetingConfig: network.TargetingConfig{
-        Mode:           network.TargetNone | network.TargetRandom,
-        TargetFraction: float64, // Fraction of packets targeted (for TargetRandom)
-    },
- 
-    AdversaryConfig: verification.AdversaryConfig{
-        AnsweringStr: verification.AnswerHonest |
-                      verification.AnswerRandom |
-                      verification.AnswerDelayedHonest |
-                      verification.AnswerLiesThatMinimal,
-    },
- 
-    VerificationConfig: verification.VerificationConfig{
-        ErrorTolerance:      float64, // η — maximum tolerable error rate
-        ConfidenceThreshold: float64, // α — posterior threshold for verdict (e.g. 0.95)
-        MaxQueries:          int,     // Safety cap on total prover queries
-    },
-}
-```
+$\color{Red}{\textsf{ADD THIS LATER}}$
