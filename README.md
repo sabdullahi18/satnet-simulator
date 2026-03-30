@@ -159,6 +159,8 @@ The `OnTransmission` callback is the handoff point between the simulation layer 
 
 Because targeting is evaluated per-packet rather than per-batch, the packets within a single batch will experience completely different conditions. In a given batch, some packets might take the minimal delay path, some could be legitimately congested, and others could be maliciously delayed.
 
+$\color{Red}{\textsf{redraft point 3 above, flagging is determined by the answering strategy, still done on Router.Forward, it's just that the network is not always honest}}$
+
 ---
 
 ## Prover and Answering Strategies
