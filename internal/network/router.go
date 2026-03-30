@@ -103,7 +103,7 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 		r.PacketsTargeted++
 	}
 
-	hasIncompetence := rand.Float64() < r.DelayModel.IncompetenceRate
+	hasIncompetence := r.TargetingCfg.Mode == TargetNone && rand.Float64() < r.DelayModel.IncompetenceRate
 
 	isFlagged := false
 	if r.Flagging != nil {
