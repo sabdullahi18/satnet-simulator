@@ -96,6 +96,11 @@ func flaggingFnForStrategy(config verification.AdversaryConfig) network.Flagging
 			return hasIncompetence && rand.Float64() < config.FlaggingHonestyRate
 		}
 
+	case verification.AnswerUnreliable:
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return hasIncompetence && rand.Float64() < config.FlaggingHonestyRate
+		}
+
 	default:
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return hasIncompetence
@@ -283,6 +288,43 @@ func (r *Runner) Run4DCheatSweep(baseConfig ExperimentConfig, flagThresholds, et
 					result := r.RunExperiment(cfg)
 					result.EtaValue = eta
 					results = append(results, result)
+				}
+			}
+		}
+	}
+	return results
+}
+
+func (r *Runner) Run5DUnreliableSweep(
+	baseConfig ExperimentConfig,
+	flagThresholds, etaValues, incompRates, honestyRates, errorRates []float64,
+) []ExperimentResult {
+	fmt.Printf("\n=== 5D Unreliable Sweep: %s | Strategy: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
+
+	totalConfigs := len(flagThresholds) * len(etaValues) * len(incompRates) * len(honestyRates) * len(errorRates)
+	results := make([]ExperimentResult, 0, totalConfigs)
+
+	for _, flag := range flagThresholds {
+		for _, eta := range etaValues {
+			for _, inc := range incompRates {
+				for _, honesty := range honestyRates {
+					for _, errRate := range errorRates {
+						cfg := baseConfig
+
+						cfg.VerificationConfig.FlaggingRateThreshold = flag
+						cfg.VerificationConfig.ErrorTolerance = eta
+						cfg.DelayModelConfig.IncompetenceRate = inc
+						cfg.AdversaryConfig.FlaggingHonestyRate = honesty
+						cfg.AdversaryConfig.AnswerErrorRate = errRate
+
+						cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f_hon%.2f_err%.2f",
+							baseConfig.Name, flag, eta, inc, honesty, errRate)
+
+						result := r.RunExperiment(cfg)
+						result.EtaValue = eta
+						results = append(results, result)
+					}
 				}
 			}
 		}

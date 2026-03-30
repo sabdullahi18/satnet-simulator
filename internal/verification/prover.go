@@ -13,11 +13,13 @@ const (
 	AnswerDelayedHonest     AnsweringStrategy = "ANSWER_DELAYED_HONEST"      // hides malicious as congestion
 	AnswerLiesThatMinimal   AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL"   // blanket denial: claims all packets are minimal
 	AnswerLiesAboutTargeted AnsweringStrategy = "ANSWER_LIES_ABOUT_TARGETED" // lies only about deliberately delayed packets
+	AnswerUnreliable        AnsweringStrategy = "ANSWER_UNRELIABLE"
 )
 
 type AdversaryConfig struct {
 	AnsweringStr        AnsweringStrategy
 	FlaggingHonestyRate float64
+	AnswerErrorRate     float64
 }
 
 // Prover represents the network operator's self-reporting mechanism. It has access to ground
@@ -107,6 +109,12 @@ func (p *Prover) decideAnswer(rec *PacketRecord) Answer {
 			return Answer{IsMinimal: true}
 		}
 		return Answer{IsMinimal: !hasIncompetence}
+
+	case AnswerUnreliable:
+		if hasIncompetence && rand.Float64() < p.Config.AnswerErrorRate {
+			return Answer{IsMinimal: true}
+		}
+		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
 	}
 
 	return Answer{IsMinimal: true}
