@@ -8,6 +8,7 @@ type AnsweringStrategy string
 
 const (
 	AnswerHonest            AnsweringStrategy = "ANSWER_HONEST"
+	AnswerInconsistent      AnsweringStrategy = "ANSWER_INCONSISTENT"
 	AnswerRandom            AnsweringStrategy = "ANSWER_RANDOM"
 	AnswerDelayedHonest     AnsweringStrategy = "ANSWER_DELAYED_HONEST"      // hides malicious as congestion
 	AnswerLiesThatMinimal   AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL"   // blanket denial: claims all packets are minimal
@@ -15,7 +16,8 @@ const (
 )
 
 type AdversaryConfig struct {
-	AnsweringStr AnsweringStrategy
+	AnsweringStr        AnsweringStrategy
+	FlaggingHonestyRate float64
 }
 
 // Prover represents the network operator's self-reporting mechanism. It has access to ground
@@ -75,7 +77,7 @@ func (p *Prover) decideAnswer(rec *PacketRecord) Answer {
 	hasIncompetence := rec.HasIncompetence
 
 	switch p.Config.AnsweringStr {
-	case AnswerHonest:
+	case AnswerHonest, AnswerInconsistent:
 		// Truthful: minimal only if no extra delay of any kind
 		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
 

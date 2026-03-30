@@ -58,8 +58,8 @@ func DefaultExperimentConfig() ExperimentConfig {
 // given answering strategy. This determines which packets the network proactively
 // flags as having experienced 'honest errors' during forwarding, before the
 // verifier issues any queries.
-func flaggingFnForStrategy(strategy verification.AnsweringStrategy) network.FlaggingFn {
-	switch strategy {
+func flaggingFnForStrategy(config verification.AdversaryConfig) network.FlaggingFn {
+	switch config.AnsweringStr {
 	case verification.AnswerHonest:
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return hasIncompetence
@@ -91,6 +91,11 @@ func flaggingFnForStrategy(strategy verification.AnsweringStrategy) network.Flag
 			return rand.Float64() < 0.5
 		}
 
+	case verification.AnswerInconsistent:
+		return func(hasIncompetence, wasDelayed bool) bool {
+			return hasIncompetence && rand.Float64() < config.FlaggingHonestyRate
+		}
+
 	default:
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return hasIncompetence
@@ -115,21 +120,21 @@ type TrialResult struct {
 }
 
 type ExperimentResult struct {
-	Config                  ExperimentConfig
-	EtaValue                float64 // η used for this result (mirrors Config.VerificationConfig.ErrorTolerance)
-	Trials                  []TrialResult
-	TruePositiveRate        float64
-	FalsePositiveRate       float64
-	TrueNegativeRate        float64
-	FalseNegativeRate       float64
-	MeanQueriesPerTrial     float64 // mean queries to verdict across all trials
-	MeanConfidence          float64
-	MeanPosteriorH0         float64 // mean terminal P(H0) across trials
-	MeanPosteriorH1         float64 // mean terminal P(H1) across trials
-	MeanPosteriorH2         float64 // mean terminal P(H2) across trials
-	MeanContradictions      float64 // mean contradiction count across trials
-	WasAdversarial          bool
-	TargetDelayFraction     float64
+	Config              ExperimentConfig
+	EtaValue            float64 // η used for this result (mirrors Config.VerificationConfig.ErrorTolerance)
+	Trials              []TrialResult
+	TruePositiveRate    float64
+	FalsePositiveRate   float64
+	TrueNegativeRate    float64
+	FalseNegativeRate   float64
+	MeanQueriesPerTrial float64 // mean queries to verdict across all trials
+	MeanConfidence      float64
+	MeanPosteriorH0     float64 // mean terminal P(H0) across trials
+	MeanPosteriorH1     float64 // mean terminal P(H1) across trials
+	MeanPosteriorH2     float64 // mean terminal P(H2) across trials
+	MeanContradictions  float64 // mean contradiction count across trials
+	WasAdversarial      bool
+	TargetDelayFraction float64
 }
 
 type MockGroundStation struct {
@@ -201,6 +206,90 @@ func (r *Runner) RunEtaFractionSweep(baseConfig ExperimentConfig, etaValues, fra
 	return results
 }
 
+// RunEtaIncompetenceSweep runs one experiment per (η, IncompetenceRate) combination.
+func (r *Runner) RunEtaIncompetenceSweep(baseConfig ExperimentConfig, etaValues, incompValues []float64) []ExperimentResult {
+	fmt.Printf("\n=== η × Incompetence sweep: %s | Strategy: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
+
+	results := make([]ExperimentResult, 0, len(etaValues)*len(incompValues))
+	for _, eta := range etaValues {
+		for _, inc := range incompValues {
+			cfg := baseConfig
+			cfg.VerificationConfig.ErrorTolerance = eta
+			cfg.DelayModelConfig.IncompetenceRate = inc
+			cfg.Name = fmt.Sprintf("%s_eta%.3f_inc%.2f", baseConfig.Name, eta, inc)
+
+			result := r.RunExperiment(cfg)
+			result.EtaValue = eta
+			results = append(results, result)
+		}
+	}
+	return results
+}
+
+// RunEtaIncompFlagSweep runs one experiment per (FlaggingRateThreshold, η, IncompetenceRate) combination.
+func (r *Runner) RunEtaIncompFlagSweep(baseConfig ExperimentConfig, flagValues, etaValues, incompValues []float64) []ExperimentResult {
+	fmt.Printf("\n=== Flagging Threshold × η × Incompetence sweep: %s | Strategy: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
+
+	results := make([]ExperimentResult, 0, len(flagValues)*len(etaValues)*len(incompValues))
+
+	for _, flag := range flagValues {
+		for _, eta := range etaValues {
+			for _, inc := range incompValues {
+				cfg := baseConfig
+
+				// Apply the 3 variables
+				cfg.VerificationConfig.FlaggingRateThreshold = flag
+				cfg.VerificationConfig.ErrorTolerance = eta
+				cfg.DelayModelConfig.IncompetenceRate = inc
+
+				// Name it clearly so you can parse the results later
+				cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f", baseConfig.Name, flag, eta, inc)
+
+				result := r.RunExperiment(cfg)
+				result.EtaValue = eta
+				results = append(results, result)
+			}
+		}
+	}
+	return results
+}
+
+// Run4DCheatSweep runs experiments across FlaggingRateThreshold, ErrorTolerance (η), IncompetenceRate, and FlaggingHonestyRate.
+func (r *Runner) Run4DCheatSweep(baseConfig ExperimentConfig, flagThresholds, etaValues, incompRates, honestyRates []float64) []ExperimentResult {
+	fmt.Printf("\n=== 4D SLA Cheater Sweep: %s | Strategy: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
+
+	// Calculate total runs to pre-allocate slice and avoid memory reallocation
+	totalConfigs := len(flagThresholds) * len(etaValues) * len(incompRates) * len(honestyRates)
+	results := make([]ExperimentResult, 0, totalConfigs)
+
+	for _, flag := range flagThresholds {
+		for _, eta := range etaValues {
+			for _, inc := range incompRates {
+				for _, honesty := range honestyRates {
+					cfg := baseConfig
+
+					// Apply the 4 variables
+					cfg.VerificationConfig.FlaggingRateThreshold = flag
+					cfg.VerificationConfig.ErrorTolerance = eta
+					cfg.DelayModelConfig.IncompetenceRate = inc
+					cfg.AdversaryConfig.FlaggingHonestyRate = honesty
+
+					// Name it clearly so you can parse the results later
+					cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f_hon%.2f", baseConfig.Name, flag, eta, inc, honesty)
+
+					result := r.RunExperiment(cfg)
+					result.EtaValue = eta
+					results = append(results, result)
+				}
+			}
+		}
+	}
+	return results
+}
+
 // SaveResultsToFile writes results to a JSON file, creating parent directories
 // as needed.
 func (r *Runner) SaveResultsToFile(path string, results []ExperimentResult) error {
@@ -246,7 +335,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	delayModel := network.NewDelayModelConfig(config.DelayModelConfig)
 	delayModel.Initialise(config.SimDuration + 10.0)
 
-	flaggingFn := flaggingFnForStrategy(config.AdversaryConfig.AnsweringStr)
+	flaggingFn := flaggingFnForStrategy(config.AdversaryConfig)
 	router := network.NewRouter(delayModel, config.TargetingConfig, flaggingFn)
 	prover := verification.NewProver(config.AdversaryConfig)
 

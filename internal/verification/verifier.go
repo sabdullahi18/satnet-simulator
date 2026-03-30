@@ -1,7 +1,6 @@
 package verification
 
 import (
-	"math"
 	"math/rand"
 )
 
@@ -65,6 +64,8 @@ func (v *Verifier) RunVerification() VerificationResult {
 			flaggedCount++
 		}
 	}
+	initialFlagRate := float64(flaggedCount) / float64(totalPackets)
+	hiddenDelaysFound := 0
 
 	// Flagging rate check: if the fraction of flagged records exceeds the threshold,
 	// the network is reporting an implausibly high congestion rate. It is either
@@ -140,15 +141,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 			}
 		}
 
-		// Minimum delay among flagged packets in this batch. An unflagged packet
-		// with delay > minFlaggedInBatch means the network failed to flag a congested packet.
-		minFlaggedInBatch := math.MaxFloat64
-		for _, p := range batch {
-			if p.IsFlagged && p.ActualDelay < minFlaggedInBatch {
-				minFlaggedInBatch = p.ActualDelay
-			}
-		}
-
 		// Randomly select one packet from the batch to query.
 		idx := rand.Intn(len(batch))
 		p := batch[idx]
@@ -166,29 +158,21 @@ func (v *Verifier) RunVerification() VerificationResult {
 			post = bayesUpdate(post, 1-pContraH0, 1-pContraH1, 1-pContraH2)
 		}
 
-		// Flagging consistency check: if the queried packet has delay > the minimum flagged
-		// delay in this batch, it should have been flagged too.
-		//
-		// Flagging evidence is NOT fed into the Bayesian posterior. The two detection
-		// mechanisms are kept separate so results are easier to attribute:
-		//   - Bayesian posterior: contradiction/clean evidence only (H0 vs H2).
-		//   - Flagging rate threshold: incompetence detection (H1) as a mechanistic check.
-		if minFlaggedInBatch < math.MaxFloat64 && p.ActualDelay > minFlaggedInBatch {
-			if !p.IsFlagged && !ans.IsMinimal {
-				flaggedCount++
-				if v.Config.FlaggingRateThreshold > 0 {
-					inflatedRate := float64(flaggedCount) / float64(totalPackets)
-					if inflatedRate > v.Config.FlaggingRateThreshold {
-						return VerificationResult{
-							Verdict:             "DISHONEST",
-							Confidence:          1.0,
-							Trustworthy:         false,
-							TotalQueries:        queries,
-							ContradictionsFound: contradictions,
-							PosteriorH0:         post[0],
-							PosteriorH1:         post[1],
-							PosteriorH2:         post[2],
-						}
+		if !p.IsFlagged && !ans.IsMinimal {
+			hiddenDelaysFound++
+			if v.Config.FlaggingRateThreshold > 0 {
+				hiddenRate := float64(hiddenDelaysFound) / float64(queries)
+				estimatedTrueRate := initialFlagRate + hiddenRate
+				if estimatedTrueRate > v.Config.FlaggingRateThreshold {
+					return VerificationResult{
+						Verdict:             "DISHONEST",
+						Confidence:          1.0,
+						Trustworthy:         false,
+						TotalQueries:        queries,
+						ContradictionsFound: contradictions,
+						PosteriorH0:         post[0],
+						PosteriorH1:         post[1],
+						PosteriorH2:         post[2],
 					}
 				}
 			}
