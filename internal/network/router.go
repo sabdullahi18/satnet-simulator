@@ -58,6 +58,7 @@ type FlaggingFn func(hasIncompetence, wasDelayed bool) bool
 
 type TransmissionInfo struct {
 	PacketID          int
+	BatchID           int
 	SentTime          float64
 	BaseDelay         float64
 	IncompetenceDelay float64
@@ -116,6 +117,7 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 		if r.OnTransmission != nil {
 			r.OnTransmission(TransmissionInfo{
 				PacketID:          pkt.ID,
+				BatchID:           pkt.BatchID,
 				SentTime:          sendTime,
 				BaseDelay:         delays.BaseDelay,
 				IncompetenceDelay: delays.IncompetenceDelay,

@@ -3,7 +3,6 @@ package verification
 import (
 	"math"
 	"math/rand"
-	"sort"
 )
 
 const epsilon = 1e-9
@@ -109,7 +108,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 	pFlagH1 := 1 - eta
 	pFlagH2 := eta
 
-	batches := v.groupByTime()
+	batches := v.groupByBatch()
 
 	// Bayesian posterior over [H0, H1, H2] — uniform (uninformative) prior.
 	post := [3]float64{1.0 / 3, 1.0 / 3, 1.0 / 3}
@@ -163,7 +162,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 		idx := rand.Intn(len(batch))
 		p := batch[idx]
 
-		q := Query{ObservedDelay: p.ActualDelay, SentTime: p.SentTime}
+		q := Query{BatchID: p.BatchID, ObservedDelay: p.ActualDelay, SentTime: p.SentTime}
 		ans := v.Prover.AnswerQuery(q)
 		queries++
 
@@ -289,15 +288,10 @@ func maxf(a, b, c float64) float64 {
 	return c
 }
 
-func (v *Verifier) groupByTime() map[int][]TransmissionRecord {
+func (v *Verifier) groupByBatch() map[int][]TransmissionRecord {
 	batches := make(map[int][]TransmissionRecord)
-	sorted := make([]TransmissionRecord, len(v.Records))
-	copy(sorted, v.Records)
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].SentTime < sorted[j].SentTime
-	})
-	for _, r := range sorted {
-		batches[int(r.SentTime)] = append(batches[int(r.SentTime)], r)
+	for _, r := range v.Records {
+		batches[r.BatchID] = append(batches[r.BatchID], r)
 	}
 	return batches
 }

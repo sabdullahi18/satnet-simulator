@@ -256,6 +256,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	router.OnTransmission = func(info network.TransmissionInfo) {
 		record := verification.TransmissionRecord{
 			ID:                info.PacketID,
+			BatchID:           info.BatchID,
 			SentTime:          info.SentTime,
 			BaseDelay:         info.BaseDelay,
 			IncompetenceDelay: info.IncompetenceDelay,
@@ -286,13 +287,14 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	pktID := 0
 	for b := 0; b < numBatches; b++ {
 		sendTime := float64(b) * (config.SimDuration / float64(numBatches))
+		batchID := b
 
 		for j := 0; j < batchSize; j++ {
 			currentPktID := pktID
 			pktID++
 
 			sim.Schedule(sendTime, func() {
-				pkt := network.NewPacket(currentPktID, "SourceStation", sim.Now)
+				pkt := network.NewPacket(currentPktID, batchID, "SourceStation", sim.Now)
 				router.Forward(sim, pkt, dest)
 			})
 		}

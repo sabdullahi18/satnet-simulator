@@ -2,18 +2,11 @@ package verification
 
 import (
 	"fmt"
-	"math"
 )
-
-// BatchKey computes the canonical batch identifier for a given send time.
-// Both the prover (for indexing/lookup) and the verifier (for grouping) must
-// use this same function to ensure consistent batch assignment.
-func BatchKey(t float64) int {
-	return int(math.Round(t))
-}
 
 // Query represents the verifier's question: "Was delay X minimal for packets sent at time t?"
 type Query struct {
+	BatchID       int
 	ObservedDelay float64
 	SentTime      float64
 }
@@ -37,6 +30,7 @@ func (a Answer) String() string {
 
 type PacketRecord struct {
 	ID                int
+	BatchID           int
 	SentTime          float64
 	BaseDelay         float64
 	IncompetenceDelay float64

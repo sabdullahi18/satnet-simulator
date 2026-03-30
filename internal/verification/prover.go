@@ -43,8 +43,8 @@ func NewProver(config AdversaryConfig) *Prover {
 func (p *Prover) RecordTransmission(rec PacketRecord) {
 	p.Packets[rec.ID] = &rec
 
-	// Populate secondary index by (BatchKey(SentTime), ActualDelay) for query lookup.
-	timeKey := BatchKey(rec.SentTime)
+	// Populate secondary index by (BatchID, ActualDelay) for query lookup.
+	timeKey := rec.BatchID
 	if p.byTimeDelay[timeKey] == nil {
 		p.byTimeDelay[timeKey] = make(map[float64]*PacketRecord)
 	}
@@ -56,7 +56,7 @@ func (p *Prover) RecordTransmission(rec PacketRecord) {
 func (p *Prover) AnswerQuery(q Query) Answer {
 	p.Queries++
 
-	timeKey := BatchKey(q.SentTime)
+	timeKey := q.BatchID
 	var rec *PacketRecord
 	if byDelay, ok := p.byTimeDelay[timeKey]; ok {
 		rec = byDelay[q.ObservedDelay]
