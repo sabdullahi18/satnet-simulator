@@ -195,32 +195,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
-	// Verdict derivation per README verdict table:
-	//   P(H2|E) > α  → DISHONEST
-	//   P(H1|E) > α  → DISHONEST
-	//   P(H0|E) > α  → TRUSTED
-	//   otherwise    → INCONCLUSIVE (Trustworthy depends on P(H0))
-	//
-	// A logical contradiction is a deductive proof of dishonesty — confidence is certain.
-	if contradictions > 0 {
-		// The running posterior can show H2≈0 if contradictions arrived late (after many
-		// clean queries drove H2 to zero). Recompute from a uniform prior using only the
-		// contradiction/clean counts so the displayed posteriors match the verdict.
-		cleanQueries := queries - contradictions
-		displayPost := [3]float64{1.0 / 3, 1.0 / 3, 1.0 / 3}
-		for i := 0; i < contradictions; i++ {
-			displayPost = bayesUpdate(displayPost, pContraH0, pContraH1, pContraH2)
-		}
-		for i := 0; i < cleanQueries; i++ {
-			displayPost = bayesUpdate(displayPost, 1-pContraH0, 1-pContraH1, 1-pContraH2)
-		}
-		return VerificationResult{
-			Verdict: "DISHONEST", Confidence: 1.0, Trustworthy: false,
-			TotalQueries: queries, ContradictionsFound: contradictions,
-			PosteriorH0: displayPost[0], PosteriorH1: displayPost[1], PosteriorH2: displayPost[2],
-		}
-	}
-
 	verdict := "INCONCLUSIVE"
 	trustworthy := post[0] >= post[1] && post[0] >= post[2]
 	confidence := maxf(post[0], post[1], post[2])
