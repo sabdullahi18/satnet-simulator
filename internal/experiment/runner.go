@@ -127,6 +127,7 @@ type TrialResult struct {
 type ExperimentResult struct {
 	Config              ExperimentConfig
 	EtaValue            float64 // η used for this result (mirrors Config.VerificationConfig.ErrorTolerance)
+	BatchSize           int
 	Trials              []TrialResult
 	TruePositiveRate    float64
 	FalsePositiveRate   float64
@@ -314,6 +315,7 @@ func (r *Runner) Run5DUnreliableSweep(
 
 						cfg.VerificationConfig.FlaggingRateThreshold = flag
 						cfg.VerificationConfig.ErrorTolerance = eta
+						cfg.VerificationConfig.Epsilon = eta / 10.0
 						cfg.DelayModelConfig.IncompetenceRate = inc
 						cfg.AdversaryConfig.FlaggingHonestyRate = honesty
 						cfg.AdversaryConfig.AnswerErrorRate = errRate
@@ -367,6 +369,43 @@ func (r *Runner) RunEtaSweep(baseConfig ExperimentConfig, etaValues []float64) [
 		result := r.RunExperiment(cfg)
 		result.EtaValue = eta
 		results = append(results, result)
+	}
+	return results
+}
+
+func (r *Runner) RunBatchSizeSweep(baseConfig ExperimentConfig, batchSizes []int) []ExperimentResult {
+	fmt.Printf("\n=== Batch Size Sweep: %s | Strategy: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
+
+	results := make([]ExperimentResult, 0, len(batchSizes))
+	for _, bs := range batchSizes {
+		cfg := baseConfig
+		cfg.BatchSize = bs
+		cfg.Name = fmt.Sprintf("%s_batch%d", baseConfig.Name, bs)
+
+		result := r.RunExperiment(cfg)
+		results = append(results, result)
+	}
+	return results
+}
+
+// RunEtaBatchSweep runs experiments across ErrorTolerance (η) and BatchSize.
+func (r *Runner) RunEtaBatchSweep(baseConfig ExperimentConfig, etaValues []float64, batchSizes []int) []ExperimentResult {
+	fmt.Printf("\n=== η × Batch Size sweep: %s | Strategy: %s ===\n",
+		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
+
+	results := make([]ExperimentResult, 0, len(etaValues)*len(batchSizes))
+	for _, eta := range etaValues {
+		for _, bs := range batchSizes {
+			cfg := baseConfig
+			cfg.VerificationConfig.ErrorTolerance = eta
+			cfg.BatchSize = bs
+			cfg.Name = fmt.Sprintf("%s_eta%.3f_batch%d", baseConfig.Name, eta, bs)
+
+			result := r.RunExperiment(cfg)
+			result.EtaValue = eta
+			results = append(results, result)
+		}
 	}
 	return results
 }
@@ -507,6 +546,7 @@ func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult)
 	result := ExperimentResult{
 		Config:              config,
 		EtaValue:            config.VerificationConfig.ErrorTolerance,
+		BatchSize:           config.BatchSize,
 		Trials:              trials,
 		WasAdversarial:      wasAdversarial,
 		TargetDelayFraction: config.TargetingConfig.TargetFraction,

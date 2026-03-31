@@ -4,13 +4,12 @@ import (
 	"math/rand"
 )
 
-const epsilon = 1e-9
-
 // VerificationConfig holds the parameters for the Bayesian verifier.
 type VerificationConfig struct {
 	ErrorTolerance        float64 // η — maximum tolerable error rate; governs all Bayesian likelihoods
 	ConfidenceThreshold   float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
 	FlaggingRateThreshold float64 // maximum tolerable fraction of flagged packets; excess implies incompetence
+	Epsilon               float64
 }
 
 func DefaultVerificationConfig() VerificationConfig {
@@ -18,6 +17,7 @@ func DefaultVerificationConfig() VerificationConfig {
 		ErrorTolerance:        0.05,
 		ConfidenceThreshold:   0.95,
 		FlaggingRateThreshold: 0.30,
+		Epsilon:               1e-9,
 	}
 }
 
@@ -99,7 +99,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 	//   P(F|H0) = η        honest networks rarely fail to flag delayed packets
 	//   P(F|H1) = 1-η      incompetent networks commonly miss flags (strongly favours H1)
 	//   P(F|H2) = η        malicious networks have a similar low miss-flag rate as honest
-	pContraH0 := epsilon
+	pContraH0 := v.Config.Epsilon
 	pContraH1 := eta
 	pContraH2 := 1 - eta
 

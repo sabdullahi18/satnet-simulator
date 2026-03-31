@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	// "log"
 	"satnet-simulator/internal/experiment"
 	"satnet-simulator/internal/network"
 	"satnet-simulator/internal/verification"
@@ -25,44 +25,44 @@ func main() {
 	runner := experiment.NewRunner()
 
 	base := experiment.DefaultExperimentConfig()
-	base.NumPackets = 10000
+	base.NumPackets = 10000 //10000
 	base.BatchSize = 10
 	base.NumTrials = 100
 	base.SimDuration = 1000.0
 
-	// =========================================================================
-	// Group i — Honest Baseline (Perfect Network)
-	// =========================================================================
-	etas := generateRange(0.001, 0.2, 0.005)
-	honestBase := base
-	honestBase.Name = "honest_baseline"
-	honestBase.TargetingConfig = network.DefaultHonestTargeting()
-	honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
-	honestBase.DelayModelConfig.IncompetenceRate = 0.0
-	honestResults := runner.RunEtaSweep(honestBase, etas)
-	if err := runner.SaveResultsToFile("results/group1_honest_baseline.json", honestResults); err != nil {
-		log.Printf("warning: could not save honest_baseline results: %v", err)
-	}
+	// // =========================================================================
+	// // Group i — Honest Baseline (Perfect Network)
+	// // =========================================================================
+	// etas := generateRange(0.001, 0.1, 0.005)
+	// batchSizes := []int{2, 10, 50, 100}
+	// honestBase := base
+	// honestBase.Name = "honest_baseline"
+	// honestBase.TargetingConfig = network.DefaultHonestTargeting()
+	// honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
+	// honestBase.DelayModelConfig.IncompetenceRate = 0.0
+	// honestResults := runner.RunEtaBatchSweep(honestBase, etas, batchSizes)
+	// if err := runner.SaveResultsToFile("results/group1_honest_baseline.json", honestResults); err != nil {
+	// 	log.Printf("warning: could not save honest_baseline results: %v", err)
+	// }
 
-	// // =========================================================================
-	// // Group iia — Honest but Incompetent
-	// // =========================================================================
-	// unreliableBase := base
-	// unreliableBase.Name = "incompetent_baseline"
-	// unreliableBase.TargetingConfig = network.DefaultHonestTargeting()
-	// unreliableBase.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
-	// unreliableBase.VerificationConfig.FlaggingRateThreshold = 0.05
-	// incompRates := generateRange(0.00, 0.1, 0.01)
-	// honestyRates := generateRange(0.0, 1.0, 0.1)
-	// results2a := runner.Run5DUnreliableSweep(
-	// 	unreliableBase,
-	// 	[]float64{0.05},       // Lock: SLA threshold = 5%
-	// 	[]float64{0.01, 0.05}, // Two η values
-	// 	incompRates,           // Sweep: network quality
-	// 	honestyRates,          // Sweep: monitoring quality
-	// 	[]float64{0.0},        // Lock: no answer errors
-	// )
-	// runner.SaveResultsToFile("results/group2a_monitoring_frontier.json", results2a)
+	// =========================================================================
+	// Group iia — Honest but Incompetent
+	// =========================================================================
+	unreliableBase := base
+	unreliableBase.Name = "incompetent_baseline"
+	unreliableBase.TargetingConfig = network.DefaultHonestTargeting()
+	unreliableBase.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
+	incompRates := generateRange(0.005, 0.1, 0.01)
+	honestyRates := generateRange(0.0, 1.0, 0.1)
+	results2a := runner.Run5DUnreliableSweep(
+		unreliableBase,
+		[]float64{0.05, 0.1, 0.15}, // Lock: SLA threshold = 5%
+		[]float64{0.01, 0.05},      // Two η values
+		incompRates,                // Sweep: network quality
+		honestyRates,               // Sweep: monitoring quality
+		[]float64{0.0},             // Lock: no answer errors
+	)
+	runner.SaveResultsToFile("results/group2a_monitoring_frontier.json", results2a)
 
 	// // =========================================================================
 	// // Group iib — Honest but Incompetent - SLA sensitivity
