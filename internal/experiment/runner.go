@@ -572,13 +572,10 @@ func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult)
 		MeanContradictions:  totalContradictions / n,
 	}
 
-	if wasAdversarial {
-		result.TruePositiveRate = float64(truePositives) / n
-		result.FalseNegativeRate = float64(falseNegatives) / n
-	} else {
-		result.TrueNegativeRate = float64(trueNegatives) / n
-		result.FalsePositiveRate = float64(falsePositives) / n
-	}
+	result.TruePositiveRate = float64(truePositives) / n
+	result.FalseNegativeRate = float64(falseNegatives) / n
+	result.TrueNegativeRate = float64(trueNegatives) / n
+	result.FalsePositiveRate = float64(falsePositives) / n
 
 	return result
 }
