@@ -109,19 +109,22 @@ func flaggingFnForStrategy(config verification.AdversaryConfig) network.Flagging
 }
 
 type TrialResult struct {
-	TrialNum            int
-	Verdict             string
-	Confidence          float64
-	Trustworthy         bool
-	QueriesExecuted     int
-	ContradictionsFound int
-	PosteriorH0         float64
-	PosteriorH1         float64
-	PosteriorH2         float64
-	TrueDelayedPackets  int
-	TrueDelayFraction   float64
-	DetectedCorrectly   bool
-	Duration            time.Duration
+	TrialNum               int
+	Verdict                string
+	Confidence             float64
+	Trustworthy            bool
+	QueriesExecuted        int
+	ContradictionsFound    int
+	PosteriorH0            float64
+	PosteriorH1            float64
+	PosteriorH2            float64
+	TrueDelayedPackets     int
+	TrueDelayFraction      float64
+	TrueNonMinimalPackets  int
+	TrueNonMinimalFraction float64
+	SLAViolation           bool
+	DetectedCorrectly      bool
+	Duration               time.Duration
 }
 
 type ExperimentResult struct {
@@ -422,6 +425,7 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 
 	dest := NewMockGroundStation("DestStation")
 	delayedCount := 0
+	nonMinimalCount := 0
 
 	router.OnTransmission = func(info network.TransmissionInfo) {
 		record := verification.TransmissionRecord{
@@ -441,6 +445,9 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 
 		if info.WasDelayed {
 			delayedCount++
+		}
+		if info.WasDelayed || info.HasIncompetence {
+			nonMinimalCount++
 		}
 	}
 
@@ -481,23 +488,29 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	verifier.IngestRecords(finalRecords)
 	result := verifier.RunVerification()
 
+	nonMinimalFraction := float64(nonMinimalCount) / float64(config.NumPackets)
 	wasAdversarial := config.TargetingConfig.Mode != network.TargetNone
+	slaViolation := nonMinimalFraction > config.VerificationConfig.FlaggingRateThreshold
+	groundTruthDishonest := wasAdversarial || slaViolation
 	detectedDishonest := !result.Trustworthy
-	correctDetection := (wasAdversarial && detectedDishonest) || (!wasAdversarial && !detectedDishonest)
+	correctDetection := (wasAdversarial && detectedDishonest) || (!groundTruthDishonest && !detectedDishonest)
 
 	return TrialResult{
-		TrialNum:            trialNum,
-		Verdict:             result.Verdict,
-		Confidence:          result.Confidence,
-		Trustworthy:         result.Trustworthy,
-		QueriesExecuted:     result.TotalQueries,
-		ContradictionsFound: result.ContradictionsFound,
-		PosteriorH0:         result.PosteriorH0,
-		PosteriorH1:         result.PosteriorH1,
-		PosteriorH2:         result.PosteriorH2,
-		TrueDelayedPackets:  delayedCount,
-		TrueDelayFraction:   float64(delayedCount) / float64(config.NumPackets),
-		DetectedCorrectly:   correctDetection,
+		TrialNum:               trialNum,
+		Verdict:                result.Verdict,
+		Confidence:             result.Confidence,
+		Trustworthy:            result.Trustworthy,
+		QueriesExecuted:        result.TotalQueries,
+		ContradictionsFound:    result.ContradictionsFound,
+		PosteriorH0:            result.PosteriorH0,
+		PosteriorH1:            result.PosteriorH1,
+		PosteriorH2:            result.PosteriorH2,
+		TrueDelayedPackets:     delayedCount,
+		TrueDelayFraction:      float64(delayedCount) / float64(config.NumPackets),
+		TrueNonMinimalPackets:  nonMinimalCount,
+		TrueNonMinimalFraction: nonMinimalFraction,
+		SLAViolation:           slaViolation,
+		DetectedCorrectly:      correctDetection,
 	}
 }
 
@@ -518,8 +531,9 @@ func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult)
 
 	for _, trial := range trials {
 		detectedDishonest := !trial.Trustworthy
+		groundTruthDishonest := wasAdversarial || trial.SLAViolation
 
-		if wasAdversarial {
+		if groundTruthDishonest {
 			if detectedDishonest {
 				truePositives++
 			} else {

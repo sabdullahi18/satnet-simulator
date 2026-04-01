@@ -64,7 +64,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 			flaggedCount++
 		}
 	}
-	initialFlagRate := float64(flaggedCount) / float64(totalPackets)
+
 	hiddenDelaysFound := 0
 
 	// Flagging rate check: if the fraction of flagged records exceeds the threshold,
@@ -162,8 +162,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 		if !p.IsFlagged && !ans.IsMinimal {
 			hiddenDelaysFound++
 			if v.Config.FlaggingRateThreshold > 0 {
-				hiddenRate := float64(hiddenDelaysFound) / float64(queries)
-				estimatedTrueRate := initialFlagRate + hiddenRate
+				estimatedTrueRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
 				if estimatedTrueRate > v.Config.FlaggingRateThreshold {
 					return VerificationResult{
 						Verdict:             "DISHONEST",

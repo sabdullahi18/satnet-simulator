@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	// "log"
 	"satnet-simulator/internal/experiment"
 	"satnet-simulator/internal/network"
 	"satnet-simulator/internal/verification"
@@ -25,25 +25,25 @@ func main() {
 	runner := experiment.NewRunner()
 
 	base := experiment.DefaultExperimentConfig()
-	base.NumPackets = 10000 //10000
+	base.NumPackets = 1000 //10000
 	base.BatchSize = 10
-	base.NumTrials = 100
+	base.NumTrials = 5
 	base.SimDuration = 1000.0
 
-	// =========================================================================
-	// Group i — Honest Baseline (Perfect Network)
-	// =========================================================================
-	etas := generateRange(0.001, 0.1, 0.005)
-	batchSizes := []int{2, 10, 50, 100}
-	honestBase := base
-	honestBase.Name = "honest_baseline"
-	honestBase.TargetingConfig = network.DefaultHonestTargeting()
-	honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
-	honestBase.DelayModelConfig.IncompetenceRate = 0.0
-	honestResults := runner.RunEtaBatchSweep(honestBase, etas, batchSizes)
-	if err := runner.SaveResultsToFile("results/group1_honest_baseline.json", honestResults); err != nil {
-		log.Printf("warning: could not save honest_baseline results: %v", err)
-	}
+	// // =========================================================================
+	// // Group i — Honest Baseline (Perfect Network)
+	// // =========================================================================
+	// etas := generateRange(0.001, 0.1, 0.005)
+	// batchSizes := []int{2, 10, 50, 100}
+	// honestBase := base
+	// honestBase.Name = "honest_baseline"
+	// honestBase.TargetingConfig = network.DefaultHonestTargeting()
+	// honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
+	// honestBase.DelayModelConfig.IncompetenceRate = 0.0
+	// honestResults := runner.RunEtaBatchSweep(honestBase, etas, batchSizes)
+	// if err := runner.SaveResultsToFile("results/group1_honest_baseline.json", honestResults); err != nil {
+	// 	log.Printf("warning: could not save honest_baseline results: %v", err)
+	// }
 
 	// =========================================================================
 	// Group iia — Honest but Incompetent
