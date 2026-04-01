@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	// "log"
+	"log"
 	"satnet-simulator/internal/experiment"
 	"satnet-simulator/internal/network"
 	"satnet-simulator/internal/verification"
@@ -30,20 +30,20 @@ func main() {
 	base.NumTrials = 100
 	base.SimDuration = 1000.0
 
-	// // =========================================================================
-	// // Group i — Honest Baseline (Perfect Network)
-	// // =========================================================================
-	// etas := generateRange(0.001, 0.1, 0.005)
-	// batchSizes := []int{2, 10, 50, 100}
-	// honestBase := base
-	// honestBase.Name = "honest_baseline"
-	// honestBase.TargetingConfig = network.DefaultHonestTargeting()
-	// honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
-	// honestBase.DelayModelConfig.IncompetenceRate = 0.0
-	// honestResults := runner.RunEtaBatchSweep(honestBase, etas, batchSizes)
-	// if err := runner.SaveResultsToFile("results/group1_honest_baseline.json", honestResults); err != nil {
-	// 	log.Printf("warning: could not save honest_baseline results: %v", err)
-	// }
+	// =========================================================================
+	// Group i — Honest Baseline (Perfect Network)
+	// =========================================================================
+	etas := generateRange(0.001, 0.1, 0.005)
+	batchSizes := []int{2, 10, 50, 100}
+	honestBase := base
+	honestBase.Name = "honest_baseline"
+	honestBase.TargetingConfig = network.DefaultHonestTargeting()
+	honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
+	honestBase.DelayModelConfig.IncompetenceRate = 0.0
+	honestResults := runner.RunEtaBatchSweep(honestBase, etas, batchSizes)
+	if err := runner.SaveResultsToFile("results/group1_honest_baseline.json", honestResults); err != nil {
+		log.Printf("warning: could not save honest_baseline results: %v", err)
+	}
 
 	// =========================================================================
 	// Group iia — Honest but Incompetent
@@ -93,17 +93,36 @@ func main() {
 	// fractions := generateRange(0.01, 0.5, 0.05)
 	// results3a := runner.RunEtaFractionSweep(g3a, etas, fractions)
 	// runner.SaveResultsToFile("results/group3a_total_denial.json", results3a)
-	//
+
 	// // =========================================================================
-	// // Group iiia — malicious but competent (AnswerLiesAboutTargeted)
+	// // Group iiib — malicious but competent (AnswerLiesAboutTargeted)
 	// // =========================================================================
 	// g3b := base
 	// g3b.Name = "malicious_selective_denial"
 	// g3b.DelayModelConfig.IncompetenceRate = 0.0
 	// g3b.AdversaryConfig.AnsweringStr = verification.AnswerLiesAboutTargeted
-	// g3b.TargetingConfig.Mode = network.TargetRandom
-	// results3b := runner.RunEtaFractionSweep(g3b, etas, fractions)
-	// runner.SaveResultsToFile("results/group3b_selective_denial.json", results3b)
+	// targetingModes := []network.TargetingMode{network.TargetRandom, network.TargetPeriodic}
 	//
+	// var results3b []experiment.ExperimentResult
+	//
+	// // Sweep across Targeting Modes and Fractions manually
+	// for _, mode := range targetingModes {
+	// 	for _, frac := range fractions {
+	// 		cfg := g3b
+	//
+	// 		modeName := "random"
+	// 		if mode == network.TargetPeriodic {
+	// 			modeName = "periodic"
+	// 		}
+	//
+	// 		cfg.TargetingConfig.Mode = mode
+	// 		cfg.TargetingConfig.TargetFraction = frac
+	// 		cfg.Name = fmt.Sprintf("malicious_selective_denial_%s_frac%.2f", modeName, frac)
+	// 		sweepResults := runner.RunEtaBatchSweep(cfg, etas, batchSizes)
+	// 		results3b = append(results3b, sweepResults...)
+	// 	}
+	// }
+	// runner.SaveResultsToFile("results/group3b_selective_denial.json", results3b)
+
 	runner.PrintSummary()
 }
