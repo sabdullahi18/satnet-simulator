@@ -10,6 +10,7 @@ type VerificationConfig struct {
 	ConfidenceThreshold   float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
 	FlaggingRateThreshold float64 // maximum tolerable fraction of flagged packets; excess implies incompetence
 	Epsilon               float64
+	QueriesPerBatch       int
 }
 
 func DefaultVerificationConfig() VerificationConfig {
@@ -18,6 +19,7 @@ func DefaultVerificationConfig() VerificationConfig {
 		ConfidenceThreshold:   0.95,
 		FlaggingRateThreshold: 0.30,
 		Epsilon:               1e-9,
+		QueriesPerBatch:       1,
 	}
 }
 
@@ -140,39 +142,57 @@ func (v *Verifier) RunVerification() VerificationResult {
 			}
 		}
 
-		// Randomly select one packet from the batch to query.
-		idx := rand.Intn(len(batch))
-		p := batch[idx]
-
-		q := Query{BatchID: p.BatchID, ObservedDelay: p.ActualDelay, SentTime: p.SentTime}
-		ans := v.Prover.AnswerQuery(q)
-		queries++
-
-		pContraH2 := float64(contradictions+1) / float64(queries+1)
-
-		// Contradiction check: prover claims minimal, but another packet in the same
-		// batch (same base delay) arrived sooner — logically impossible for an honest prover.
-		if ans.IsMinimal && p.ActualDelay > minDelay {
-			contradictions++
-			post = bayesUpdate(post, pContraH0, pContraH1, pContraH2)
-		} else {
-			post = bayesUpdate(post, 1-pContraH0, 1-pContraH1, 1-pContraH2)
+		queriesThisBatch := v.Config.QueriesPerBatch
+		if queriesThisBatch <= 0 {
+			queriesThisBatch = 1
+		}
+		if queriesThisBatch > len(batch) {
+			queriesThisBatch = len(batch)
 		}
 
-		if !p.IsFlagged && !ans.IsMinimal {
-			hiddenDelaysFound++
-			if v.Config.FlaggingRateThreshold > 0 {
-				estimatedTrueRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
-				if estimatedTrueRate > v.Config.FlaggingRateThreshold {
-					return VerificationResult{
-						Verdict:             "DISHONEST",
-						Confidence:          1.0,
-						Trustworthy:         false,
-						TotalQueries:        queries,
-						ContradictionsFound: contradictions,
-						PosteriorH0:         post[0],
-						PosteriorH1:         post[1],
-						PosteriorH2:         post[2],
+		indices := make([]int, len(batch))
+		for i := range indices {
+			indices[i] = i
+		}
+		for i := 0; i < queriesThisBatch; i++ {
+			j := i + rand.Intn(len(indices)-1)
+			indices[i], indices[j] = indices[j], indices[i]
+		}
+
+		for qi := 0; qi < queriesThisBatch; qi++ {
+			if maxf(post[0], post[1], post[2]) > alpha {
+				break
+			}
+			p := batch[indices[qi]]
+			q := Query{BatchID: p.BatchID, ObservedDelay: p.ActualDelay, SentTime: p.SentTime}
+			ans := v.Prover.AnswerQuery(q)
+			queries++
+
+			pContraH2 := float64(contradictions+1) / float64(queries+1)
+
+			// Contradiction check: prover claims minimal, but another packet in the same
+			// batch (same base delay) arrived sooner — logically impossible for an honest prover.
+			if ans.IsMinimal && p.ActualDelay > minDelay {
+				contradictions++
+				post = bayesUpdate(post, pContraH0, pContraH1, pContraH2)
+			} else {
+				post = bayesUpdate(post, 1-pContraH0, 1-pContraH1, 1-pContraH2)
+			}
+			if !p.IsFlagged && !ans.IsMinimal {
+				hiddenDelaysFound++
+				if v.Config.FlaggingRateThreshold > 0 {
+					estimatedTrueRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
+					if estimatedTrueRate > v.Config.FlaggingRateThreshold {
+						return VerificationResult{
+							Verdict:             "DISHONEST",
+							Confidence:          1.0,
+							Trustworthy:         false,
+							TotalQueries:        queries,
+							ContradictionsFound: contradictions,
+							PosteriorH0:         post[0],
+							PosteriorH1:         post[1],
+							PosteriorH2:         post[2],
+						}
 					}
 				}
 			}
