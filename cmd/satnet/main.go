@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	// "log"
+	"log"
 	"satnet-simulator/internal/experiment"
 	"satnet-simulator/internal/network"
 	"satnet-simulator/internal/verification"
@@ -49,20 +49,31 @@ func main() {
 	// Group iia — Honest but Incompetent
 	// =========================================================================
 	unreliableBase := base
-	unreliableBase.Name = "incompetent_baseline"
 	unreliableBase.TargetingConfig = network.DefaultHonestTargeting()
 	unreliableBase.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
+
 	incompRates := generateRange(0.005, 0.1, 0.01)
 	honestyRates := generateRange(0.0, 1.0, 0.1)
-	results2a := runner.Run5DUnreliableSweep(
-		unreliableBase,
-		[]float64{0.05, 0.1, 0.15}, // Lock: SLA threshold = 5%
-		[]float64{0.01, 0.05},      // Two η values
-		incompRates,                // Sweep: network quality
-		honestyRates,               // Sweep: monitoring quality
-		[]float64{0.0},             // Lock: no answer errors
-	)
-	runner.SaveResultsToFile("results/group2a_monitoring_frontier.json", results2a)
+	queriesPerBatchSweep := []int{1, 2, 5, 10}
+
+	var allResults []experiment.ExperimentResult
+	for _, qpb := range queriesPerBatchSweep {
+		cfg := unreliableBase
+		cfg.Name = fmt.Sprintf("incompetent_baseline_qpb%d", qpb)
+		cfg.VerificationConfig.QueriesPerBatch = qpb
+		results2a := runner.Run5DUnreliableSweep(
+			cfg,
+			[]float64{0.05, 0.1, 0.15}, // Lock: SLA threshold = 5%
+			[]float64{0.01, 0.05},      // Two η values
+			incompRates,                // Sweep: network quality
+			honestyRates,               // Sweep: monitoring quality
+			[]float64{0.0},             // Lock: no answer errors
+		)
+		allResults = append(allResults, results2a...)
+	}
+	if err := runner.SaveResultsToFile("results/group2a_monitoring_frontier_qpb.json", allResults); err != nil {
+		log.Printf("warning: could not save results: %v", err)
+	}
 
 	// // =========================================================================
 	// // Group iib — Honest but Incompetent - SLA sensitivity

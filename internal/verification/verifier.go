@@ -154,10 +154,9 @@ func (v *Verifier) RunVerification() VerificationResult {
 		for i := range indices {
 			indices[i] = i
 		}
-		for i := 0; i < queriesThisBatch; i++ {
-			j := i + rand.Intn(len(indices)-1)
+		rand.Shuffle(len(indices), func(i, j int) {
 			indices[i], indices[j] = indices[j], indices[i]
-		}
+		})
 
 		for qi := 0; qi < queriesThisBatch; qi++ {
 			if maxf(post[0], post[1], post[2]) > alpha {
