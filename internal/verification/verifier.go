@@ -101,7 +101,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 	//   P(F|H2) = η        malicious networks have a similar low miss-flag rate as honest
 	pContraH0 := v.Config.Epsilon
 	pContraH1 := eta
-	pContraH2 := 1 - eta
 
 	batches := v.groupByBatch()
 
@@ -148,6 +147,8 @@ func (v *Verifier) RunVerification() VerificationResult {
 		q := Query{BatchID: p.BatchID, ObservedDelay: p.ActualDelay, SentTime: p.SentTime}
 		ans := v.Prover.AnswerQuery(q)
 		queries++
+
+		pContraH2 := float64(contradictions+1) / float64(queries+1)
 
 		// Contradiction check: prover claims minimal, but another packet in the same
 		// batch (same base delay) arrived sooner — logically impossible for an honest prover.
