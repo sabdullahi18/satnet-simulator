@@ -33,7 +33,7 @@ func main() {
 	// // =========================================================================
 	// // Group i — Honest Baseline (Perfect Network)
 	// // =========================================================================
-	// etas := generateRange(0.001, 0.1, 0.005)
+	etas := generateRange(0.001, 0.1, 0.005)
 	// batchSizes := []int{2, 10, 50, 100}
 	// honestBase := base
 	// honestBase.Name = "honest_baseline"
@@ -75,35 +75,35 @@ func main() {
 	// 	log.Printf("warning: could not save results: %v", err)
 	// }
 
-	// =========================================================================
-	// Group iib — Honest but Incompetent - SLA sensitivity
-	// =========================================================================
-	g2b := base
-	g2b.Name = "sla_sensitivity"
-	g2b.TargetingConfig = network.DefaultHonestTargeting()
-	g2b.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
-	thresholds := generateRange(0.01, 0.15, 0.005)
-	results2b := runner.Run5DUnreliableSweep(
-		g2b,
-		thresholds,
-		[]float64{0.01, 0.05},
-		[]float64{0.03, 0.05, 0.08},
-		[]float64{0.5, 0.8, 1.0},
-		[]float64{0.0},
-	)
-	runner.SaveResultsToFile("results/group2b_sla_sensitivity.json", results2b)
+	// // =========================================================================
+	// // Group iib — Honest but Incompetent - SLA sensitivity
+	// // =========================================================================
+	// g2b := base
+	// g2b.Name = "sla_sensitivity"
+	// g2b.TargetingConfig = network.DefaultHonestTargeting()
+	// g2b.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
+	// thresholds := generateRange(0.01, 0.15, 0.005)
+	// results2b := runner.Run5DUnreliableSweep(
+	// 	g2b,
+	// 	thresholds,
+	// 	[]float64{0.01, 0.05},
+	// 	[]float64{0.03, 0.05, 0.08},
+	// 	[]float64{0.5, 0.8, 1.0},
+	// 	[]float64{0.0},
+	// )
+	// runner.SaveResultsToFile("results/group2b_sla_sensitivity.json", results2b)
 
-	// // =========================================================================
-	// // Group iiia — malicious but competent (AnswerLiesThatMinimal)
-	// // =========================================================================
-	// g3a := base
-	// g3a.Name = "malicious_total_denial"
-	// g3a.DelayModelConfig.IncompetenceRate = 0.0
-	// g3a.AdversaryConfig.AnsweringStr = verification.AnswerLiesThatMinimal
-	// g3a.TargetingConfig.Mode = network.TargetRandom
-	// fractions := generateRange(0.01, 0.5, 0.05)
-	// results3a := runner.RunEtaFractionSweep(g3a, etas, fractions)
-	// runner.SaveResultsToFile("results/group3a_total_denial.json", results3a)
+	// =========================================================================
+	// Group iiia — malicious but competent (AnswerLiesThatMinimal)
+	// =========================================================================
+	g3a := base
+	g3a.Name = "malicious_total_denial"
+	g3a.DelayModelConfig.IncompetenceRate = 0.0
+	g3a.AdversaryConfig.AnsweringStr = verification.AnswerLiesThatMinimal
+	g3a.TargetingConfig.Mode = network.TargetRandom
+	fractions := generateRange(0.01, 0.5, 0.05)
+	results3a := runner.RunEtaFractionSweep(g3a, etas, fractions)
+	runner.SaveResultsToFile("results/group3a_total_denial.json", results3a)
 
 	// // =========================================================================
 	// // Group iiib — malicious but competent (AnswerLiesAboutTargeted)
