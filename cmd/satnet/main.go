@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	// "log"
 	"satnet-simulator/internal/experiment"
 	"satnet-simulator/internal/network"
 	"satnet-simulator/internal/verification"
@@ -45,54 +45,54 @@ func main() {
 	// 	log.Printf("warning: could not save honest_baseline results: %v", err)
 	// }
 
-	// =========================================================================
-	// Group iia — Honest but Incompetent
-	// =========================================================================
-	unreliableBase := base
-	unreliableBase.TargetingConfig = network.DefaultHonestTargeting()
-	unreliableBase.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
-
-	incompRates := generateRange(0.005, 0.1, 0.01)
-	honestyRates := generateRange(0.0, 1.0, 0.1)
-	queriesPerBatchSweep := []int{1, 2, 5, 10}
-
-	var allResults []experiment.ExperimentResult
-	for _, qpb := range queriesPerBatchSweep {
-		cfg := unreliableBase
-		cfg.Name = fmt.Sprintf("incompetent_baseline_qpb%d", qpb)
-		cfg.VerificationConfig.QueriesPerBatch = qpb
-		results2a := runner.Run5DUnreliableSweep(
-			cfg,
-			[]float64{0.05, 0.1, 0.15}, // Lock: SLA threshold = 5%
-			[]float64{0.01, 0.05},      // Two η values
-			incompRates,                // Sweep: network quality
-			honestyRates,               // Sweep: monitoring quality
-			[]float64{0.0},             // Lock: no answer errors
-		)
-		allResults = append(allResults, results2a...)
-	}
-	if err := runner.SaveResultsToFile("results/group2a_monitoring_frontier_qpb.json", allResults); err != nil {
-		log.Printf("warning: could not save results: %v", err)
-	}
-
 	// // =========================================================================
-	// // Group iib — Honest but Incompetent - SLA sensitivity
+	// // Group iia — Honest but Incompetent
 	// // =========================================================================
-	// g2b := base
-	// g2b.Name = "sla_sensitivity"
-	// g2b.TargetingConfig = network.DefaultHonestTargeting()
-	// g2b.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
-	// thresholds := generateRange(0.01, 0.15, 0.005) // Fine-grained SLA sweep
-	// results2b := runner.Run5DUnreliableSweep(
-	// 	g2b,
-	// 	thresholds,                  // Sweep: SLA threshold
-	// 	[]float64{0.01, 0.05},       // Two η values
-	// 	[]float64{0.03, 0.05, 0.08}, // Three network qualities
-	// 	[]float64{0.5, 0.8, 1.0},    // Three monitoring qualities
-	// 	[]float64{0.0},              // No answer errors
-	// )
-	// runner.SaveResultsToFile("results/group2b_sla_sensitivity.json", results2b)
+	// unreliableBase := base
+	// unreliableBase.TargetingConfig = network.DefaultHonestTargeting()
+	// unreliableBase.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
 	//
+	// incompRates := generateRange(0.005, 0.1, 0.01)
+	// honestyRates := generateRange(0.0, 1.0, 0.1)
+	// queriesPerBatchSweep := []int{1, 2, 5, 10}
+	//
+	// var allResults []experiment.ExperimentResult
+	// for _, qpb := range queriesPerBatchSweep {
+	// 	cfg := unreliableBase
+	// 	cfg.Name = fmt.Sprintf("incompetent_baseline_qpb%d", qpb)
+	// 	cfg.VerificationConfig.QueriesPerBatch = qpb
+	// 	results2a := runner.Run5DUnreliableSweep(
+	// 		cfg,
+	// 		[]float64{0.05, 0.1, 0.15},
+	// 		[]float64{0.01, 0.05},
+	// 		incompRates,
+	// 		honestyRates,
+	// 		[]float64{0.0},
+	// 	)
+	// 	allResults = append(allResults, results2a...)
+	// }
+	// if err := runner.SaveResultsToFile("results/group2a_monitoring_frontier_qpb.json", allResults); err != nil {
+	// 	log.Printf("warning: could not save results: %v", err)
+	// }
+
+	// =========================================================================
+	// Group iib — Honest but Incompetent - SLA sensitivity
+	// =========================================================================
+	g2b := base
+	g2b.Name = "sla_sensitivity"
+	g2b.TargetingConfig = network.DefaultHonestTargeting()
+	g2b.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
+	thresholds := generateRange(0.01, 0.15, 0.005)
+	results2b := runner.Run5DUnreliableSweep(
+		g2b,
+		thresholds,
+		[]float64{0.01, 0.05},
+		[]float64{0.03, 0.05, 0.08},
+		[]float64{0.5, 0.8, 1.0},
+		[]float64{0.0},
+	)
+	runner.SaveResultsToFile("results/group2b_sla_sensitivity.json", results2b)
+
 	// // =========================================================================
 	// // Group iiia — malicious but competent (AnswerLiesThatMinimal)
 	// // =========================================================================

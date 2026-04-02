@@ -17,7 +17,7 @@ func DefaultVerificationConfig() VerificationConfig {
 		ErrorTolerance:        0.05,
 		ConfidenceThreshold:   0.95,
 		FlaggingRateThreshold: 0.30,
-		Epsilon:               1e-9,
+		Epsilon:               1e-4,
 		QueriesPerBatch:       1,
 	}
 }
@@ -58,6 +58,11 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
+	eta := v.Config.ErrorTolerance
+	epsilon := v.Config.Epsilon
+
+	batches := v.groupByBatch()
+
 	totalPackets := len(v.Records)
 	flaggedCount := 0
 	for _, r := range v.Records {
@@ -65,8 +70,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 			flaggedCount++
 		}
 	}
-
-	hiddenDelaysFound := 0
 
 	if v.Config.FlaggingRateThreshold > 0 {
 		flagRate := float64(flaggedCount) / float64(totalPackets)
@@ -82,17 +85,20 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
-	eta := v.Config.ErrorTolerance
-
-	pContraH0 := v.Config.Epsilon
+	pContraH0 := epsilon
 	pContraH1 := eta
-
-	batches := v.groupByBatch()
+	pContraH2 := 1 - eta
+	pCleanH0 := 1 - epsilon
+	pCleanH1 := 1 - eta
+	pCleanH2 := eta
+	pFlagH0 := epsilon
+	pFlagH1 := 1 - eta
+	pFlagH2 := eta
 
 	post := [3]float64{1.0 / 3, 1.0 / 3, 1.0 / 3}
-
 	contradictions := 0
 	queries := 0
+	hiddenDelaysFound := 0
 
 	times := make([]int, 0, len(batches))
 	for bid := range batches {
@@ -103,9 +109,10 @@ func (v *Verifier) RunVerification() VerificationResult {
 	})
 
 	alpha := v.Config.ConfidenceThreshold
+	slaBreached := false
 
 	for _, bid := range times {
-		if maxf(post[0], post[1], post[2]) > alpha {
+		if maxf(post[0], post[1], post[2]) > alpha || slaBreached {
 			break
 		}
 
@@ -146,31 +153,24 @@ func (v *Verifier) RunVerification() VerificationResult {
 			ans := v.Prover.AnswerQuery(q)
 			queries++
 
-			pContraH2 := float64(contradictions+1) / float64(queries+1)
-
 			if ans.IsMinimal && p.ActualDelay > minDelay {
 				contradictions++
 				post = bayesUpdate(post, pContraH0, pContraH1, pContraH2)
-			} else {
-				post = bayesUpdate(post, 1-pContraH0, 1-pContraH1, 1-pContraH2)
-			}
-			if !p.IsFlagged && !ans.IsMinimal {
+			} else if !p.IsFlagged && !ans.IsMinimal {
 				hiddenDelaysFound++
+				post = bayesUpdate(post, pFlagH0, pFlagH1, pFlagH2)
 				if v.Config.FlaggingRateThreshold > 0 {
 					estimatedTrueRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
 					if estimatedTrueRate > v.Config.FlaggingRateThreshold {
-						return VerificationResult{
-							Verdict:             "DISHONEST",
-							Confidence:          1.0,
-							Trustworthy:         false,
-							TotalQueries:        queries,
-							ContradictionsFound: contradictions,
-							PosteriorH0:         post[0],
-							PosteriorH1:         post[1],
-							PosteriorH2:         post[2],
-						}
+						slaBreached = true
+						break
 					}
 				}
+
+			} else if p.IsFlagged && !ans.IsMinimal {
+				post = bayesUpdate(post, 1-pFlagH0, 1-pFlagH1, 1-pFlagH2)
+			} else {
+				post = bayesUpdate(post, pCleanH0, pCleanH1, pCleanH2)
 			}
 		}
 	}
