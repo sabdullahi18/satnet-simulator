@@ -4,11 +4,10 @@ import (
 	"math/rand"
 )
 
-// VerificationConfig holds the parameters for the Bayesian verifier.
 type VerificationConfig struct {
-	ErrorTolerance        float64 // η — maximum tolerable error rate; governs all Bayesian likelihoods
-	ConfidenceThreshold   float64 // α — posterior threshold for sequential stopping (e.g. 0.95)
-	FlaggingRateThreshold float64 // maximum tolerable fraction of flagged packets; excess implies incompetence
+	ErrorTolerance        float64
+	ConfidenceThreshold   float64
+	FlaggingRateThreshold float64
 	Epsilon               float64
 	QueriesPerBatch       int
 }
@@ -29,9 +28,9 @@ type VerificationResult struct {
 	Trustworthy         bool
 	TotalQueries        int
 	ContradictionsFound int
-	PosteriorH0         float64 // P(Honest | evidence)
-	PosteriorH1         float64 // P(Incompetent | evidence)
-	PosteriorH2         float64 // P(Malicious | evidence)
+	PosteriorH0         float64
+	PosteriorH1         float64
+	PosteriorH2         float64
 }
 
 type Verifier struct {
@@ -69,10 +68,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 
 	hiddenDelaysFound := 0
 
-	// Flagging rate check: if the fraction of flagged records exceeds the threshold,
-	// the network is reporting an implausibly high congestion rate. It is either
-	// genuinely incompetent (H1) or masking deliberate delays as congestion (H2).
-	// Either way, the flag rate alone is sufficient to classify it as incompetent.
 	if v.Config.FlaggingRateThreshold > 0 {
 		flagRate := float64(flaggedCount) / float64(totalPackets)
 		if flagRate > v.Config.FlaggingRateThreshold {
@@ -89,24 +84,11 @@ func (v *Verifier) RunVerification() VerificationResult {
 
 	eta := v.Config.ErrorTolerance
 
-	// All likelihoods are derived from η (error tolerance).
-	//
-	// Contradiction evidence — prover claims minimal, another packet arrived sooner:
-	//   P(C|H0) = ε        honest networks essentially never produce logical contradictions
-	//   P(C|H1) = η        incompetent networks truthfully answer IsMinimal=false when delayed,
-	//                      so they do not lie and do not produce contradictions either
-	//   P(C|H2) = 1-η      malicious prover almost certainly contradicts on a targeted packet
-	//
-	// Flagging inconsistency — unflagged packet with delay > flagged packet, prover admits non-minimal:
-	//   P(F|H0) = η        honest networks rarely fail to flag delayed packets
-	//   P(F|H1) = 1-η      incompetent networks commonly miss flags (strongly favours H1)
-	//   P(F|H2) = η        malicious networks have a similar low miss-flag rate as honest
 	pContraH0 := v.Config.Epsilon
 	pContraH1 := eta
 
 	batches := v.groupByBatch()
 
-	// Bayesian posterior over [H0, H1, H2] — uniform (uninformative) prior.
 	post := [3]float64{1.0 / 3, 1.0 / 3, 1.0 / 3}
 
 	contradictions := 0
@@ -123,7 +105,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 	alpha := v.Config.ConfidenceThreshold
 
 	for _, bid := range times {
-		// Sequential stopping: halt when any posterior exceeds α.
 		if maxf(post[0], post[1], post[2]) > alpha {
 			break
 		}
@@ -133,8 +114,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 			continue
 		}
 
-		// Minimum observed delay in this batch. All packets share the same base delay,
-		// so any spread reflects congestion or deliberate delay.
 		minDelay := batch[0].ActualDelay
 		for _, p := range batch[1:] {
 			if p.ActualDelay < minDelay {
@@ -169,8 +148,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 
 			pContraH2 := float64(contradictions+1) / float64(queries+1)
 
-			// Contradiction check: prover claims minimal, but another packet in the same
-			// batch (same base delay) arrived sooner — logically impossible for an honest prover.
 			if ans.IsMinimal && p.ActualDelay > minDelay {
 				contradictions++
 				post = bayesUpdate(post, pContraH0, pContraH1, pContraH2)
@@ -228,8 +205,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 	}
 }
 
-// bayesUpdate applies one Bayes step and re-normalises the posterior.
-// Resets to uniform prior on numerical underflow.
 func bayesUpdate(prior [3]float64, lH0, lH1, lH2 float64) [3]float64 {
 	p0 := prior[0] * lH0
 	p1 := prior[1] * lH1

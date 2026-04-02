@@ -4,7 +4,6 @@ import (
 	"fmt"
 )
 
-// Query represents the verifier's question: "Was delay X minimal for packets sent at time t?"
 type Query struct {
 	BatchID       int
 	ObservedDelay float64
@@ -15,8 +14,6 @@ func (q Query) String() string {
 	return fmt.Sprintf("Q(t=%.2f): is_minimal(delay=%.4f)?", q.SentTime, q.ObservedDelay)
 }
 
-// Answer is the prover's response. IsMinimal=true claims the packet experienced only
-// base propagation delay — no congestion, no deliberate delay.
 type Answer struct {
 	IsMinimal bool
 }
@@ -36,9 +33,9 @@ type PacketRecord struct {
 	IncompetenceDelay float64
 	DeliberateDelay   float64
 	ActualDelay       float64
-	WasDelayed        bool // True if DeliberateDelay > 0 (deliberately targeted)
-	HasIncompetence   bool // True if packet experienced incompetence delay
-	IsFlagged         bool // Set by the prover pre-query to admit "honest errors"
+	WasDelayed        bool
+	HasIncompetence   bool
+	IsFlagged         bool
 }
 
 func (pr PacketRecord) String() string {

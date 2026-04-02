@@ -29,7 +29,7 @@ func (m TargetingMode) String() string {
 type TargetingConfig struct {
 	Mode           TargetingMode
 	TargetFraction float64
-	Period         int // For TargetPeriodic: target every Period-th packet
+	Period         int
 }
 
 func DefaultHonestTargeting() TargetingConfig {

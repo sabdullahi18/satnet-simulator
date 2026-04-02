@@ -7,16 +7,16 @@ import (
 )
 
 type DelayModel struct {
-	BaseDelayMin     float64
-	BaseDelayMax     float64
-	TransitionRate   float64
-	IncompetenceRate float64
-	IncompetenceMu   float64
+	BaseDelayMin      float64
+	BaseDelayMax      float64
+	TransitionRate    float64
+	IncompetenceRate  float64
+	IncompetenceMu    float64
 	IncompetenceSigma float64
-	DeliberateMin    float64
-	DeliberateMax    float64
-	transitions      []PathTransition
-	initialised      bool
+	DeliberateMin     float64
+	DeliberateMax     float64
+	transitions       []PathTransition
+	initialised       bool
 }
 
 type PathTransition struct {
@@ -25,10 +25,10 @@ type PathTransition struct {
 }
 
 type DelayComponents struct {
-	BaseDelay        float64
+	BaseDelay         float64
 	IncompetenceDelay float64
-	DeliberateDelay  float64
-	TotalDelay       float64
+	DeliberateDelay   float64
+	TotalDelay        float64
 }
 
 func NewDelayModelConfig(cfg DelayModelConfig) *DelayModel {
@@ -59,18 +59,13 @@ type DelayModelConfig struct {
 
 func (dm *DelayModel) Initialise(duration float64) {
 	dm.transitions = make([]PathTransition, 0)
-
-	// Piecewise constant function for base delay
-	// Initial segment
 	currentTime := 0.0
 	dm.transitions = append(dm.transitions, PathTransition{
 		Time:      0,
 		BaseDelay: dm.sampleBaseDelay(),
 	})
 
-	// Generate transitions using Poisson process
 	for currentTime < duration {
-		// Inter-arrival time for Poisson process is Exponential(lambda)
 		interArrival := -math.Log(1.0-rand.Float64()) / dm.TransitionRate
 		currentTime += interArrival
 
@@ -94,13 +89,10 @@ func (dm *DelayModel) GetBaseDelay(t float64) float64 {
 		return dm.sampleBaseDelay()
 	}
 
-	// Find the segment that contains t
 	idx := sort.Search(len(dm.transitions), func(i int) bool {
 		return dm.transitions[i].Time > t
 	})
 
-	// transitions[idx] is the first one AFTER t (or len if none)
-	// So the active one is idx-1
 	if idx == 0 {
 		return dm.transitions[0].BaseDelay
 	}
@@ -108,13 +100,11 @@ func (dm *DelayModel) GetBaseDelay(t float64) float64 {
 }
 
 func (dm *DelayModel) GetIncompetenceDelay() float64 {
-	// LogNormal distribution
 	z := rand.NormFloat64()
 	return math.Exp(dm.IncompetenceMu + dm.IncompetenceSigma*z)
 }
 
 func (dm *DelayModel) GetDeliberateDelay() float64 {
-	// Uniform distribution for deliberate delay
 	return dm.DeliberateMin + rand.Float64()*(dm.DeliberateMax-dm.DeliberateMin)
 }
 

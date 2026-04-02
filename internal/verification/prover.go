@@ -10,9 +10,9 @@ const (
 	AnswerHonest            AnsweringStrategy = "ANSWER_HONEST"
 	AnswerInconsistent      AnsweringStrategy = "ANSWER_INCONSISTENT"
 	AnswerRandom            AnsweringStrategy = "ANSWER_RANDOM"
-	AnswerDelayedHonest     AnsweringStrategy = "ANSWER_DELAYED_HONEST"      // hides malicious as congestion
-	AnswerLiesThatMinimal   AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL"   // blanket denial: claims all packets are minimal
-	AnswerLiesAboutTargeted AnsweringStrategy = "ANSWER_LIES_ABOUT_TARGETED" // lies only about deliberately delayed packets
+	AnswerDelayedHonest     AnsweringStrategy = "ANSWER_DELAYED_HONEST"
+	AnswerLiesThatMinimal   AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL"
+	AnswerLiesAboutTargeted AnsweringStrategy = "ANSWER_LIES_ABOUT_TARGETED"
 	AnswerUnreliable        AnsweringStrategy = "ANSWER_UNRELIABLE"
 )
 
@@ -22,17 +22,11 @@ type AdversaryConfig struct {
 	AnswerErrorRate     float64
 }
 
-// Prover represents the network operator's self-reporting mechanism. It has access to ground
-// truth (every PacketRecord) because it is the operator. The question is whether it tells the truth.
-//
-// Flagging is network-initiated and happens in RecordTransmission (before any queries). The
-// prover sets IsFlagged on each record according to its strategy, proactively admitting
-// "honest errors" before the verifier asks questions.
 type Prover struct {
 	Config      AdversaryConfig
 	Packets     map[int]*PacketRecord
 	Queries     int
-	byTimeDelay map[int]map[float64]*PacketRecord // secondary index: int(SentTime) -> actualDelay -> record
+	byTimeDelay map[int]map[float64]*PacketRecord
 }
 
 func NewProver(config AdversaryConfig) *Prover {
@@ -43,11 +37,9 @@ func NewProver(config AdversaryConfig) *Prover {
 	}
 }
 
-// RecordTransmission stores the packet's ground truth
 func (p *Prover) RecordTransmission(rec PacketRecord) {
 	p.Packets[rec.ID] = &rec
 
-	// Populate secondary index by (BatchID, ActualDelay) for query lookup.
 	timeKey := rec.BatchID
 	if p.byTimeDelay[timeKey] == nil {
 		p.byTimeDelay[timeKey] = make(map[float64]*PacketRecord)
@@ -55,8 +47,6 @@ func (p *Prover) RecordTransmission(rec PacketRecord) {
 	p.byTimeDelay[timeKey][rec.ActualDelay] = p.Packets[rec.ID]
 }
 
-// AnswerQuery handles the query: "Was delay X minimal for packets sent at time t?"
-// The prover looks up the packet by (SentTime, ObservedDelay) and answers based on its strategy.
 func (p *Prover) AnswerQuery(q Query) Answer {
 	p.Queries++
 
@@ -67,7 +57,6 @@ func (p *Prover) AnswerQuery(q Query) Answer {
 	}
 
 	if rec == nil {
-		// Unknown packet — default to claiming minimal (cannot prove otherwise)
 		return Answer{IsMinimal: true}
 	}
 
@@ -80,31 +69,18 @@ func (p *Prover) decideAnswer(rec *PacketRecord) Answer {
 
 	switch p.Config.AnsweringStr {
 	case AnswerHonest, AnswerInconsistent:
-		// Truthful: minimal only if no extra delay of any kind
 		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
 
 	case AnswerRandom:
-		// Coin-flip: naive adversary with no attempt at consistency
 		return Answer{IsMinimal: rand.Float64() < 0.5}
 
 	case AnswerDelayedHonest:
-		// Never claims IsMinimal for any packet with extra delay. Deliberately delayed
-		// packets were already flagged in RecordTransmission, so the prover's story is
-		// consistent: "it was congested (flagged), so of course not minimal."
 		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
 
 	case AnswerLiesThatMinimal:
-		// Blanket denial: claims every packet achieved minimal delay, regardless of
-		// whether it was targeted, congested, or both. Never flags anything. This is
-		// the most reckless strategy — it completely denies the existence of any added
-		// delay, making it highly vulnerable to contradiction checks.
 		return Answer{IsMinimal: true}
 
 	case AnswerLiesAboutTargeted:
-		// Targeted lie: lies only about deliberately delayed packets, claiming they
-		// achieved minimal delay. Answers honestly about incompetence-affected packets
-		// and flags them as usual. Deliberately delayed packets are not flagged, since
-		// flagging would contradict the minimal claim.
 		if hasDeliberate {
 			return Answer{IsMinimal: true}
 		}

@@ -54,10 +54,6 @@ func DefaultExperimentConfig() ExperimentConfig {
 	}
 }
 
-// flaggingFnForStrategy returns the FlaggingFn that the router should use for a
-// given answering strategy. This determines which packets the network proactively
-// flags as having experienced 'honest errors' during forwarding, before the
-// verifier issues any queries.
 func flaggingFnForStrategy(config verification.AdversaryConfig) network.FlaggingFn {
 	switch config.AnsweringStr {
 	case verification.AnswerHonest:
@@ -66,22 +62,16 @@ func flaggingFnForStrategy(config verification.AdversaryConfig) network.Flagging
 		}
 
 	case verification.AnswerDelayedHonest:
-		// Flag deliberately delayed packets as "congestion" to provide cover,
-		// in addition to genuinely congested packets.
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return hasIncompetence || wasDelayed
 		}
 
 	case verification.AnswerLiesThatMinimal:
-		// Never flag anything — the prover intends to claim every packet was
-		// minimal, so flagging any packet would contradict that blanket claim.
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return false
 		}
 
 	case verification.AnswerLiesAboutTargeted:
-		// Only flag genuinely congested packets; deliberately delayed packets
-		// are not flagged because the prover intends to claim they were minimal.
 		return func(hasIncompetence, wasDelayed bool) bool {
 			return hasIncompetence
 		}
@@ -129,19 +119,19 @@ type TrialResult struct {
 
 type ExperimentResult struct {
 	Config              ExperimentConfig
-	EtaValue            float64 // η used for this result (mirrors Config.VerificationConfig.ErrorTolerance)
+	EtaValue            float64
 	BatchSize           int
 	Trials              []TrialResult
 	TruePositiveRate    float64
 	FalsePositiveRate   float64
 	TrueNegativeRate    float64
 	FalseNegativeRate   float64
-	MeanQueriesPerTrial float64 // mean queries to verdict across all trials
+	MeanQueriesPerTrial float64
 	MeanConfidence      float64
-	MeanPosteriorH0     float64 // mean terminal P(H0) across trials
-	MeanPosteriorH1     float64 // mean terminal P(H1) across trials
-	MeanPosteriorH2     float64 // mean terminal P(H2) across trials
-	MeanContradictions  float64 // mean contradiction count across trials
+	MeanPosteriorH0     float64
+	MeanPosteriorH1     float64
+	MeanPosteriorH2     float64
+	MeanContradictions  float64
 	WasAdversarial      bool
 	TargetDelayFraction float64
 }
@@ -194,8 +184,6 @@ func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
 	return aggregated
 }
 
-// RunEtaFractionSweep runs one experiment per (η, fraction) combination, sweeping
-// both axes. Results are appended to r.Results and returned.
 func (r *Runner) RunEtaFractionSweep(baseConfig ExperimentConfig, etaValues, fractionValues []float64) []ExperimentResult {
 	fmt.Printf("\n=== η×fraction-sweep: %s | Strategy: %s ===\n",
 		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
@@ -215,7 +203,6 @@ func (r *Runner) RunEtaFractionSweep(baseConfig ExperimentConfig, etaValues, fra
 	return results
 }
 
-// RunEtaIncompetenceSweep runs one experiment per (η, IncompetenceRate) combination.
 func (r *Runner) RunEtaIncompetenceSweep(baseConfig ExperimentConfig, etaValues, incompValues []float64) []ExperimentResult {
 	fmt.Printf("\n=== η × Incompetence sweep: %s | Strategy: %s ===\n",
 		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
@@ -236,7 +223,6 @@ func (r *Runner) RunEtaIncompetenceSweep(baseConfig ExperimentConfig, etaValues,
 	return results
 }
 
-// RunEtaIncompFlagSweep runs one experiment per (FlaggingRateThreshold, η, IncompetenceRate) combination.
 func (r *Runner) RunEtaIncompFlagSweep(baseConfig ExperimentConfig, flagValues, etaValues, incompValues []float64) []ExperimentResult {
 	fmt.Printf("\n=== Flagging Threshold × η × Incompetence sweep: %s | Strategy: %s ===\n",
 		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
@@ -248,12 +234,10 @@ func (r *Runner) RunEtaIncompFlagSweep(baseConfig ExperimentConfig, flagValues, 
 			for _, inc := range incompValues {
 				cfg := baseConfig
 
-				// Apply the 3 variables
 				cfg.VerificationConfig.FlaggingRateThreshold = flag
 				cfg.VerificationConfig.ErrorTolerance = eta
 				cfg.DelayModelConfig.IncompetenceRate = inc
 
-				// Name it clearly so you can parse the results later
 				cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f", baseConfig.Name, flag, eta, inc)
 
 				result := r.RunExperiment(cfg)
@@ -265,12 +249,10 @@ func (r *Runner) RunEtaIncompFlagSweep(baseConfig ExperimentConfig, flagValues, 
 	return results
 }
 
-// Run4DCheatSweep runs experiments across FlaggingRateThreshold, ErrorTolerance (η), IncompetenceRate, and FlaggingHonestyRate.
 func (r *Runner) Run4DCheatSweep(baseConfig ExperimentConfig, flagThresholds, etaValues, incompRates, honestyRates []float64) []ExperimentResult {
 	fmt.Printf("\n=== 4D SLA Cheater Sweep: %s | Strategy: %s ===\n",
 		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
 
-	// Calculate total runs to pre-allocate slice and avoid memory reallocation
 	totalConfigs := len(flagThresholds) * len(etaValues) * len(incompRates) * len(honestyRates)
 	results := make([]ExperimentResult, 0, totalConfigs)
 
@@ -280,13 +262,11 @@ func (r *Runner) Run4DCheatSweep(baseConfig ExperimentConfig, flagThresholds, et
 				for _, honesty := range honestyRates {
 					cfg := baseConfig
 
-					// Apply the 4 variables
 					cfg.VerificationConfig.FlaggingRateThreshold = flag
 					cfg.VerificationConfig.ErrorTolerance = eta
 					cfg.DelayModelConfig.IncompetenceRate = inc
 					cfg.AdversaryConfig.FlaggingHonestyRate = honesty
 
-					// Name it clearly so you can parse the results later
 					cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f_hon%.2f", baseConfig.Name, flag, eta, inc, honesty)
 
 					result := r.RunExperiment(cfg)
@@ -337,8 +317,6 @@ func (r *Runner) Run5DUnreliableSweep(
 	return results
 }
 
-// SaveResultsToFile writes results to a JSON file, creating parent directories
-// as needed.
 func (r *Runner) SaveResultsToFile(path string, results []ExperimentResult) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
@@ -358,8 +336,6 @@ func (r *Runner) SaveResultsToFile(path string, results []ExperimentResult) erro
 	return nil
 }
 
-// RunEtaSweep runs one experiment per η value, overriding the base config's
-// ErrorTolerance for each iteration. Results are grouped by η in the output.
 func (r *Runner) RunEtaSweep(baseConfig ExperimentConfig, etaValues []float64) []ExperimentResult {
 	fmt.Printf("\n=== η-sweep: %s | Strategy: %s | Targeting: %s ===\n",
 		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr, baseConfig.TargetingConfig.Mode)
@@ -392,7 +368,6 @@ func (r *Runner) RunBatchSizeSweep(baseConfig ExperimentConfig, batchSizes []int
 	return results
 }
 
-// RunEtaBatchSweep runs experiments across ErrorTolerance (η) and BatchSize.
 func (r *Runner) RunEtaBatchSweep(baseConfig ExperimentConfig, etaValues []float64, batchSizes []int) []ExperimentResult {
 	fmt.Printf("\n=== η × Batch Size sweep: %s | Strategy: %s ===\n",
 		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
@@ -451,15 +426,10 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 		}
 	}
 
-	// Schedule packets in batches — all packets in a batch share the same send time.
 	batchSize := config.BatchSize
-	if batchSize < 2 {
-		batchSize = 2
-	}
+	batchSize = max(batchSize, 2)
 	numBatches := config.NumPackets / batchSize
-	if numBatches < 1 {
-		numBatches = 1
-	}
+	numBatches = max(numBatches, 1)
 
 	pktID := 0
 	for b := 0; b < numBatches; b++ {
