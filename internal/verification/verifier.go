@@ -71,20 +71,6 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
-	if v.Config.FlaggingRateThreshold > 0 {
-		flagRate := float64(flaggedCount) / float64(totalPackets)
-		if flagRate > v.Config.FlaggingRateThreshold {
-			return VerificationResult{
-				Verdict:     "DISHONEST",
-				Confidence:  1.0,
-				Trustworthy: false,
-				PosteriorH0: 0.0,
-				PosteriorH1: 1.0,
-				PosteriorH2: 0.0,
-			}
-		}
-	}
-
 	pContraH0 := epsilon
 	pContraH1 := eta
 	pContraH2 := 1 - eta
@@ -99,6 +85,20 @@ func (v *Verifier) RunVerification() VerificationResult {
 	contradictions := 0
 	queries := 0
 	hiddenDelaysFound := 0
+
+	if v.Config.FlaggingRateThreshold > 0 {
+		flagRate := float64(flaggedCount) / float64(totalPackets)
+		if flagRate > v.Config.FlaggingRateThreshold {
+			return VerificationResult{
+				Verdict:     "DISHONEST (SLA_BREACHED)",
+				Confidence:  1.0,
+				Trustworthy: false,
+				PosteriorH0: post[0],
+				PosteriorH1: post[1],
+				PosteriorH2: post[2],
+			}
+		}
+	}
 
 	times := make([]int, 0, len(batches))
 	for bid := range batches {
