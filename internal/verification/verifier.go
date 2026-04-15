@@ -1,6 +1,7 @@
 package verification
 
 import (
+	"math"
 	"math/rand"
 )
 
@@ -58,8 +59,10 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
-	eta := v.Config.ErrorTolerance
-	epsilon := v.Config.Epsilon
+	lt := LikelihoodTable{
+		Epsilon: v.Config.Epsilon,
+		Eta:     v.Config.ErrorTolerance,
+	}
 
 	batches := v.groupByBatch()
 
@@ -71,17 +74,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
-	pContraH0 := epsilon
-	pContraH1 := eta
-	pContraH2 := 1 - eta
-	pCleanH0 := 1 - epsilon
-	pCleanH1 := 1 - eta
-	pCleanH2 := eta
-	pFlagH0 := epsilon
-	pFlagH1 := 1 - eta
-	pFlagH2 := eta
-
-	post := [3]float64{1.0 / 3, 1.0 / 3, 1.0 / 3}
+	logPost := [3]float64{math.Log(1.0 / 3), math.Log(1.0 / 3), math.Log(1.0 / 3)}
 	contradictions := 0
 	queries := 0
 	hiddenDelaysFound := 0
@@ -89,6 +82,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 	if v.Config.FlaggingRateThreshold > 0 {
 		flagRate := float64(flaggedCount) / float64(totalPackets)
 		if flagRate > v.Config.FlaggingRateThreshold {
+			post := normaliseLogPosterior(logPost)
 			return VerificationResult{
 				Verdict:     "DISHONEST (SLA_BREACHED)",
 				Confidence:  1.0,
@@ -109,10 +103,11 @@ func (v *Verifier) RunVerification() VerificationResult {
 	})
 
 	alpha := v.Config.ConfidenceThreshold
+	logAlpha := math.Log(alpha)
 	slaBreached := false
 
 	for _, bid := range times {
-		if maxf(post[0], post[1], post[2]) > alpha || slaBreached {
+		if maxLogExceeds(logPost, logAlpha) || slaBreached {
 			break
 		}
 
@@ -145,7 +140,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 		})
 
 		for qi := 0; qi < queriesThisBatch; qi++ {
-			if maxf(post[0], post[1], post[2]) > alpha {
+			if maxLogExceeds(logPost, logAlpha) {
 				break
 			}
 			p := batch[indices[qi]]
@@ -153,31 +148,48 @@ func (v *Verifier) RunVerification() VerificationResult {
 			ans := v.Prover.AnswerQuery(q)
 			queries++
 
-			if ans.IsMinimal && p.ActualDelay > minDelay {
-				contradictions++
-				post = bayesUpdate(post, pContraH0, pContraH1, pContraH2)
-			} else if !p.IsFlagged && !ans.IsMinimal {
-				hiddenDelaysFound++
-				post = bayesUpdate(post, pFlagH0, pFlagH1, pFlagH2)
-				if v.Config.FlaggingRateThreshold > 0 {
-					estimatedTrueRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
-					if estimatedTrueRate > v.Config.FlaggingRateThreshold {
-						slaBreached = true
-						break
-					}
-				}
+			contradiction := ans.IsMinimal && p.ActualDelay > minDelay
+			flagInc := !ans.IsMinimal && !p.IsFlagged
 
-			} else if p.IsFlagged && !ans.IsMinimal {
-				post = bayesUpdate(post, 1-pFlagH0, 1-pFlagH1, 1-pFlagH2)
-			} else {
-				post = bayesUpdate(post, pCleanH0, pCleanH1, pCleanH2)
+			if contradiction {
+				contradictions++
+			}
+			if flagInc {
+				hiddenDelaysFound++
+			}
+
+			ll := lt.JointLogLikelihoods(contradiction, flagInc)
+			for i := 0; i < 3; i++ {
+				logPost[i] += ll[i]
+			}
+
+			if flagInc && v.Config.FlaggingRateThreshold > 0 {
+				estimatedTrueRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
+				if estimatedTrueRate > v.Config.ConfidenceThreshold {
+					slaBreached = true
+					break
+				}
 			}
 		}
 	}
 
+	post := normaliseLogPosterior(logPost)
 	verdict := "INCONCLUSIVE"
 	trustworthy := post[0] >= post[1] && post[0] >= post[2]
 	confidence := maxf(post[0], post[1], post[2])
+
+	if slaBreached {
+		return VerificationResult{
+			Verdict:             "DISHONEST (SLA_BREACHED)",
+			Confidence:          1.0,
+			Trustworthy:         false,
+			TotalQueries:        queries,
+			ContradictionsFound: contradictions,
+			PosteriorH0:         post[0],
+			PosteriorH1:         post[1],
+			PosteriorH2:         post[2],
+		}
+	}
 
 	if post[2] > alpha {
 		verdict = "DISHONEST"
@@ -205,15 +217,26 @@ func (v *Verifier) RunVerification() VerificationResult {
 	}
 }
 
-func bayesUpdate(prior [3]float64, lH0, lH1, lH2 float64) [3]float64 {
-	p0 := prior[0] * lH0
-	p1 := prior[1] * lH1
-	p2 := prior[2] * lH2
-	sum := p0 + p1 + p2
-	if sum < 1e-300 {
-		return [3]float64{1.0 / 3, 1.0 / 3, 1.0 / 3}
+func normaliseLogPosterior(logPost [3]float64) [3]float64 {
+	m := logPost[0]
+	if logPost[1] > m {
+		m = logPost[1]
 	}
-	return [3]float64{p0 / sum, p1 / sum, p2 / sum}
+	if logPost[2] > m {
+		m = logPost[2]
+	}
+	sumExp := math.Exp(logPost[0]-m) + math.Exp(logPost[1]-m) + math.Exp(logPost[2]-m)
+	logZ := m + math.Log(sumExp)
+	return [3]float64{
+		math.Exp(logPost[0] - logZ),
+		math.Exp(logPost[1] - logZ),
+		math.Exp(logPost[2] - logZ),
+	}
+}
+
+func maxLogExceeds(logPost [3]float64, logAlpha float64) bool {
+	post := normaliseLogPosterior(logPost)
+	return maxf(post[0], post[1], post[2]) > math.Exp(logAlpha)
 }
 
 func maxf(a, b, c float64) float64 {
