@@ -2,138 +2,62 @@ package main
 
 import (
 	"fmt"
-	// "log"
-	"satnet-simulator/internal/experiment"
-	"satnet-simulator/internal/network"
-	"satnet-simulator/internal/verification"
-)
 
-func generateRange(start, end, step float64) []float64 {
-	var result []float64
-	for v := start; v <= end+1e-9; v += step {
-		result = append(result, v)
-	}
-	return result
-}
+	"satnet-simulator/internal/experiment"
+)
 
 func main() {
 	fmt.Println("================================================================================")
-	fmt.Println("     SATNET SIMULATOR - Contradiction-Based Verification Design")
+	fmt.Println("     SATNET SIMULATOR - Honest Baseline Evaluation")
 	fmt.Println("================================================================================")
-	fmt.Println()
 
 	runner := experiment.NewRunner()
 
-	base := experiment.DefaultExperimentConfig()
-	base.NumPackets = 10000
+	base := experiment.DefaultHonestBaseline()
+	base.NumTrials = 200
+	base.NumPackets = 2000
 	base.BatchSize = 10
-	base.NumTrials = 100
 	base.SimDuration = 1000.0
 
-	// // // =========================================================================
-	// // // Group i — Honest Baseline (Perfect Network)
-	// // // =========================================================================
-	// etas := generateRange(0.001, 0.1, 0.005)
-	// batchSizes := []int{2, 10, 50, 100}
-	// honestBase := base
-	// honestBase.Name = "honest_baseline"
-	// honestBase.TargetingConfig = network.DefaultHonestTargeting()
-	// honestBase.AdversaryConfig.AnsweringStr = verification.AnswerHonest
-	// honestBase.DelayModelConfig.IncompetenceRate = 0.0
-	// honestResults := runner.RunEtaBatchSweep(honestBase, etas, batchSizes)
-	// if err := runner.SaveResultsToFile("results/group1_honest_baseline.json", honestResults); err != nil {
-	// 	log.Printf("warning: could not save honest_baseline results: %v", err)
-	// }
+	etas := []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.4}
+	etaResults := runner.SweepHonestEta(base, etas)
+	if err := runner.SaveAggregates("results/honest/eta_sweep.json", etaResults); err != nil {
+		fmt.Printf("warning: could not save η sweep: %v\n", err)
+	}
 
-	// // =========================================================================
-	// // Group iia — Honest but Incompetent
-	// // =========================================================================
-	// unreliableBase := base
-	// unreliableBase.TargetingConfig = network.DefaultHonestTargeting()
-	// unreliableBase.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
-	//
-	// incompRates := generateRange(0.005, 0.1, 0.01)
-	// honestyRates := generateRange(0.0, 1.0, 0.1)
-	// queriesPerBatchSweep := []int{1, 2, 5, 10}
-	//
-	// var allResults []experiment.ExperimentResult
-	// for _, qpb := range queriesPerBatchSweep {
-	// 	cfg := unreliableBase
-	// 	cfg.Name = fmt.Sprintf("incompetent_baseline_qpb%d", qpb)
-	// 	cfg.VerificationConfig.QueriesPerBatch = qpb
-	// 	results2a := runner.Run5DUnreliableSweep(
-	// 		cfg,
-	// 		[]float64{0.05, 0.1, 0.15},
-	// 		[]float64{0.01, 0.05},
-	// 		incompRates,
-	// 		honestyRates,
-	// 		[]float64{0.0},
-	// 	)
-	// 	allResults = append(allResults, results2a...)
-	// }
-	// if err := runner.SaveResultsToFile("results/group2a_monitoring_frontier_qpb.json", allResults); err != nil {
-	// 	log.Printf("warning: could not save results: %v", err)
-	// }
+	alphas := []float64{0.8, 0.9, 0.95, 0.99, 0.999, 0.9999}
+	alphaResults := runner.SweepHonestAlpha(base, alphas)
+	if err := runner.SaveAggregates("results/honest/alpha_sweep.json", alphaResults); err != nil {
+		fmt.Printf("warning: could not save α sweep: %v\n", err)
+	}
 
-	// =========================================================================
-	// Group iib — Honest but Incompetent - SLA sensitivity
-	// =========================================================================
-	g2b := base
-	g2b.Name = "sla_sensitivity"
-	g2b.TargetingConfig = network.DefaultHonestTargeting()
-	g2b.AdversaryConfig.AnsweringStr = verification.AnswerInconsistent
-	thresholds := generateRange(0.01, 0.15, 0.005)
-	results2b := runner.Run5DUnreliableSweep(
-		g2b,
-		thresholds,
-		[]float64{0.01, 0.05},
-		[]float64{0.03, 0.05, 0.08},
-		[]float64{0.5, 0.8, 1.0},
-		[]float64{0.0},
-	)
-	runner.SaveResultsToFile("results/group2b_sla_sensitivity.json", results2b)
+	batches := []int{2, 5, 10, 25, 50, 100}
+	batchResults := runner.SweepHonestBatch(base, batches)
+	if err := runner.SaveAggregates("results/honest/batch_sweep.json", batchResults); err != nil {
+		fmt.Printf("warning: could not save batch sweep: %v\n", err)
+	}
 
-	// // =========================================================================
-	// // Group iiia — malicious but competent (AnswerLiesThatMinimal)
-	// // =========================================================================
-	// g3a := base
-	// g3a.Name = "malicious_total_denial"
-	// g3a.DelayModelConfig.IncompetenceRate = 0.0
-	// g3a.AdversaryConfig.AnsweringStr = verification.AnswerLiesThatMinimal
-	// g3a.TargetingConfig.Mode = network.TargetRandom
-	// fractions := generateRange(0.01, 0.5, 0.05)
-	// results3a := runner.RunEtaFractionSweep(g3a, etas, fractions)
-	// runner.SaveResultsToFile("results/group3a_total_denial.json", results3a)
+	// Trial length: how many packets (and so batches) do we need before the
+	// honest verdict resolves? Strict α=0.9999 makes the experiment non-trivial.
+	strict := base
+	strict.Verification.ConfidenceThreshold = 0.9999
+	pkts := []int{20, 50, 100, 200, 500, 1000, 2000}
+	pktResults := runner.SweepHonestNumPackets(strict, pkts)
+	if err := runner.SaveAggregates("results/honest/numpackets_sweep_strict.json", pktResults); err != nil {
+		fmt.Printf("warning: could not save trial-length sweep: %v\n", err)
+	}
 
-	// // =========================================================================
-	// // Group iiib — malicious but competent (AnswerLiesAboutTargeted)
-	// // =========================================================================
-	// g3b := base
-	// g3b.Name = "malicious_selective_denial"
-	// g3b.DelayModelConfig.IncompetenceRate = 0.0
-	// g3b.AdversaryConfig.AnsweringStr = verification.AnswerLiesAboutTargeted
-	// targetingModes := []network.TargetingMode{network.TargetRandom, network.TargetPeriodic}
-	//
-	// var results3b []experiment.ExperimentResult
-	//
-	// // Sweep across Targeting Modes and Fractions manually
-	// for _, mode := range targetingModes {
-	// 	for _, frac := range fractions {
-	// 		cfg := g3b
-	//
-	// 		modeName := "random"
-	// 		if mode == network.TargetPeriodic {
-	// 			modeName = "periodic"
-	// 		}
-	//
-	// 		cfg.TargetingConfig.Mode = mode
-	// 		cfg.TargetingConfig.TargetFraction = frac
-	// 		cfg.Name = fmt.Sprintf("malicious_selective_denial_%s_frac%.2f", modeName, frac)
-	// 		sweepResults := runner.RunEtaBatchSweep(cfg, etas, batchSizes)
-	// 		results3b = append(results3b, sweepResults...)
-	// 	}
-	// }
-	// runner.SaveResultsToFile("results/group3b_selective_denial.json", results3b)
+	lambdas := []float64{0.0, 0.01, 0.05, 0.1, 0.5, 1.0}
+	lambdaResults := runner.SweepHonestTransitionRate(base, lambdas)
+	if err := runner.SaveAggregates("results/honest/lambda_sweep.json", lambdaResults); err != nil {
+		fmt.Printf("warning: could not save λ sweep: %v\n", err)
+	}
+
+	epsilons := []float64{1e-5, 1e-4, 1e-3, 1e-2}
+	epsResults := runner.SweepHonestEpsilon(base, epsilons)
+	if err := runner.SaveAggregates("results/honest/epsilon_sweep.json", epsResults); err != nil {
+		fmt.Printf("warning: could not save ε sweep: %v\n", err)
+	}
 
 	runner.PrintSummary()
 }

@@ -3,9 +3,9 @@ package experiment
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"satnet-simulator/internal/engine"
@@ -13,401 +13,215 @@ import (
 	"satnet-simulator/internal/verification"
 )
 
-type ExperimentConfig struct {
-	Name               string
-	NumPackets         int
-	BatchSize          int
-	NumTrials          int
-	SimDuration        float64
-	DelayModelConfig   network.DelayModelConfig
-	TargetingConfig    network.TargetingConfig
-	AdversaryConfig    verification.AdversaryConfig
-	VerificationConfig verification.VerificationConfig
+// HonestBaselineConfig pins the network to H0 (honest, no incompetence, no
+// targeting) and exposes only the knobs relevant to characterising verifier
+// behaviour on a perfectly honest network.
+type HonestBaselineConfig struct {
+	Name         string
+	NumTrials    int
+	NumPackets   int
+	BatchSize    int
+	SimDuration  float64
+	DelayModel   network.DelayModelConfig
+	Verification verification.VerificationConfig
 }
 
-func DefaultExperimentConfig() ExperimentConfig {
-	return ExperimentConfig{
-		Name:        "default",
-		NumPackets:  1000,
-		BatchSize:   2,
-		NumTrials:   5,
-		SimDuration: 100.0,
-
-		DelayModelConfig: network.DelayModelConfig{
+func DefaultHonestBaseline() HonestBaselineConfig {
+	return HonestBaselineConfig{
+		Name:        "honest_baseline",
+		NumTrials:   200,
+		NumPackets:  10000,
+		BatchSize:   10,
+		SimDuration: 1000.0,
+		DelayModel: network.DelayModelConfig{
 			BaseDelayMin:      0.020,
 			BaseDelayMax:      0.080,
 			TransitionRate:    0.05,
-			IncompetenceRate:  0.2,
-			IncompetenceMu:    -4.6,
-			IncompetenceSigma: 0.8,
-			DeliberateMin:     0.100,
-			DeliberateMax:     0.200,
+			IncompetenceRate:  0.0,
+			IncompetenceMu:    0.0,
+			IncompetenceSigma: 0.0,
+			DeliberateMin:     0.0,
+			DeliberateMax:     0.0,
 		},
-
-		TargetingConfig: network.DefaultHonestTargeting(),
-
-		AdversaryConfig: verification.AdversaryConfig{
-			AnsweringStr: verification.AnswerHonest,
-		},
-
-		VerificationConfig: verification.DefaultVerificationConfig(),
+		Verification: verification.DefaultVerificationConfig(),
 	}
 }
 
-func flaggingFnForStrategy(config verification.AdversaryConfig) network.FlaggingFn {
-	switch config.AnsweringStr {
-	case verification.AnswerHonest:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return hasIncompetence
-		}
-
-	case verification.AnswerDelayedHonest:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return hasIncompetence || wasDelayed
-		}
-
-	case verification.AnswerLiesThatMinimal:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return false
-		}
-
-	case verification.AnswerLiesAboutTargeted:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return hasIncompetence
-		}
-
-	case verification.AnswerRandom:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return rand.Float64() < 0.5
-		}
-
-	case verification.AnswerInconsistent:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return hasIncompetence && rand.Float64() < config.FlaggingHonestyRate
-		}
-
-	case verification.AnswerUnreliable:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return hasIncompetence && rand.Float64() < config.FlaggingHonestyRate
-		}
-
-	default:
-		return func(hasIncompetence, wasDelayed bool) bool {
-			return hasIncompetence
-		}
-	}
+type HonestTrialResult struct {
+	TrialNum            int
+	Verdict             string
+	Confidence          float64
+	QueriesUsed         int
+	ContradictionsFound int
+	PosteriorH0         float64
+	PosteriorH1         float64
+	PosteriorH2         float64
+	Duration            time.Duration
 }
 
-type TrialResult struct {
-	TrialNum               int
-	Verdict                string
-	Confidence             float64
-	Trustworthy            bool
-	QueriesExecuted        int
-	ContradictionsFound    int
-	PosteriorH0            float64
-	PosteriorH1            float64
-	PosteriorH2            float64
-	TrueDelayedPackets     int
-	TrueDelayFraction      float64
-	TrueNonMinimalPackets  int
-	TrueNonMinimalFraction float64
-	SLAViolation           bool
-	DetectedCorrectly      bool
-	Duration               time.Duration
-}
+type HonestAggregate struct {
+	Config HonestBaselineConfig
+	Trials []HonestTrialResult
 
-type ExperimentResult struct {
-	Config              ExperimentConfig
-	EtaValue            float64
-	BatchSize           int
-	Trials              []TrialResult
-	TruePositiveRate    float64
-	FalsePositiveRate   float64
-	TrueNegativeRate    float64
-	FalseNegativeRate   float64
-	MeanQueriesPerTrial float64
-	MeanConfidence      float64
-	MeanPosteriorH0     float64
-	MeanPosteriorH1     float64
-	MeanPosteriorH2     float64
-	MeanContradictions  float64
-	WasAdversarial      bool
-	TargetDelayFraction float64
-}
+	TrustedRate        float64
+	InconclusiveRate   float64
+	FalseDishonestRate float64
 
-type MockGroundStation struct {
-	Name     string
-	Received int
-}
+	MeanQueriesToVerdict   float64
+	MedianQueriesToVerdict int
+	P90QueriesToVerdict    int
+	MinQueriesToVerdict    int
+	MaxQueriesToVerdict    int
 
-func (m *MockGroundStation) Receive(sim *engine.Simulation, pkt network.Packet, pathUsed string) {
-	m.Received++
-}
+	MeanPosteriorH0 float64
+	MeanPosteriorH1 float64
+	MeanPosteriorH2 float64
 
-func NewMockGroundStation(name string) *MockGroundStation {
-	return &MockGroundStation{Name: name}
+	MeanContradictions float64
+	ContradictionRate  float64
 }
 
 type Runner struct {
-	Results []ExperimentResult
+	Verbose bool
+	Results []HonestAggregate
 }
 
 func NewRunner() *Runner {
-	return &Runner{
-		Results: make([]ExperimentResult, 0),
-	}
+	return &Runner{Verbose: true}
 }
 
-func (r *Runner) RunExperiment(config ExperimentConfig) ExperimentResult {
-	fmt.Printf("\n>>> Running experiment: %s (η=%.3f, %d trials)\n",
-		config.Name, config.VerificationConfig.ErrorTolerance, config.NumTrials)
-	fmt.Printf("    Strategy: %s, Targeting: %s\n", config.AdversaryConfig.AnsweringStr, config.TargetingConfig.Mode)
-
-	trials := make([]TrialResult, config.NumTrials)
-
-	for trial := 0; trial < config.NumTrials; trial++ {
-		startTime := time.Now()
-		result := r.runSingleTrial(config, trial)
-		result.Duration = time.Since(startTime)
-
-		trials[trial] = result
-
-		fmt.Printf("  Trial %d: %s (confidence=%.2f%%, queries=%d, contradictions=%d, H0=%.2f H1=%.2f H2=%.2f)\n",
-			trial+1, result.Verdict, result.Confidence*100, result.QueriesExecuted, result.ContradictionsFound,
-			result.PosteriorH0, result.PosteriorH1, result.PosteriorH2)
+// RunHonest runs N trials under the honest baseline config and aggregates.
+func (r *Runner) RunHonest(cfg HonestBaselineConfig) HonestAggregate {
+	if r.Verbose {
+		fmt.Printf(">>> %s: N=%d, packets=%d, B=%d, η=%.4f, α=%.4f, ε=%.4f\n",
+			cfg.Name, cfg.NumTrials, cfg.NumPackets, cfg.BatchSize,
+			cfg.Verification.ErrorTolerance,
+			cfg.Verification.ConfidenceThreshold,
+			cfg.Verification.Epsilon)
 	}
 
-	aggregated := r.aggregateResults(config, trials)
-	r.Results = append(r.Results, aggregated)
+	trials := make([]HonestTrialResult, cfg.NumTrials)
+	for i := 0; i < cfg.NumTrials; i++ {
+		start := time.Now()
+		trials[i] = r.runSingleHonestTrial(cfg, i)
+		trials[i].Duration = time.Since(start)
+	}
 
-	return aggregated
+	agg := aggregateHonest(cfg, trials)
+	r.Results = append(r.Results, agg)
+
+	if r.Verbose {
+		fmt.Printf("    trusted=%.1f%%  inconclusive=%.1f%%  false_dishonest=%.1f%%  median_q=%d  p90_q=%d\n",
+			agg.TrustedRate*100, agg.InconclusiveRate*100, agg.FalseDishonestRate*100,
+			agg.MedianQueriesToVerdict, agg.P90QueriesToVerdict)
+	}
+	return agg
 }
 
-func (r *Runner) RunEtaFractionSweep(baseConfig ExperimentConfig, etaValues, fractionValues []float64) []ExperimentResult {
-	fmt.Printf("\n=== η×fraction-sweep: %s | Strategy: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
-
-	results := make([]ExperimentResult, 0, len(etaValues)*len(fractionValues))
-	for _, eta := range etaValues {
-		for _, f := range fractionValues {
-			cfg := baseConfig
-			cfg.VerificationConfig.ErrorTolerance = eta
-			cfg.TargetingConfig.TargetFraction = f
-			cfg.Name = fmt.Sprintf("%s_eta%.3f_frac%.2f", baseConfig.Name, eta, f)
-			result := r.RunExperiment(cfg)
-			result.EtaValue = eta
-			results = append(results, result)
-		}
+// SweepHonestEta varies η (ErrorTolerance) under the honest baseline.
+func (r *Runner) SweepHonestEta(base HonestBaselineConfig, etas []float64) []HonestAggregate {
+	fmt.Printf("\n=== Honest baseline: η sweep (%d values) ===\n", len(etas))
+	out := make([]HonestAggregate, 0, len(etas))
+	for _, eta := range etas {
+		cfg := base
+		cfg.Verification.ErrorTolerance = eta
+		cfg.Name = fmt.Sprintf("%s_eta%.4f", base.Name, eta)
+		out = append(out, r.RunHonest(cfg))
 	}
-	return results
+	return out
 }
 
-func (r *Runner) RunEtaIncompetenceSweep(baseConfig ExperimentConfig, etaValues, incompValues []float64) []ExperimentResult {
-	fmt.Printf("\n=== η × Incompetence sweep: %s | Strategy: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
-
-	results := make([]ExperimentResult, 0, len(etaValues)*len(incompValues))
-	for _, eta := range etaValues {
-		for _, inc := range incompValues {
-			cfg := baseConfig
-			cfg.VerificationConfig.ErrorTolerance = eta
-			cfg.DelayModelConfig.IncompetenceRate = inc
-			cfg.Name = fmt.Sprintf("%s_eta%.3f_inc%.2f", baseConfig.Name, eta, inc)
-
-			result := r.RunExperiment(cfg)
-			result.EtaValue = eta
-			results = append(results, result)
-		}
+// SweepHonestAlpha varies α (ConfidenceThreshold) under the honest baseline.
+func (r *Runner) SweepHonestAlpha(base HonestBaselineConfig, alphas []float64) []HonestAggregate {
+	fmt.Printf("\n=== Honest baseline: α sweep (%d values) ===\n", len(alphas))
+	out := make([]HonestAggregate, 0, len(alphas))
+	for _, a := range alphas {
+		cfg := base
+		cfg.Verification.ConfidenceThreshold = a
+		cfg.Name = fmt.Sprintf("%s_alpha%.4f", base.Name, a)
+		out = append(out, r.RunHonest(cfg))
 	}
-	return results
+	return out
 }
 
-func (r *Runner) RunEtaIncompFlagSweep(baseConfig ExperimentConfig, flagValues, etaValues, incompValues []float64) []ExperimentResult {
-	fmt.Printf("\n=== Flagging Threshold × η × Incompetence sweep: %s | Strategy: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
-
-	results := make([]ExperimentResult, 0, len(flagValues)*len(etaValues)*len(incompValues))
-
-	for _, flag := range flagValues {
-		for _, eta := range etaValues {
-			for _, inc := range incompValues {
-				cfg := baseConfig
-
-				cfg.VerificationConfig.FlaggingRateThreshold = flag
-				cfg.VerificationConfig.ErrorTolerance = eta
-				cfg.DelayModelConfig.IncompetenceRate = inc
-
-				cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f", baseConfig.Name, flag, eta, inc)
-
-				result := r.RunExperiment(cfg)
-				result.EtaValue = eta
-				results = append(results, result)
-			}
-		}
+// SweepHonestBatch varies batch size B.
+func (r *Runner) SweepHonestBatch(base HonestBaselineConfig, batches []int) []HonestAggregate {
+	fmt.Printf("\n=== Honest baseline: batch-size sweep (%d values) ===\n", len(batches))
+	out := make([]HonestAggregate, 0, len(batches))
+	for _, b := range batches {
+		cfg := base
+		cfg.BatchSize = b
+		cfg.Name = fmt.Sprintf("%s_batch%d", base.Name, b)
+		out = append(out, r.RunHonest(cfg))
 	}
-	return results
+	return out
 }
 
-func (r *Runner) Run4DCheatSweep(baseConfig ExperimentConfig, flagThresholds, etaValues, incompRates, honestyRates []float64) []ExperimentResult {
-	fmt.Printf("\n=== 4D SLA Cheater Sweep: %s | Strategy: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
-
-	totalConfigs := len(flagThresholds) * len(etaValues) * len(incompRates) * len(honestyRates)
-	results := make([]ExperimentResult, 0, totalConfigs)
-
-	for _, flag := range flagThresholds {
-		for _, eta := range etaValues {
-			for _, inc := range incompRates {
-				for _, honesty := range honestyRates {
-					cfg := baseConfig
-
-					cfg.VerificationConfig.FlaggingRateThreshold = flag
-					cfg.VerificationConfig.ErrorTolerance = eta
-					cfg.DelayModelConfig.IncompetenceRate = inc
-					cfg.AdversaryConfig.FlaggingHonestyRate = honesty
-
-					cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f_hon%.2f", baseConfig.Name, flag, eta, inc, honesty)
-
-					result := r.RunExperiment(cfg)
-					result.EtaValue = eta
-					results = append(results, result)
-				}
-			}
-		}
+// SweepHonestNumPackets varies trial length (total packets).
+func (r *Runner) SweepHonestNumPackets(base HonestBaselineConfig, ns []int) []HonestAggregate {
+	fmt.Printf("\n=== Honest baseline: trial-length sweep (%d values) ===\n", len(ns))
+	out := make([]HonestAggregate, 0, len(ns))
+	for _, n := range ns {
+		cfg := base
+		cfg.NumPackets = n
+		cfg.Name = fmt.Sprintf("%s_pkts%d", base.Name, n)
+		out = append(out, r.RunHonest(cfg))
 	}
-	return results
+	return out
 }
 
-func (r *Runner) Run5DUnreliableSweep(
-	baseConfig ExperimentConfig,
-	flagThresholds, etaValues, incompRates, honestyRates, errorRates []float64,
-) []ExperimentResult {
-	fmt.Printf("\n=== 5D Unreliable Sweep: %s | Strategy: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
-
-	totalConfigs := len(flagThresholds) * len(etaValues) * len(incompRates) * len(honestyRates) * len(errorRates)
-	results := make([]ExperimentResult, 0, totalConfigs)
-
-	for _, flag := range flagThresholds {
-		for _, eta := range etaValues {
-			for _, inc := range incompRates {
-				for _, honesty := range honestyRates {
-					for _, errRate := range errorRates {
-						cfg := baseConfig
-
-						cfg.VerificationConfig.FlaggingRateThreshold = flag
-						cfg.VerificationConfig.ErrorTolerance = eta
-						cfg.VerificationConfig.Epsilon = eta / 10.0
-						cfg.DelayModelConfig.IncompetenceRate = inc
-						cfg.AdversaryConfig.FlaggingHonestyRate = honesty
-						cfg.AdversaryConfig.AnswerErrorRate = errRate
-
-						cfg.Name = fmt.Sprintf("%s_flag%.2f_eta%.3f_inc%.2f_hon%.2f_err%.2f",
-							baseConfig.Name, flag, eta, inc, honesty, errRate)
-
-						result := r.RunExperiment(cfg)
-						result.EtaValue = eta
-						results = append(results, result)
-					}
-				}
-			}
-		}
+// SweepHonestTransitionRate varies λ (Poisson rate of base-delay transitions).
+// Honest networks should be invariant to λ; this is a sanity check.
+func (r *Runner) SweepHonestTransitionRate(base HonestBaselineConfig, rates []float64) []HonestAggregate {
+	fmt.Printf("\n=== Honest baseline: λ sweep (%d values) ===\n", len(rates))
+	out := make([]HonestAggregate, 0, len(rates))
+	for _, rate := range rates {
+		cfg := base
+		cfg.DelayModel.TransitionRate = rate
+		cfg.Name = fmt.Sprintf("%s_lambda%.3f", base.Name, rate)
+		out = append(out, r.RunHonest(cfg))
 	}
-	return results
+	return out
 }
 
-func (r *Runner) SaveResultsToFile(path string, results []ExperimentResult) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
-		return err
+// SweepHonestEpsilon varies ε (implementation-noise floor). Honest results
+// should shift only marginally with ε; this checks the numerical floor.
+func (r *Runner) SweepHonestEpsilon(base HonestBaselineConfig, epsilons []float64) []HonestAggregate {
+	fmt.Printf("\n=== Honest baseline: ε sweep (%d values) ===\n", len(epsilons))
+	out := make([]HonestAggregate, 0, len(epsilons))
+	for _, e := range epsilons {
+		cfg := base
+		cfg.Verification.Epsilon = e
+		cfg.Name = fmt.Sprintf("%s_eps%.0e", base.Name, e)
+		out = append(out, r.RunHonest(cfg))
 	}
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(results); err != nil {
-		return err
-	}
-	fmt.Printf("  Results saved to %s\n", path)
-	return nil
+	return out
 }
 
-func (r *Runner) RunEtaSweep(baseConfig ExperimentConfig, etaValues []float64) []ExperimentResult {
-	fmt.Printf("\n=== η-sweep: %s | Strategy: %s | Targeting: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr, baseConfig.TargetingConfig.Mode)
+type honestDest struct{ Received int }
 
-	results := make([]ExperimentResult, 0, len(etaValues))
-	for _, eta := range etaValues {
-		cfg := baseConfig
-		cfg.VerificationConfig.ErrorTolerance = eta
-		cfg.Name = fmt.Sprintf("%s_eta%.3f", baseConfig.Name, eta)
-		result := r.RunExperiment(cfg)
-		result.EtaValue = eta
-		results = append(results, result)
-	}
-	return results
+func (h *honestDest) Receive(sim *engine.Simulation, pkt network.Packet, pathUsed string) {
+	h.Received++
 }
 
-func (r *Runner) RunBatchSizeSweep(baseConfig ExperimentConfig, batchSizes []int) []ExperimentResult {
-	fmt.Printf("\n=== Batch Size Sweep: %s | Strategy: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
-
-	results := make([]ExperimentResult, 0, len(batchSizes))
-	for _, bs := range batchSizes {
-		cfg := baseConfig
-		cfg.BatchSize = bs
-		cfg.Name = fmt.Sprintf("%s_batch%d", baseConfig.Name, bs)
-
-		result := r.RunExperiment(cfg)
-		results = append(results, result)
-	}
-	return results
-}
-
-func (r *Runner) RunEtaBatchSweep(baseConfig ExperimentConfig, etaValues []float64, batchSizes []int) []ExperimentResult {
-	fmt.Printf("\n=== η × Batch Size sweep: %s | Strategy: %s ===\n",
-		baseConfig.Name, baseConfig.AdversaryConfig.AnsweringStr)
-
-	results := make([]ExperimentResult, 0, len(etaValues)*len(batchSizes))
-	for _, eta := range etaValues {
-		for _, bs := range batchSizes {
-			cfg := baseConfig
-			cfg.VerificationConfig.ErrorTolerance = eta
-			cfg.BatchSize = bs
-			cfg.Name = fmt.Sprintf("%s_eta%.3f_batch%d", baseConfig.Name, eta, bs)
-
-			result := r.RunExperiment(cfg)
-			result.EtaValue = eta
-			results = append(results, result)
-		}
-	}
-	return results
-}
-
-func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResult {
+func (r *Runner) runSingleHonestTrial(cfg HonestBaselineConfig, trialNum int) HonestTrialResult {
 	sim := engine.NewSimulation()
 
-	delayModel := network.NewDelayModelConfig(config.DelayModelConfig)
-	delayModel.Initialise(config.SimDuration + 10.0)
+	dm := network.NewDelayModelConfig(cfg.DelayModel)
+	dm.Initialise(cfg.SimDuration + 10.0)
 
-	flaggingFn := flaggingFnForStrategy(config.AdversaryConfig)
-	targetingCfg := config.TargetingConfig
-	if targetingCfg.Mode == network.TargetQuota && targetingCfg.BatchSize <= 0 {
-		targetingCfg.BatchSize = config.BatchSize
-	}
-	router := network.NewRouter(delayModel, targetingCfg, flaggingFn)
-	prover := verification.NewProver(config.AdversaryConfig)
+	prover := verification.NewProver(verification.AdversaryConfig{
+		AnsweringStr: verification.AnswerHonest,
+	})
 
-	dest := NewMockGroundStation("DestStation")
-	delayedCount := 0
-	nonMinimalCount := 0
+	router := network.NewRouter(
+		dm,
+		network.DefaultHonestTargeting(),
+		func(hasIncompetence, wasDelayed bool) bool { return false },
+	)
 
 	router.OnTransmission = func(info network.TransmissionInfo) {
-		record := verification.TransmissionRecord{
+		prover.RecordTransmission(verification.TransmissionRecord{
 			ID:                info.PacketID,
 			BatchID:           info.BatchID,
 			SentTime:          info.SentTime,
@@ -418,165 +232,155 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 			WasDelayed:        info.WasDelayed,
 			HasIncompetence:   info.HasIncompetence,
 			IsFlagged:         info.IsFlagged,
-		}
-
-		prover.RecordTransmission(record)
-
-		if info.WasDelayed {
-			delayedCount++
-		}
-		if info.WasDelayed || info.HasIncompetence {
-			nonMinimalCount++
-		}
+		})
 	}
 
-	batchSize := config.BatchSize
-	batchSize = max(batchSize, 2)
-	numBatches := config.NumPackets / batchSize
-	numBatches = max(numBatches, 1)
+	dest := &honestDest{}
+
+	batchSize := cfg.BatchSize
+	if batchSize < 2 {
+		batchSize = 2
+	}
+	numBatches := cfg.NumPackets / batchSize
+	if numBatches < 1 {
+		numBatches = 1
+	}
 
 	pktID := 0
 	for b := 0; b < numBatches; b++ {
-		sendTime := float64(b) * (config.SimDuration / float64(numBatches))
+		sendTime := float64(b) * (cfg.SimDuration / float64(numBatches))
 		batchID := b
-
 		for j := 0; j < batchSize; j++ {
-			currentPktID := pktID
+			id := pktID
 			pktID++
-
 			sim.Schedule(sendTime, func() {
-				pkt := network.NewPacket(currentPktID, batchID, "SourceStation", sim.Now)
+				pkt := network.NewPacket(id, batchID, "Source", sim.Now)
 				router.Forward(sim, pkt, dest)
 			})
 		}
 	}
-
-	sim.Run(config.SimDuration + 10.0)
+	sim.Run(cfg.SimDuration + 10.0)
 
 	observations := make([]verification.Observation, 0, len(prover.Packets))
-	for _, pPtr := range prover.Packets {
-		observations = append(observations, verification.ObservationFrom(*pPtr))
+	for _, p := range prover.Packets {
+		observations = append(observations, verification.ObservationFrom(*p))
 	}
 
-	verifier := verification.NewVerifier(prover, config.VerificationConfig)
+	verifier := verification.NewVerifier(prover, cfg.Verification)
 	verifier.IngestObservations(observations)
-	result := verifier.RunVerification()
+	res := verifier.RunVerification()
 
-	nonMinimalFraction := float64(nonMinimalCount) / float64(config.NumPackets)
-	wasAdversarial := config.TargetingConfig.Mode != network.TargetNone
-	slaViolation := nonMinimalFraction > config.VerificationConfig.FlaggingRateThreshold
-	groundTruthDishonest := wasAdversarial || slaViolation
-	detectedDishonest := !result.Trustworthy
-	correctDetection := (wasAdversarial && detectedDishonest) || (!groundTruthDishonest && !detectedDishonest)
-
-	return TrialResult{
-		TrialNum:               trialNum,
-		Verdict:                result.Verdict,
-		Confidence:             result.Confidence,
-		Trustworthy:            result.Trustworthy,
-		QueriesExecuted:        result.TotalQueries,
-		ContradictionsFound:    result.ContradictionsFound,
-		PosteriorH0:            result.PosteriorH0,
-		PosteriorH1:            result.PosteriorH1,
-		PosteriorH2:            result.PosteriorH2,
-		TrueDelayedPackets:     delayedCount,
-		TrueDelayFraction:      float64(delayedCount) / float64(config.NumPackets),
-		TrueNonMinimalPackets:  nonMinimalCount,
-		TrueNonMinimalFraction: nonMinimalFraction,
-		SLAViolation:           slaViolation,
-		DetectedCorrectly:      correctDetection,
+	return HonestTrialResult{
+		TrialNum:            trialNum,
+		Verdict:             res.Verdict,
+		Confidence:          res.Confidence,
+		QueriesUsed:         res.TotalQueries,
+		ContradictionsFound: res.ContradictionsFound,
+		PosteriorH0:         res.PosteriorH0,
+		PosteriorH1:         res.PosteriorH1,
+		PosteriorH2:         res.PosteriorH2,
 	}
 }
 
-func (r *Runner) aggregateResults(config ExperimentConfig, trials []TrialResult) ExperimentResult {
-	wasAdversarial := config.TargetingConfig.Mode != network.TargetNone
+func aggregateHonest(cfg HonestBaselineConfig, trials []HonestTrialResult) HonestAggregate {
+	n := len(trials)
+	agg := HonestAggregate{Config: cfg, Trials: trials}
+	if n == 0 {
+		return agg
+	}
 
-	truePositives := 0
-	falsePositives := 0
-	trueNegatives := 0
-	falseNegatives := 0
+	var trusted, inconclusive, dishonest int
+	var sumH0, sumH1, sumH2 float64
+	var totalContradictions int
+	var withContradictions int
+	queriesToVerdict := make([]int, 0, n)
 
-	totalQueries := 0
-	totalConfidence := 0.0
-	totalH0 := 0.0
-	totalH1 := 0.0
-	totalH2 := 0.0
-	totalContradictions := 0.0
-
-	for _, trial := range trials {
-		detectedDishonest := !trial.Trustworthy
-		groundTruthDishonest := wasAdversarial || trial.SLAViolation
-
-		if groundTruthDishonest {
-			if detectedDishonest {
-				truePositives++
-			} else {
-				falseNegatives++
-			}
-		} else {
-			if detectedDishonest {
-				falsePositives++
-			} else {
-				trueNegatives++
-			}
+	for _, t := range trials {
+		switch t.Verdict {
+		case "TRUSTED":
+			trusted++
+			queriesToVerdict = append(queriesToVerdict, t.QueriesUsed)
+		case "INCONCLUSIVE", "INSUFFICIENT_DATA":
+			inconclusive++
+		default:
+			dishonest++
+			queriesToVerdict = append(queriesToVerdict, t.QueriesUsed)
 		}
-
-		totalQueries += trial.QueriesExecuted
-		totalConfidence += trial.Confidence
-		totalH0 += trial.PosteriorH0
-		totalH1 += trial.PosteriorH1
-		totalH2 += trial.PosteriorH2
-		totalContradictions += float64(trial.ContradictionsFound)
+		sumH0 += t.PosteriorH0
+		sumH1 += t.PosteriorH1
+		sumH2 += t.PosteriorH2
+		totalContradictions += t.ContradictionsFound
+		if t.ContradictionsFound > 0 {
+			withContradictions++
+		}
 	}
 
-	n := float64(len(trials))
+	agg.TrustedRate = float64(trusted) / float64(n)
+	agg.InconclusiveRate = float64(inconclusive) / float64(n)
+	agg.FalseDishonestRate = float64(dishonest) / float64(n)
+	agg.MeanPosteriorH0 = sumH0 / float64(n)
+	agg.MeanPosteriorH1 = sumH1 / float64(n)
+	agg.MeanPosteriorH2 = sumH2 / float64(n)
+	agg.MeanContradictions = float64(totalContradictions) / float64(n)
+	agg.ContradictionRate = float64(withContradictions) / float64(n)
 
-	result := ExperimentResult{
-		Config:              config,
-		EtaValue:            config.VerificationConfig.ErrorTolerance,
-		BatchSize:           config.BatchSize,
-		Trials:              trials,
-		WasAdversarial:      wasAdversarial,
-		TargetDelayFraction: config.TargetingConfig.TargetFraction,
-		MeanConfidence:      totalConfidence / n,
-		MeanQueriesPerTrial: float64(totalQueries) / n,
-		MeanPosteriorH0:     totalH0 / n,
-		MeanPosteriorH1:     totalH1 / n,
-		MeanPosteriorH2:     totalH2 / n,
-		MeanContradictions:  totalContradictions / n,
+	if len(queriesToVerdict) > 0 {
+		sort.Ints(queriesToVerdict)
+		var sum int
+		for _, q := range queriesToVerdict {
+			sum += q
+		}
+		agg.MeanQueriesToVerdict = float64(sum) / float64(len(queriesToVerdict))
+		agg.MedianQueriesToVerdict = queriesToVerdict[len(queriesToVerdict)/2]
+		p90 := (len(queriesToVerdict) * 90) / 100
+		if p90 >= len(queriesToVerdict) {
+			p90 = len(queriesToVerdict) - 1
+		}
+		agg.P90QueriesToVerdict = queriesToVerdict[p90]
+		agg.MinQueriesToVerdict = queriesToVerdict[0]
+		agg.MaxQueriesToVerdict = queriesToVerdict[len(queriesToVerdict)-1]
 	}
+	return agg
+}
 
-	result.TruePositiveRate = float64(truePositives) / n
-	result.FalseNegativeRate = float64(falseNegatives) / n
-	result.TrueNegativeRate = float64(trueNegatives) / n
-	result.FalsePositiveRate = float64(falsePositives) / n
-
-	return result
+func (r *Runner) SaveAggregates(path string, results []HonestAggregate) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(results); err != nil {
+		return err
+	}
+	if r.Verbose {
+		fmt.Printf("    wrote %s\n", path)
+	}
+	return nil
 }
 
 func (r *Runner) PrintSummary() {
 	fmt.Println("\n================================================================================")
-	fmt.Println("                        EXPERIMENT SUMMARY")
+	fmt.Println("                         HONEST BASELINE SUMMARY")
 	fmt.Println("================================================================================")
-
-	for _, result := range r.Results {
-		fmt.Printf("\n%s (η=%.3f):\n", result.Config.Name, result.EtaValue)
-		fmt.Printf("  Strategy: %s\n", result.Config.AdversaryConfig.AnsweringStr)
-		fmt.Printf("  Mean queries: %.1f, Mean contradictions: %.1f\n",
-			result.MeanQueriesPerTrial, result.MeanContradictions)
-		fmt.Printf("  Mean posteriors: H0=%.3f H1=%.3f H2=%.3f\n",
-			result.MeanPosteriorH0, result.MeanPosteriorH1, result.MeanPosteriorH2)
-
-		if result.WasAdversarial {
-			fmt.Printf("  TPR: %.1f%%, FNR: %.1f%%\n",
-				result.TruePositiveRate*100,
-				result.FalseNegativeRate*100)
-		} else {
-			fmt.Printf("  TNR: %.1f%%, FPR: %.1f%%\n",
-				result.TrueNegativeRate*100,
-				result.FalsePositiveRate*100)
-		}
+	for _, agg := range r.Results {
+		fmt.Printf("\n%s\n", agg.Config.Name)
+		fmt.Printf("  η=%.4f  α=%.4f  ε=%.4f  B=%d  N=%d  trials=%d\n",
+			agg.Config.Verification.ErrorTolerance,
+			agg.Config.Verification.ConfidenceThreshold,
+			agg.Config.Verification.Epsilon,
+			agg.Config.BatchSize, agg.Config.NumPackets, agg.Config.NumTrials)
+		fmt.Printf("  trusted=%.1f%%  inconclusive=%.1f%%  false_dishonest=%.1f%%\n",
+			agg.TrustedRate*100, agg.InconclusiveRate*100, agg.FalseDishonestRate*100)
+		fmt.Printf("  queries to verdict: mean=%.1f median=%d P90=%d min=%d max=%d\n",
+			agg.MeanQueriesToVerdict, agg.MedianQueriesToVerdict, agg.P90QueriesToVerdict,
+			agg.MinQueriesToVerdict, agg.MaxQueriesToVerdict)
+		fmt.Printf("  mean posterior: H0=%.4f H1=%.4f H2=%.4f\n",
+			agg.MeanPosteriorH0, agg.MeanPosteriorH1, agg.MeanPosteriorH2)
 	}
-
 	fmt.Println("\n================================================================================")
 }
