@@ -53,4 +53,22 @@ func (pr PacketRecord) String() string {
 		pr.ID, pr.SentTime, pr.BaseDelay, pr.ActualDelay, extra)
 }
 
+type Observation struct {
+	ID            int
+	BatchID       int
+	SentTime      float64
+	ObservedDelay float64
+	IsFlagged     bool
+}
+
+func ObservationFrom(pr PacketRecord) Observation {
+	return Observation{
+		ID:            pr.ID,
+		BatchID:       pr.BatchID,
+		SentTime:      pr.SentTime,
+		ObservedDelay: pr.ActualDelay,
+		IsFlagged:     pr.IsFlagged,
+	}
+}
+
 type TransmissionRecord = PacketRecord

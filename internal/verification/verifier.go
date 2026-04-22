@@ -18,7 +18,7 @@ func DefaultVerificationConfig() VerificationConfig {
 		ErrorTolerance:        0.05,
 		ConfidenceThreshold:   0.95,
 		FlaggingRateThreshold: 0.30,
-		Epsilon:               1e-4,
+		Epsilon:               1e-3,
 		QueriesPerBatch:       1,
 	}
 }
@@ -35,9 +35,9 @@ type VerificationResult struct {
 }
 
 type Verifier struct {
-	Prover  *Prover
-	Records []TransmissionRecord
-	Config  VerificationConfig
+	Prover       *Prover
+	Observations []Observation
+	Config       VerificationConfig
 }
 
 func NewVerifier(prover *Prover, config VerificationConfig) *Verifier {
@@ -47,12 +47,20 @@ func NewVerifier(prover *Prover, config VerificationConfig) *Verifier {
 	}
 }
 
+func (v *Verifier) IngestObservations(obs []Observation) {
+	v.Observations = obs
+}
+
 func (v *Verifier) IngestRecords(records []TransmissionRecord) {
-	v.Records = records
+	obs := make([]Observation, len(records))
+	for i, r := range records {
+		obs[i] = ObservationFrom(r)
+	}
+	v.Observations = obs
 }
 
 func (v *Verifier) RunVerification() VerificationResult {
-	if len(v.Records) < 2 {
+	if len(v.Observations) < 2 {
 		return VerificationResult{
 			Verdict: "INSUFFICIENT_DATA", Trustworthy: true,
 			PosteriorH0: 1.0 / 3, PosteriorH1: 1.0 / 3, PosteriorH2: 1.0 / 3,
@@ -66,10 +74,10 @@ func (v *Verifier) RunVerification() VerificationResult {
 
 	batches := v.groupByBatch()
 
-	totalPackets := len(v.Records)
+	totalPackets := len(v.Observations)
 	flaggedCount := 0
-	for _, r := range v.Records {
-		if r.IsFlagged {
+	for _, o := range v.Observations {
+		if o.IsFlagged {
 			flaggedCount++
 		}
 	}
@@ -116,10 +124,10 @@ func (v *Verifier) RunVerification() VerificationResult {
 			continue
 		}
 
-		minDelay := batch[0].ActualDelay
+		minDelay := batch[0].ObservedDelay
 		for _, p := range batch[1:] {
-			if p.ActualDelay < minDelay {
-				minDelay = p.ActualDelay
+			if p.ObservedDelay < minDelay {
+				minDelay = p.ObservedDelay
 			}
 		}
 
@@ -144,11 +152,11 @@ func (v *Verifier) RunVerification() VerificationResult {
 				break
 			}
 			p := batch[indices[qi]]
-			q := Query{BatchID: p.BatchID, ObservedDelay: p.ActualDelay, SentTime: p.SentTime}
+			q := Query{BatchID: p.BatchID, ObservedDelay: p.ObservedDelay, SentTime: p.SentTime}
 			ans := v.Prover.AnswerQuery(q)
 			queries++
 
-			contradiction := ans.IsMinimal && p.ActualDelay > minDelay
+			contradiction := ans.IsMinimal && p.ObservedDelay > minDelay
 			flagInc := !ans.IsMinimal && !p.IsFlagged
 
 			if contradiction {
@@ -164,8 +172,8 @@ func (v *Verifier) RunVerification() VerificationResult {
 			}
 
 			if flagInc && v.Config.FlaggingRateThreshold > 0 {
-				estimatedTrueRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
-				if estimatedTrueRate > v.Config.ConfidenceThreshold {
+				correctedFlagRate := float64(hiddenDelaysFound+flaggedCount) / float64(totalPackets)
+				if correctedFlagRate > v.Config.FlaggingRateThreshold {
 					slaBreached = true
 					break
 				}
@@ -249,10 +257,10 @@ func maxf(a, b, c float64) float64 {
 	return c
 }
 
-func (v *Verifier) groupByBatch() map[int][]TransmissionRecord {
-	batches := make(map[int][]TransmissionRecord)
-	for _, r := range v.Records {
-		batches[r.BatchID] = append(batches[r.BatchID], r)
+func (v *Verifier) groupByBatch() map[int][]Observation {
+	batches := make(map[int][]Observation)
+	for _, o := range v.Observations {
+		batches[o.BatchID] = append(batches[o.BatchID], o)
 	}
 	return batches
 }

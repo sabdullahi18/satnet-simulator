@@ -395,7 +395,11 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 	delayModel.Initialise(config.SimDuration + 10.0)
 
 	flaggingFn := flaggingFnForStrategy(config.AdversaryConfig)
-	router := network.NewRouter(delayModel, config.TargetingConfig, flaggingFn)
+	targetingCfg := config.TargetingConfig
+	if targetingCfg.Mode == network.TargetQuota && targetingCfg.BatchSize <= 0 {
+		targetingCfg.BatchSize = config.BatchSize
+	}
+	router := network.NewRouter(delayModel, targetingCfg, flaggingFn)
 	prover := verification.NewProver(config.AdversaryConfig)
 
 	dest := NewMockGroundStation("DestStation")
@@ -449,13 +453,13 @@ func (r *Runner) runSingleTrial(config ExperimentConfig, trialNum int) TrialResu
 
 	sim.Run(config.SimDuration + 10.0)
 
-	finalRecords := make([]verification.TransmissionRecord, 0)
+	observations := make([]verification.Observation, 0, len(prover.Packets))
 	for _, pPtr := range prover.Packets {
-		finalRecords = append(finalRecords, *pPtr)
+		observations = append(observations, verification.ObservationFrom(*pPtr))
 	}
 
 	verifier := verification.NewVerifier(prover, config.VerificationConfig)
-	verifier.IngestRecords(finalRecords)
+	verifier.IngestObservations(observations)
 	result := verifier.RunVerification()
 
 	nonMinimalFraction := float64(nonMinimalCount) / float64(config.NumPackets)
