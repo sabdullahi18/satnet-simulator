@@ -1,0 +1,1922 @@
+[
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.5000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.5,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.7038083894158044,
+        "QueriesUsed": 1,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.7038083894158044,
+        "PosteriorH1": 0.1480958052920978,
+        "PosteriorH2": 0.1480958052920978,
+        "Duration": 192394916
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.7038083894158044,
+        "QueriesUsed": 1,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.7038083894158044,
+        "PosteriorH1": 0.1480958052920978,
+        "PosteriorH2": 0.1480958052920978,
+        "Duration": 190828728
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.7038083894158044,
+        "QueriesUsed": 1,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.7038083894158044,
+        "PosteriorH1": 0.1480958052920978,
+        "PosteriorH2": 0.1480958052920978,
+        "Duration": 191736576
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.7038083894158044,
+        "QueriesUsed": 1,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.7038083894158044,
+        "PosteriorH1": 0.1480958052920978,
+        "PosteriorH2": 0.1480958052920978,
+        "Duration": 189976668
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.7038083894158044,
+        "QueriesUsed": 1,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.7038083894158044,
+        "PosteriorH1": 0.1480958052920978,
+        "PosteriorH2": 0.1480958052920978,
+        "Duration": 187105806
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 1,
+    "MedianQueriesToVerdict": 1,
+    "P90QueriesToVerdict": 1,
+    "MinQueriesToVerdict": 1,
+    "MaxQueriesToVerdict": 1,
+    "MeanPosteriorH0": 0.7038083894158044,
+    "MeanPosteriorH1": 0.1480958052920978,
+    "MeanPosteriorH2": 0.1480958052920978,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.8457",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.8456531044133692,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9186501455209451,
+        "QueriesUsed": 2,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9186501455209451,
+        "PosteriorH1": 0.04067492723952738,
+        "PosteriorH2": 0.04067492723952738,
+        "Duration": 188599197
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9186501455209451,
+        "QueriesUsed": 2,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9186501455209451,
+        "PosteriorH1": 0.04067492723952738,
+        "PosteriorH2": 0.04067492723952738,
+        "Duration": 187753600
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9186501455209451,
+        "QueriesUsed": 2,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9186501455209451,
+        "PosteriorH1": 0.04067492723952738,
+        "PosteriorH2": 0.04067492723952738,
+        "Duration": 187936580
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9186501455209451,
+        "QueriesUsed": 2,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9186501455209451,
+        "PosteriorH1": 0.04067492723952738,
+        "PosteriorH2": 0.04067492723952738,
+        "Duration": 192279071
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9186501455209451,
+        "QueriesUsed": 2,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9186501455209451,
+        "PosteriorH1": 0.04067492723952738,
+        "PosteriorH2": 0.04067492723952738,
+        "Duration": 188563202
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 2,
+    "MedianQueriesToVerdict": 2,
+    "P90QueriesToVerdict": 2,
+    "MinQueriesToVerdict": 2,
+    "MaxQueriesToVerdict": 2,
+    "MeanPosteriorH0": 0.9186501455209453,
+    "MeanPosteriorH1": 0.04067492723952738,
+    "MeanPosteriorH2": 0.04067492723952738,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.9524",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9523540716455393,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9817073347783055,
+        "QueriesUsed": 3,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9817073347783055,
+        "PosteriorH1": 0.009146332610847322,
+        "PosteriorH2": 0.009146332610847322,
+        "Duration": 189643847
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9817073347783055,
+        "QueriesUsed": 3,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9817073347783055,
+        "PosteriorH1": 0.009146332610847322,
+        "PosteriorH2": 0.009146332610847322,
+        "Duration": 193048715
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9817073347783055,
+        "QueriesUsed": 3,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9817073347783055,
+        "PosteriorH1": 0.009146332610847322,
+        "PosteriorH2": 0.009146332610847322,
+        "Duration": 190126538
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9817073347783055,
+        "QueriesUsed": 3,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9817073347783055,
+        "PosteriorH1": 0.009146332610847322,
+        "PosteriorH2": 0.009146332610847322,
+        "Duration": 188111334
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9817073347783055,
+        "QueriesUsed": 3,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9817073347783055,
+        "PosteriorH1": 0.009146332610847322,
+        "PosteriorH2": 0.009146332610847322,
+        "Duration": 190217502
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 3,
+    "MedianQueriesToVerdict": 3,
+    "P90QueriesToVerdict": 3,
+    "MinQueriesToVerdict": 3,
+    "MaxQueriesToVerdict": 3,
+    "MeanPosteriorH0": 0.9817073347783054,
+    "MeanPosteriorH1": 0.009146332610847322,
+    "MeanPosteriorH2": 0.009146332610847322,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.9853",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9852919977422919,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 191298228
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 188192589
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 195364416
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 190351700
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 187901107
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 4,
+    "MedianQueriesToVerdict": 4,
+    "P90QueriesToVerdict": 4,
+    "MinQueriesToVerdict": 4,
+    "MaxQueriesToVerdict": 4,
+    "MeanPosteriorH0": 0.9960944357843188,
+    "MeanPosteriorH1": 0.0019527821078406192,
+    "MeanPosteriorH2": 0.0019527821078406192,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.9955",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9954597310224832,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 189685783
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 191760711
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 201824138
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 193338735
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9960944357843188,
+        "QueriesUsed": 4,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9960944357843188,
+        "PosteriorH1": 0.0019527821078406194,
+        "PosteriorH2": 0.0019527821078406194,
+        "Duration": 192546298
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 4,
+    "MedianQueriesToVerdict": 4,
+    "P90QueriesToVerdict": 4,
+    "MinQueriesToVerdict": 4,
+    "MaxQueriesToVerdict": 4,
+    "MeanPosteriorH0": 0.9960944357843188,
+    "MeanPosteriorH1": 0.0019527821078406192,
+    "MeanPosteriorH2": 0.0019527821078406192,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.9986",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.998598447156384,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.99917564661177,
+        "QueriesUsed": 5,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.99917564661177,
+        "PosteriorH1": 0.0004121766941149419,
+        "PosteriorH2": 0.0004121766941149419,
+        "Duration": 194607138
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.99917564661177,
+        "QueriesUsed": 5,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.99917564661177,
+        "PosteriorH1": 0.0004121766941149419,
+        "PosteriorH2": 0.0004121766941149419,
+        "Duration": 187845915
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.99917564661177,
+        "QueriesUsed": 5,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.99917564661177,
+        "PosteriorH1": 0.0004121766941149419,
+        "PosteriorH2": 0.0004121766941149419,
+        "Duration": 189017105
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.99917564661177,
+        "QueriesUsed": 5,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.99917564661177,
+        "PosteriorH1": 0.0004121766941149419,
+        "PosteriorH2": 0.0004121766941149419,
+        "Duration": 186208433
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.99917564661177,
+        "QueriesUsed": 5,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.99917564661177,
+        "PosteriorH1": 0.0004121766941149419,
+        "PosteriorH2": 0.0004121766941149419,
+        "Duration": 186140684
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 5,
+    "MedianQueriesToVerdict": 5,
+    "P90QueriesToVerdict": 5,
+    "MinQueriesToVerdict": 5,
+    "MaxQueriesToVerdict": 5,
+    "MeanPosteriorH0": 0.9991756466117699,
+    "MeanPosteriorH1": 0.00041217669411494184,
+    "MeanPosteriorH2": 0.00041217669411494184,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.9996",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9995673493391745,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9998264260620506,
+        "QueriesUsed": 6,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9998264260620506,
+        "PosteriorH1": 0.00008678696897462068,
+        "PosteriorH2": 0.00008678696897462068,
+        "Duration": 186935626
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9998264260620506,
+        "QueriesUsed": 6,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9998264260620506,
+        "PosteriorH1": 0.00008678696897462068,
+        "PosteriorH2": 0.00008678696897462068,
+        "Duration": 186708544
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9998264260620506,
+        "QueriesUsed": 6,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9998264260620506,
+        "PosteriorH1": 0.00008678696897462068,
+        "PosteriorH2": 0.00008678696897462068,
+        "Duration": 187218004
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9998264260620506,
+        "QueriesUsed": 6,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9998264260620506,
+        "PosteriorH1": 0.00008678696897462068,
+        "PosteriorH2": 0.00008678696897462068,
+        "Duration": 191474795
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9998264260620506,
+        "QueriesUsed": 6,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9998264260620506,
+        "PosteriorH1": 0.00008678696897462068,
+        "PosteriorH2": 0.00008678696897462068,
+        "Duration": 194515200
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 6,
+    "MedianQueriesToVerdict": 6,
+    "P90QueriesToVerdict": 6,
+    "MinQueriesToVerdict": 6,
+    "MaxQueriesToVerdict": 6,
+    "MeanPosteriorH0": 0.9998264260620505,
+    "MeanPosteriorH1": 0.00008678696897462068,
+    "MeanPosteriorH2": 0.00008678696897462068,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha0.9999",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9998664434272562,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 202820051
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 186748322
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 194823135
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 207915827
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 200442179
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 7,
+    "MedianQueriesToVerdict": 7,
+    "P90QueriesToVerdict": 7,
+    "MinQueriesToVerdict": 7,
+    "MaxQueriesToVerdict": 7,
+    "MeanPosteriorH0": 0.9999634714562277,
+    "MeanPosteriorH1": 0.00001826427188619798,
+    "MeanPosteriorH2": 0.00001826427188619798,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999587719152236,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 198302548
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 188642178
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 192929335
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 193498250
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999634714562277,
+        "QueriesUsed": 7,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999634714562277,
+        "PosteriorH1": 0.00001826427188619798,
+        "PosteriorH2": 0.00001826427188619798,
+        "Duration": 190205165
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 7,
+    "MedianQueriesToVerdict": 7,
+    "P90QueriesToVerdict": 7,
+    "MinQueriesToVerdict": 7,
+    "MaxQueriesToVerdict": 7,
+    "MeanPosteriorH0": 0.9999634714562277,
+    "MeanPosteriorH1": 0.00001826427188619798,
+    "MeanPosteriorH2": 0.00001826427188619798,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999872731462076,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999923134190778,
+        "QueriesUsed": 8,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999923134190778,
+        "PosteriorH1": 0.000003843290461039001,
+        "PosteriorH2": 0.000003843290461039001,
+        "Duration": 193268343
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999923134190778,
+        "QueriesUsed": 8,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999923134190778,
+        "PosteriorH1": 0.000003843290461039001,
+        "PosteriorH2": 0.000003843290461039001,
+        "Duration": 189264315
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999923134190778,
+        "QueriesUsed": 8,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999923134190778,
+        "PosteriorH1": 0.000003843290461039001,
+        "PosteriorH2": 0.000003843290461039001,
+        "Duration": 191952570
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999923134190778,
+        "QueriesUsed": 8,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999923134190778,
+        "PosteriorH1": 0.000003843290461039001,
+        "PosteriorH2": 0.000003843290461039001,
+        "Duration": 196642454
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999923134190778,
+        "QueriesUsed": 8,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999923134190778,
+        "PosteriorH1": 0.000003843290461039001,
+        "PosteriorH2": 0.000003843290461039001,
+        "Duration": 188440911
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 8,
+    "MedianQueriesToVerdict": 8,
+    "P90QueriesToVerdict": 8,
+    "MinQueriesToVerdict": 8,
+    "MaxQueriesToVerdict": 8,
+    "MeanPosteriorH0": 0.9999923134190778,
+    "MeanPosteriorH1": 0.000003843290461039001,
+    "MeanPosteriorH2": 0.000003843290461039001,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.999996071299253,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999983825749772,
+        "QueriesUsed": 9,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999983825749772,
+        "PosteriorH1": 8.087125115274698e-7,
+        "PosteriorH2": 8.087125115274698e-7,
+        "Duration": 187846941
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999983825749772,
+        "QueriesUsed": 9,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999983825749772,
+        "PosteriorH1": 8.087125115274698e-7,
+        "PosteriorH2": 8.087125115274698e-7,
+        "Duration": 187821823
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999983825749772,
+        "QueriesUsed": 9,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999983825749772,
+        "PosteriorH1": 8.087125115274698e-7,
+        "PosteriorH2": 8.087125115274698e-7,
+        "Duration": 196853848
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999983825749772,
+        "QueriesUsed": 9,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999983825749772,
+        "PosteriorH1": 8.087125115274698e-7,
+        "PosteriorH2": 8.087125115274698e-7,
+        "Duration": 201938864
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999983825749772,
+        "QueriesUsed": 9,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999983825749772,
+        "PosteriorH1": 8.087125115274698e-7,
+        "PosteriorH2": 8.087125115274698e-7,
+        "Duration": 195493423
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 9,
+    "MedianQueriesToVerdict": 9,
+    "P90QueriesToVerdict": 9,
+    "MinQueriesToVerdict": 9,
+    "MaxQueriesToVerdict": 9,
+    "MeanPosteriorH0": 0.9999983825749773,
+    "MeanPosteriorH1": 8.087125115274698e-7,
+    "MeanPosteriorH2": 8.087125115274698e-7,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999987872344721,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 186222823
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 192875031
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 188947508
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 189875333
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 189866799
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 10,
+    "MedianQueriesToVerdict": 10,
+    "P90QueriesToVerdict": 10,
+    "MinQueriesToVerdict": 10,
+    "MaxQueriesToVerdict": 10,
+    "MeanPosteriorH0": 0.9999996596599718,
+    "MeanPosteriorH1": 1.7017001416630668e-7,
+    "MeanPosteriorH2": 1.7017001416630668e-7,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999996256268113,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 200366547
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 213605125
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 197045408
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 201890327
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999996596599718,
+        "QueriesUsed": 10,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999996596599718,
+        "PosteriorH1": 1.7017001416630668e-7,
+        "PosteriorH2": 1.7017001416630668e-7,
+        "Duration": 197567454
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 10,
+    "MedianQueriesToVerdict": 10,
+    "P90QueriesToVerdict": 10,
+    "MinQueriesToVerdict": 10,
+    "MaxQueriesToVerdict": 10,
+    "MeanPosteriorH0": 0.9999996596599718,
+    "MeanPosteriorH1": 1.7017001416630668e-7,
+    "MeanPosteriorH2": 1.7017001416630668e-7,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999998844333211,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999283854172,
+        "QueriesUsed": 11,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999283854172,
+        "PosteriorH1": 3.580729135343599e-8,
+        "PosteriorH2": 3.580729135343599e-8,
+        "Duration": 190209464
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999283854172,
+        "QueriesUsed": 11,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999283854172,
+        "PosteriorH1": 3.580729135343599e-8,
+        "PosteriorH2": 3.580729135343599e-8,
+        "Duration": 196753315
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999283854172,
+        "QueriesUsed": 11,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999283854172,
+        "PosteriorH1": 3.580729135343599e-8,
+        "PosteriorH2": 3.580729135343599e-8,
+        "Duration": 189499664
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999283854172,
+        "QueriesUsed": 11,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999283854172,
+        "PosteriorH1": 3.580729135343599e-8,
+        "PosteriorH2": 3.580729135343599e-8,
+        "Duration": 192073141
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999283854172,
+        "QueriesUsed": 11,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999283854172,
+        "PosteriorH1": 3.580729135343599e-8,
+        "PosteriorH2": 3.580729135343599e-8,
+        "Duration": 190416010
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 11,
+    "MedianQueriesToVerdict": 11,
+    "P90QueriesToVerdict": 11,
+    "MinQueriesToVerdict": 11,
+    "MaxQueriesToVerdict": 11,
+    "MeanPosteriorH0": 0.9999999283854171,
+    "MeanPosteriorH1": 3.580729135343599e-8,
+    "MeanPosteriorH2": 3.580729135343599e-8,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999999643252837,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999849308135,
+        "QueriesUsed": 12,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999849308135,
+        "PosteriorH1": 7.53459326134588e-9,
+        "PosteriorH2": 7.53459326134588e-9,
+        "Duration": 187893881
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999849308135,
+        "QueriesUsed": 12,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999849308135,
+        "PosteriorH1": 7.53459326134588e-9,
+        "PosteriorH2": 7.53459326134588e-9,
+        "Duration": 186296381
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999849308135,
+        "QueriesUsed": 12,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999849308135,
+        "PosteriorH1": 7.53459326134588e-9,
+        "PosteriorH2": 7.53459326134588e-9,
+        "Duration": 185847447
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999849308135,
+        "QueriesUsed": 12,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999849308135,
+        "PosteriorH1": 7.53459326134588e-9,
+        "PosteriorH2": 7.53459326134588e-9,
+        "Duration": 186968611
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999849308135,
+        "QueriesUsed": 12,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999849308135,
+        "PosteriorH1": 7.53459326134588e-9,
+        "PosteriorH2": 7.53459326134588e-9,
+        "Duration": 193754605
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 12,
+    "MedianQueriesToVerdict": 12,
+    "P90QueriesToVerdict": 12,
+    "MinQueriesToVerdict": 12,
+    "MaxQueriesToVerdict": 12,
+    "MeanPosteriorH0": 0.9999999849308135,
+    "MeanPosteriorH1": 7.53459326134588e-9,
+    "MeanPosteriorH2": 7.53459326134588e-9,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999999889874366,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 187283382
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 186036190
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 186062560
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 188405518
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 189031179
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 13,
+    "MedianQueriesToVerdict": 13,
+    "P90QueriesToVerdict": 13,
+    "MinQueriesToVerdict": 13,
+    "MaxQueriesToVerdict": 13,
+    "MeanPosteriorH0": 0.9999999968291323,
+    "MeanPosteriorH1": 1.5854338860471335e-9,
+    "MeanPosteriorH2": 1.5854338860471335e-9,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999999966004901,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 186742186
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 200311323
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 190657695
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 192622293
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999968291324,
+        "QueriesUsed": 13,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999968291324,
+        "PosteriorH1": 1.5854338860471337e-9,
+        "PosteriorH2": 1.5854338860471337e-9,
+        "Duration": 194433380
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 13,
+    "MedianQueriesToVerdict": 13,
+    "P90QueriesToVerdict": 13,
+    "MinQueriesToVerdict": 13,
+    "MaxQueriesToVerdict": 13,
+    "MeanPosteriorH0": 0.9999999968291323,
+    "MeanPosteriorH1": 1.5854338860471335e-9,
+    "MeanPosteriorH2": 1.5854338860471335e-9,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999999989505924,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999993327839,
+        "QueriesUsed": 14,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999993327839,
+        "PosteriorH1": 3.3360799929405556e-10,
+        "PosteriorH2": 3.3360799929405556e-10,
+        "Duration": 213433344
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999993327839,
+        "QueriesUsed": 14,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999993327839,
+        "PosteriorH1": 3.3360799929405556e-10,
+        "PosteriorH2": 3.3360799929405556e-10,
+        "Duration": 189519633
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999993327839,
+        "QueriesUsed": 14,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999993327839,
+        "PosteriorH1": 3.3360799929405556e-10,
+        "PosteriorH2": 3.3360799929405556e-10,
+        "Duration": 193909666
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999993327839,
+        "QueriesUsed": 14,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999993327839,
+        "PosteriorH1": 3.3360799929405556e-10,
+        "PosteriorH2": 3.3360799929405556e-10,
+        "Duration": 189833580
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999993327839,
+        "QueriesUsed": 14,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999993327839,
+        "PosteriorH1": 3.3360799929405556e-10,
+        "PosteriorH2": 3.3360799929405556e-10,
+        "Duration": 190005317
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 14,
+    "MedianQueriesToVerdict": 14,
+    "P90QueriesToVerdict": 14,
+    "MinQueriesToVerdict": 14,
+    "MaxQueriesToVerdict": 14,
+    "MeanPosteriorH0": 0.999999999332784,
+    "MeanPosteriorH1": 3.3360799929405556e-10,
+    "MeanPosteriorH2": 3.3360799929405556e-10,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999999996760544,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999998596039,
+        "QueriesUsed": 15,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999998596039,
+        "PosteriorH1": 7.019800570205806e-11,
+        "PosteriorH2": 7.019800570205806e-11,
+        "Duration": 194484422
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999998596039,
+        "QueriesUsed": 15,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999998596039,
+        "PosteriorH1": 7.019800570205806e-11,
+        "PosteriorH2": 7.019800570205806e-11,
+        "Duration": 202688121
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999998596039,
+        "QueriesUsed": 15,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999998596039,
+        "PosteriorH1": 7.019800570205806e-11,
+        "PosteriorH2": 7.019800570205806e-11,
+        "Duration": 199987564
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999998596039,
+        "QueriesUsed": 15,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999998596039,
+        "PosteriorH1": 7.019800570205806e-11,
+        "PosteriorH2": 7.019800570205806e-11,
+        "Duration": 194596846
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999998596039,
+        "QueriesUsed": 15,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999998596039,
+        "PosteriorH1": 7.019800570205806e-11,
+        "PosteriorH2": 7.019800570205806e-11,
+        "Duration": 188988845
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 15,
+    "MedianQueriesToVerdict": 15,
+    "P90QueriesToVerdict": 15,
+    "MinQueriesToVerdict": 15,
+    "MaxQueriesToVerdict": 15,
+    "MeanPosteriorH0": 0.9999999998596039,
+    "MeanPosteriorH1": 7.019800570205806e-11,
+    "MeanPosteriorH2": 7.019800570205806e-11,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  },
+  {
+    "Config": {
+      "Name": "honest_baseline_alpha1.0000",
+      "NumTrials": 5,
+      "NumPackets": 5000,
+      "BatchSize": 10,
+      "SimDuration": 1000,
+      "DelayModel": {
+        "BaseDelayMin": 0.02,
+        "BaseDelayMax": 0.08,
+        "TransitionRate": 0.05,
+        "IncompetenceRate": 0,
+        "IncompetenceMu": 0,
+        "IncompetenceSigma": 0,
+        "DeliberateMin": 0,
+        "DeliberateMax": 0
+      },
+      "Verification": {
+        "ErrorTolerance": 0.3,
+        "ConfidenceThreshold": 0.9999999999,
+        "FlaggingRateThreshold": 0.3,
+        "Epsilon": 0.001,
+        "QueriesPerBatch": 1
+      }
+    },
+    "Trials": [
+      {
+        "TrialNum": 0,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999999704579,
+        "QueriesUsed": 16,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999999704579,
+        "PosteriorH1": 1.4771108645248196e-11,
+        "PosteriorH2": 1.4771108645248196e-11,
+        "Duration": 191539230
+      },
+      {
+        "TrialNum": 1,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999999704579,
+        "QueriesUsed": 16,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999999704579,
+        "PosteriorH1": 1.4771108645248196e-11,
+        "PosteriorH2": 1.4771108645248196e-11,
+        "Duration": 195736066
+      },
+      {
+        "TrialNum": 2,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999999704579,
+        "QueriesUsed": 16,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999999704579,
+        "PosteriorH1": 1.4771108645248196e-11,
+        "PosteriorH2": 1.4771108645248196e-11,
+        "Duration": 208018737
+      },
+      {
+        "TrialNum": 3,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999999704579,
+        "QueriesUsed": 16,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999999704579,
+        "PosteriorH1": 1.4771108645248196e-11,
+        "PosteriorH2": 1.4771108645248196e-11,
+        "Duration": 193857292
+      },
+      {
+        "TrialNum": 4,
+        "Verdict": "TRUSTED",
+        "Confidence": 0.9999999999704579,
+        "QueriesUsed": 16,
+        "ContradictionsFound": 0,
+        "PosteriorH0": 0.9999999999704579,
+        "PosteriorH1": 1.4771108645248196e-11,
+        "PosteriorH2": 1.4771108645248196e-11,
+        "Duration": 186731733
+      }
+    ],
+    "TrustedRate": 1,
+    "InconclusiveRate": 0,
+    "FalseDishonestRate": 0,
+    "MeanQueriesToVerdict": 16,
+    "MedianQueriesToVerdict": 16,
+    "P90QueriesToVerdict": 16,
+    "MinQueriesToVerdict": 16,
+    "MaxQueriesToVerdict": 16,
+    "MeanPosteriorH0": 0.9999999999704577,
+    "MeanPosteriorH1": 1.4771108645248196e-11,
+    "MeanPosteriorH2": 1.4771108645248196e-11,
+    "MeanContradictions": 0,
+    "ContradictionRate": 0
+  }
+]
