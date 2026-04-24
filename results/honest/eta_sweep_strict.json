@@ -34,7 +34,7 @@
         "PosteriorH0": 0.9999999999979918,
         "PosteriorH1": 1.0040100200330426e-12,
         "PosteriorH2": 1.0040100200330426e-12,
-        "Duration": 186440700
+        "Duration": 169201565
       },
       {
         "TrialNum": 1,
@@ -45,7 +45,7 @@
         "PosteriorH0": 0.9999999999979918,
         "PosteriorH1": 1.0040100200330426e-12,
         "PosteriorH2": 1.0040100200330426e-12,
-        "Duration": 186753044
+        "Duration": 179061436
       },
       {
         "TrialNum": 2,
@@ -56,7 +56,7 @@
         "PosteriorH0": 0.9999999999979918,
         "PosteriorH1": 1.0040100200330426e-12,
         "PosteriorH2": 1.0040100200330426e-12,
-        "Duration": 187732687
+        "Duration": 185290220
       },
       {
         "TrialNum": 3,
@@ -67,7 +67,7 @@
         "PosteriorH0": 0.9999999999979918,
         "PosteriorH1": 1.0040100200330426e-12,
         "PosteriorH2": 1.0040100200330426e-12,
-        "Duration": 190545897
+        "Duration": 170242630
       },
       {
         "TrialNum": 4,
@@ -78,7 +78,7 @@
         "PosteriorH0": 0.9999999999979918,
         "PosteriorH1": 1.0040100200330426e-12,
         "PosteriorH2": 1.0040100200330426e-12,
-        "Duration": 187406299
+        "Duration": 166131662
       }
     ],
     "TrustedRate": 1,
@@ -130,7 +130,7 @@
         "PosteriorH0": 0.9999999999962124,
         "PosteriorH1": 1.8938964557032437e-12,
         "PosteriorH2": 1.8938964557032437e-12,
-        "Duration": 185717918
+        "Duration": 170796900
       },
       {
         "TrialNum": 1,
@@ -141,7 +141,7 @@
         "PosteriorH0": 0.9999999999962124,
         "PosteriorH1": 1.8938964557032437e-12,
         "PosteriorH2": 1.8938964557032437e-12,
-        "Duration": 186529051
+        "Duration": 178504831
       },
       {
         "TrialNum": 2,
@@ -152,7 +152,7 @@
         "PosteriorH0": 0.9999999999962124,
         "PosteriorH1": 1.8938964557032437e-12,
         "PosteriorH2": 1.8938964557032437e-12,
-        "Duration": 186233178
+        "Duration": 168372880
       },
       {
         "TrialNum": 3,
@@ -163,7 +163,7 @@
         "PosteriorH0": 0.9999999999962124,
         "PosteriorH1": 1.8938964557032437e-12,
         "PosteriorH2": 1.8938964557032437e-12,
-        "Duration": 186550171
+        "Duration": 193088611
       },
       {
         "TrialNum": 4,
@@ -174,7 +174,7 @@
         "PosteriorH0": 0.9999999999962124,
         "PosteriorH1": 1.8938964557032437e-12,
         "PosteriorH2": 1.8938964557032437e-12,
-        "Duration": 190736134
+        "Duration": 176929003
       }
     ],
     "TrustedRate": 1,
@@ -226,7 +226,7 @@
         "PosteriorH0": 0.9999999999928559,
         "PosteriorH1": 3.5720934963539373e-12,
         "PosteriorH2": 3.5720934963539373e-12,
-        "Duration": 187724297
+        "Duration": 169401742
       },
       {
         "TrialNum": 1,
@@ -237,7 +237,7 @@
         "PosteriorH0": 0.9999999999928559,
         "PosteriorH1": 3.5720934963539373e-12,
         "PosteriorH2": 3.5720934963539373e-12,
-        "Duration": 189815223
+        "Duration": 168147747
       },
       {
         "TrialNum": 2,
@@ -248,7 +248,7 @@
         "PosteriorH0": 0.9999999999928559,
         "PosteriorH1": 3.5720934963539373e-12,
         "PosteriorH2": 3.5720934963539373e-12,
-        "Duration": 188506415
+        "Duration": 167457321
       },
       {
         "TrialNum": 3,
@@ -259,7 +259,7 @@
         "PosteriorH0": 0.9999999999928559,
         "PosteriorH1": 3.5720934963539373e-12,
         "PosteriorH2": 3.5720934963539373e-12,
-        "Duration": 188965628
+        "Duration": 166686003
       },
       {
         "TrialNum": 4,
@@ -270,7 +270,7 @@
         "PosteriorH0": 0.9999999999928559,
         "PosteriorH1": 3.5720934963539373e-12,
         "PosteriorH2": 3.5720934963539373e-12,
-        "Duration": 190741215
+        "Duration": 172457929
       }
     ],
     "TrustedRate": 1,
@@ -322,7 +322,7 @@
         "PosteriorH0": 0.9999999999865272,
         "PosteriorH1": 6.7364160120010835e-12,
         "PosteriorH2": 6.7364160120010835e-12,
-        "Duration": 187692449
+        "Duration": 186540087
       },
       {
         "TrialNum": 1,
@@ -333,7 +333,7 @@
         "PosteriorH0": 0.9999999999865272,
         "PosteriorH1": 6.7364160120010835e-12,
         "PosteriorH2": 6.7364160120010835e-12,
-        "Duration": 186225109
+        "Duration": 165795381
       },
       {
         "TrialNum": 2,
@@ -344,7 +344,7 @@
         "PosteriorH0": 0.9999999999865272,
         "PosteriorH1": 6.7364160120010835e-12,
         "PosteriorH2": 6.7364160120010835e-12,
-        "Duration": 186821964
+        "Duration": 173489917
       },
       {
         "TrialNum": 3,
@@ -355,7 +355,7 @@
         "PosteriorH0": 0.9999999999865272,
         "PosteriorH1": 6.7364160120010835e-12,
         "PosteriorH2": 6.7364160120010835e-12,
-        "Duration": 193872934
+        "Duration": 168790986
       },
       {
         "TrialNum": 4,
@@ -366,7 +366,7 @@
         "PosteriorH0": 0.9999999999865272,
         "PosteriorH1": 6.7364160120010835e-12,
         "PosteriorH2": 6.7364160120010835e-12,
-        "Duration": 187638417
+        "Duration": 168468580
       }
     ],
     "TrustedRate": 1,
@@ -418,7 +418,7 @@
         "PosteriorH0": 0.9999999999745963,
         "PosteriorH1": 1.2701763664280363e-11,
         "PosteriorH2": 1.2701763664280363e-11,
-        "Duration": 187243768
+        "Duration": 167874905
       },
       {
         "TrialNum": 1,
@@ -429,7 +429,7 @@
         "PosteriorH0": 0.9999999999745963,
         "PosteriorH1": 1.2701763664280363e-11,
         "PosteriorH2": 1.2701763664280363e-11,
-        "Duration": 188722321
+        "Duration": 169023541
       },
       {
         "TrialNum": 2,
@@ -440,7 +440,7 @@
         "PosteriorH0": 0.9999999999745963,
         "PosteriorH1": 1.2701763664280363e-11,
         "PosteriorH2": 1.2701763664280363e-11,
-        "Duration": 187962216
+        "Duration": 169101338
       },
       {
         "TrialNum": 3,
@@ -451,7 +451,7 @@
         "PosteriorH0": 0.9999999999745963,
         "PosteriorH1": 1.2701763664280363e-11,
         "PosteriorH2": 1.2701763664280363e-11,
-        "Duration": 187412570
+        "Duration": 170519411
       },
       {
         "TrialNum": 4,
@@ -462,7 +462,7 @@
         "PosteriorH0": 0.9999999999745963,
         "PosteriorH1": 1.2701763664280363e-11,
         "PosteriorH2": 1.2701763664280363e-11,
-        "Duration": 200594782
+        "Duration": 168927322
       }
     ],
     "TrustedRate": 1,
@@ -514,7 +514,7 @@
         "PosteriorH0": 0.9999999999521099,
         "PosteriorH1": 2.3945060688037615e-11,
         "PosteriorH2": 2.3945060688037615e-11,
-        "Duration": 192326338
+        "Duration": 168899699
       },
       {
         "TrialNum": 1,
@@ -525,7 +525,7 @@
         "PosteriorH0": 0.9999999999521099,
         "PosteriorH1": 2.3945060688037615e-11,
         "PosteriorH2": 2.3945060688037615e-11,
-        "Duration": 192342709
+        "Duration": 165147064
       },
       {
         "TrialNum": 2,
@@ -536,7 +536,7 @@
         "PosteriorH0": 0.9999999999521099,
         "PosteriorH1": 2.3945060688037615e-11,
         "PosteriorH2": 2.3945060688037615e-11,
-        "Duration": 189828368
+        "Duration": 168590469
       },
       {
         "TrialNum": 3,
@@ -547,7 +547,7 @@
         "PosteriorH0": 0.9999999999521099,
         "PosteriorH1": 2.3945060688037615e-11,
         "PosteriorH2": 2.3945060688037615e-11,
-        "Duration": 196159369
+        "Duration": 169350716
       },
       {
         "TrialNum": 4,
@@ -558,7 +558,7 @@
         "PosteriorH0": 0.9999999999521099,
         "PosteriorH1": 2.3945060688037615e-11,
         "PosteriorH2": 2.3945060688037615e-11,
-        "Duration": 190601037
+        "Duration": 170915674
       }
     ],
     "TrustedRate": 1,
@@ -610,7 +610,7 @@
         "PosteriorH0": 0.9999999999097389,
         "PosteriorH1": 4.513051132396747e-11,
         "PosteriorH2": 4.513051132396747e-11,
-        "Duration": 198528516
+        "Duration": 171767413
       },
       {
         "TrialNum": 1,
@@ -621,7 +621,7 @@
         "PosteriorH0": 0.9999999999097389,
         "PosteriorH1": 4.513051132396747e-11,
         "PosteriorH2": 4.513051132396747e-11,
-        "Duration": 190811350
+        "Duration": 162943357
       },
       {
         "TrialNum": 2,
@@ -632,7 +632,7 @@
         "PosteriorH0": 0.9999999999097389,
         "PosteriorH1": 4.513051132396747e-11,
         "PosteriorH2": 4.513051132396747e-11,
-        "Duration": 188319020
+        "Duration": 166161218
       },
       {
         "TrialNum": 3,
@@ -643,7 +643,7 @@
         "PosteriorH0": 0.9999999999097389,
         "PosteriorH1": 4.513051132396747e-11,
         "PosteriorH2": 4.513051132396747e-11,
-        "Duration": 193620834
+        "Duration": 167465337
       },
       {
         "TrialNum": 4,
@@ -654,7 +654,7 @@
         "PosteriorH0": 0.9999999999097389,
         "PosteriorH1": 4.513051132396747e-11,
         "PosteriorH2": 4.513051132396747e-11,
-        "Duration": 191261908
+        "Duration": 165859032
       }
     ],
     "TrustedRate": 1,
@@ -706,7 +706,7 @@
         "PosteriorH0": 0.9999999998299254,
         "PosteriorH1": 8.503741982164836e-11,
         "PosteriorH2": 8.503741982164836e-11,
-        "Duration": 188757134
+        "Duration": 169984607
       },
       {
         "TrialNum": 1,
@@ -717,7 +717,7 @@
         "PosteriorH0": 0.9999999998299254,
         "PosteriorH1": 8.503741982164836e-11,
         "PosteriorH2": 8.503741982164836e-11,
-        "Duration": 193650373
+        "Duration": 166015545
       },
       {
         "TrialNum": 2,
@@ -728,7 +728,7 @@
         "PosteriorH0": 0.9999999998299254,
         "PosteriorH1": 8.503741982164836e-11,
         "PosteriorH2": 8.503741982164836e-11,
-        "Duration": 187935143
+        "Duration": 167532013
       },
       {
         "TrialNum": 3,
@@ -739,7 +739,7 @@
         "PosteriorH0": 0.9999999998299254,
         "PosteriorH1": 8.503741982164836e-11,
         "PosteriorH2": 8.503741982164836e-11,
-        "Duration": 189495120
+        "Duration": 167322379
       },
       {
         "TrialNum": 4,
@@ -750,7 +750,7 @@
         "PosteriorH0": 0.9999999998299254,
         "PosteriorH1": 8.503741982164836e-11,
         "PosteriorH2": 8.503741982164836e-11,
-        "Duration": 190707566
+        "Duration": 166080016
       }
     ],
     "TrustedRate": 1,
@@ -802,7 +802,7 @@
         "PosteriorH0": 0.9999999996796345,
         "PosteriorH1": 1.6018268675658677e-10,
         "PosteriorH2": 1.6018268675658677e-10,
-        "Duration": 194612012
+        "Duration": 166368458
       },
       {
         "TrialNum": 1,
@@ -813,7 +813,7 @@
         "PosteriorH0": 0.9999999996796345,
         "PosteriorH1": 1.6018268675658677e-10,
         "PosteriorH2": 1.6018268675658677e-10,
-        "Duration": 189769415
+        "Duration": 165345097
       },
       {
         "TrialNum": 2,
@@ -824,7 +824,7 @@
         "PosteriorH0": 0.9999999996796345,
         "PosteriorH1": 1.6018268675658677e-10,
         "PosteriorH2": 1.6018268675658677e-10,
-        "Duration": 197405008
+        "Duration": 165336510
       },
       {
         "TrialNum": 3,
@@ -835,7 +835,7 @@
         "PosteriorH0": 0.9999999996796345,
         "PosteriorH1": 1.6018268675658677e-10,
         "PosteriorH2": 1.6018268675658677e-10,
-        "Duration": 190200595
+        "Duration": 164985100
       },
       {
         "TrialNum": 4,
@@ -846,7 +846,7 @@
         "PosteriorH0": 0.9999999996796345,
         "PosteriorH1": 1.6018268675658677e-10,
         "PosteriorH2": 1.6018268675658677e-10,
-        "Duration": 190404643
+        "Duration": 169127077
       }
     ],
     "TrustedRate": 1,
@@ -898,7 +898,7 @@
         "PosteriorH0": 0.9999999993967554,
         "PosteriorH1": 3.016223113424428e-10,
         "PosteriorH2": 3.016223113424428e-10,
-        "Duration": 198601062
+        "Duration": 177230390
       },
       {
         "TrialNum": 1,
@@ -909,7 +909,7 @@
         "PosteriorH0": 0.9999999993967554,
         "PosteriorH1": 3.016223113424428e-10,
         "PosteriorH2": 3.016223113424428e-10,
-        "Duration": 193855609
+        "Duration": 165576371
       },
       {
         "TrialNum": 2,
@@ -920,7 +920,7 @@
         "PosteriorH0": 0.9999999993967554,
         "PosteriorH1": 3.016223113424428e-10,
         "PosteriorH2": 3.016223113424428e-10,
-        "Duration": 189949009
+        "Duration": 166601947
       },
       {
         "TrialNum": 3,
@@ -931,7 +931,7 @@
         "PosteriorH0": 0.9999999993967554,
         "PosteriorH1": 3.016223113424428e-10,
         "PosteriorH2": 3.016223113424428e-10,
-        "Duration": 187417554
+        "Duration": 177569747
       },
       {
         "TrialNum": 4,
@@ -942,7 +942,7 @@
         "PosteriorH0": 0.9999999993967554,
         "PosteriorH1": 3.016223113424428e-10,
         "PosteriorH2": 3.016223113424428e-10,
-        "Duration": 189906939
+        "Duration": 174265544
       }
     ],
     "TrustedRate": 1,
@@ -994,7 +994,7 @@
         "PosteriorH0": 0.9999999999944578,
         "PosteriorH1": 2.7711368940841695e-12,
         "PosteriorH2": 2.7711368940841695e-12,
-        "Duration": 191208615
+        "Duration": 171922095
       },
       {
         "TrialNum": 1,
@@ -1005,7 +1005,7 @@
         "PosteriorH0": 0.9999999999944578,
         "PosteriorH1": 2.7711368940841695e-12,
         "PosteriorH2": 2.7711368940841695e-12,
-        "Duration": 196152781
+        "Duration": 167042022
       },
       {
         "TrialNum": 2,
@@ -1016,7 +1016,7 @@
         "PosteriorH0": 0.9999999999944578,
         "PosteriorH1": 2.7711368940841695e-12,
         "PosteriorH2": 2.7711368940841695e-12,
-        "Duration": 191127945
+        "Duration": 168432513
       },
       {
         "TrialNum": 3,
@@ -1027,7 +1027,7 @@
         "PosteriorH0": 0.9999999999944578,
         "PosteriorH1": 2.7711368940841695e-12,
         "PosteriorH2": 2.7711368940841695e-12,
-        "Duration": 196181697
+        "Duration": 174270774
       },
       {
         "TrialNum": 4,
@@ -1038,7 +1038,7 @@
         "PosteriorH0": 0.9999999999944578,
         "PosteriorH1": 2.7711368940841695e-12,
         "PosteriorH2": 2.7711368940841695e-12,
-        "Duration": 198436225
+        "Duration": 177369332
       }
     ],
     "TrustedRate": 1,
@@ -1090,7 +1090,7 @@
         "PosteriorH0": 0.9999999999877893,
         "PosteriorH1": 6.105415489990431e-12,
         "PosteriorH2": 6.105415489990431e-12,
-        "Duration": 223481562
+        "Duration": 181519053
       },
       {
         "TrialNum": 1,
@@ -1101,7 +1101,7 @@
         "PosteriorH0": 0.9999999999877893,
         "PosteriorH1": 6.105415489990431e-12,
         "PosteriorH2": 6.105415489990431e-12,
-        "Duration": 190970567
+        "Duration": 177606106
       },
       {
         "TrialNum": 2,
@@ -1112,7 +1112,7 @@
         "PosteriorH0": 0.9999999999877893,
         "PosteriorH1": 6.105415489990431e-12,
         "PosteriorH2": 6.105415489990431e-12,
-        "Duration": 188956808
+        "Duration": 172373623
       },
       {
         "TrialNum": 3,
@@ -1123,7 +1123,7 @@
         "PosteriorH0": 0.9999999999877893,
         "PosteriorH1": 6.105415489990431e-12,
         "PosteriorH2": 6.105415489990431e-12,
-        "Duration": 194277198
+        "Duration": 169898345
       },
       {
         "TrialNum": 4,
@@ -1134,7 +1134,7 @@
         "PosteriorH0": 0.9999999999877893,
         "PosteriorH1": 6.105415489990431e-12,
         "PosteriorH2": 6.105415489990431e-12,
-        "Duration": 196477974
+        "Duration": 172913366
       }
     ],
     "TrustedRate": 1,
@@ -1186,7 +1186,7 @@
         "PosteriorH0": 0.9999999999731166,
         "PosteriorH1": 1.3441687617768852e-11,
         "PosteriorH2": 1.3441687617768852e-11,
-        "Duration": 196866492
+        "Duration": 177493114
       },
       {
         "TrialNum": 1,
@@ -1197,7 +1197,7 @@
         "PosteriorH0": 0.9999999999731166,
         "PosteriorH1": 1.3441687617768852e-11,
         "PosteriorH2": 1.3441687617768852e-11,
-        "Duration": 203284020
+        "Duration": 173839745
       },
       {
         "TrialNum": 2,
@@ -1208,7 +1208,7 @@
         "PosteriorH0": 0.9999999999731166,
         "PosteriorH1": 1.3441687617768852e-11,
         "PosteriorH2": 1.3441687617768852e-11,
-        "Duration": 193687158
+        "Duration": 170393566
       },
       {
         "TrialNum": 3,
@@ -1219,7 +1219,7 @@
         "PosteriorH0": 0.9999999999731166,
         "PosteriorH1": 1.3441687617768852e-11,
         "PosteriorH2": 1.3441687617768852e-11,
-        "Duration": 188777540
+        "Duration": 166168754
       },
       {
         "TrialNum": 4,
@@ -1230,7 +1230,7 @@
         "PosteriorH0": 0.9999999999731166,
         "PosteriorH1": 1.3441687617768852e-11,
         "PosteriorH2": 1.3441687617768852e-11,
-        "Duration": 192419186
+        "Duration": 166255808
       }
     ],
     "TrustedRate": 1,
@@ -1282,7 +1282,7 @@
         "PosteriorH0": 0.9999999999408646,
         "PosteriorH1": 2.956773783553825e-11,
         "PosteriorH2": 2.956773783553825e-11,
-        "Duration": 192379422
+        "Duration": 167951571
       },
       {
         "TrialNum": 1,
@@ -1293,7 +1293,7 @@
         "PosteriorH0": 0.9999999999408646,
         "PosteriorH1": 2.956773783553825e-11,
         "PosteriorH2": 2.956773783553825e-11,
-        "Duration": 208243235
+        "Duration": 165896994
       },
       {
         "TrialNum": 2,
@@ -1304,7 +1304,7 @@
         "PosteriorH0": 0.9999999999408646,
         "PosteriorH1": 2.956773783553825e-11,
         "PosteriorH2": 2.956773783553825e-11,
-        "Duration": 205687707
+        "Duration": 165158878
       },
       {
         "TrialNum": 3,
@@ -1315,7 +1315,7 @@
         "PosteriorH0": 0.9999999999408646,
         "PosteriorH1": 2.956773783553825e-11,
         "PosteriorH2": 2.956773783553825e-11,
-        "Duration": 200571385
+        "Duration": 171924950
       },
       {
         "TrialNum": 4,
@@ -1326,7 +1326,7 @@
         "PosteriorH0": 0.9999999999408646,
         "PosteriorH1": 2.956773783553825e-11,
         "PosteriorH2": 2.956773783553825e-11,
-        "Duration": 193422267
+        "Duration": 169440576
       }
     ],
     "TrustedRate": 1,
@@ -1378,7 +1378,7 @@
         "PosteriorH0": 0.9999999998700511,
         "PosteriorH1": 6.497445830837086e-11,
         "PosteriorH2": 6.497445830837086e-11,
-        "Duration": 195242159
+        "Duration": 167784177
       },
       {
         "TrialNum": 1,
@@ -1389,7 +1389,7 @@
         "PosteriorH0": 0.9999999998700511,
         "PosteriorH1": 6.497445830837086e-11,
         "PosteriorH2": 6.497445830837086e-11,
-        "Duration": 193744471
+        "Duration": 177045675
       },
       {
         "TrialNum": 2,
@@ -1400,7 +1400,7 @@
         "PosteriorH0": 0.9999999998700511,
         "PosteriorH1": 6.497445830837086e-11,
         "PosteriorH2": 6.497445830837086e-11,
-        "Duration": 201462393
+        "Duration": 236047344
       },
       {
         "TrialNum": 3,
@@ -1411,7 +1411,7 @@
         "PosteriorH0": 0.9999999998700511,
         "PosteriorH1": 6.497445830837086e-11,
         "PosteriorH2": 6.497445830837086e-11,
-        "Duration": 200878062
+        "Duration": 173051956
       },
       {
         "TrialNum": 4,
@@ -1422,7 +1422,7 @@
         "PosteriorH0": 0.9999999998700511,
         "PosteriorH1": 6.497445830837086e-11,
         "PosteriorH2": 6.497445830837086e-11,
-        "Duration": 214747593
+        "Duration": 170946494
       }
     ],
     "TrustedRate": 1,
@@ -1474,7 +1474,7 @@
         "PosteriorH0": 0.9999999997147797,
         "PosteriorH1": 1.426101335564751e-10,
         "PosteriorH2": 1.426101335564751e-10,
-        "Duration": 198997204
+        "Duration": 167315788
       },
       {
         "TrialNum": 1,
@@ -1485,7 +1485,7 @@
         "PosteriorH0": 0.9999999997147797,
         "PosteriorH1": 1.426101335564751e-10,
         "PosteriorH2": 1.426101335564751e-10,
-        "Duration": 195193470
+        "Duration": 175372814
       },
       {
         "TrialNum": 2,
@@ -1496,7 +1496,7 @@
         "PosteriorH0": 0.9999999997147797,
         "PosteriorH1": 1.426101335564751e-10,
         "PosteriorH2": 1.426101335564751e-10,
-        "Duration": 194665429
+        "Duration": 168562568
       },
       {
         "TrialNum": 3,
@@ -1507,7 +1507,7 @@
         "PosteriorH0": 0.9999999997147797,
         "PosteriorH1": 1.426101335564751e-10,
         "PosteriorH2": 1.426101335564751e-10,
-        "Duration": 190146052
+        "Duration": 169029575
       },
       {
         "TrialNum": 4,
@@ -1518,7 +1518,7 @@
         "PosteriorH0": 0.9999999997147797,
         "PosteriorH1": 1.426101335564751e-10,
         "PosteriorH2": 1.426101335564751e-10,
-        "Duration": 211271474
+        "Duration": 176558590
       }
     ],
     "TrustedRate": 1,
@@ -1570,7 +1570,7 @@
         "PosteriorH0": 0.9999999993748556,
         "PosteriorH1": 3.125721810038067e-10,
         "PosteriorH2": 3.125721810038067e-10,
-        "Duration": 192989100
+        "Duration": 169164268
       },
       {
         "TrialNum": 1,
@@ -1581,7 +1581,7 @@
         "PosteriorH0": 0.9999999993748556,
         "PosteriorH1": 3.125721810038067e-10,
         "PosteriorH2": 3.125721810038067e-10,
-        "Duration": 191803765
+        "Duration": 167027687
       },
       {
         "TrialNum": 2,
@@ -1592,7 +1592,7 @@
         "PosteriorH0": 0.9999999993748556,
         "PosteriorH1": 3.125721810038067e-10,
         "PosteriorH2": 3.125721810038067e-10,
-        "Duration": 191409739
+        "Duration": 166671929
       },
       {
         "TrialNum": 3,
@@ -1603,7 +1603,7 @@
         "PosteriorH0": 0.9999999993748556,
         "PosteriorH1": 3.125721810038067e-10,
         "PosteriorH2": 3.125721810038067e-10,
-        "Duration": 192976499
+        "Duration": 171040641
       },
       {
         "TrialNum": 4,
@@ -1614,7 +1614,7 @@
         "PosteriorH0": 0.9999999993748556,
         "PosteriorH1": 3.125721810038067e-10,
         "PosteriorH2": 3.125721810038067e-10,
-        "Duration": 212181669
+        "Duration": 167203988
       }
     ],
     "TrustedRate": 1,
@@ -1666,7 +1666,7 @@
         "PosteriorH0": 0.9999999999799059,
         "PosteriorH1": 1.0047133466885475e-11,
         "PosteriorH2": 1.0047133466885475e-11,
-        "Duration": 190539153
+        "Duration": 168889803
       },
       {
         "TrialNum": 1,
@@ -1677,7 +1677,7 @@
         "PosteriorH0": 0.9999999999799059,
         "PosteriorH1": 1.0047133466885475e-11,
         "PosteriorH2": 1.0047133466885475e-11,
-        "Duration": 191262820
+        "Duration": 164873934
       },
       {
         "TrialNum": 2,
@@ -1688,7 +1688,7 @@
         "PosteriorH0": 0.9999999999799059,
         "PosteriorH1": 1.0047133466885475e-11,
         "PosteriorH2": 1.0047133466885475e-11,
-        "Duration": 192021154
+        "Duration": 167404955
       },
       {
         "TrialNum": 3,
@@ -1699,7 +1699,7 @@
         "PosteriorH0": 0.9999999999799059,
         "PosteriorH1": 1.0047133466885475e-11,
         "PosteriorH2": 1.0047133466885475e-11,
-        "Duration": 195680024
+        "Duration": 179186484
       },
       {
         "TrialNum": 4,
@@ -1710,7 +1710,7 @@
         "PosteriorH0": 0.9999999999799059,
         "PosteriorH1": 1.0047133466885475e-11,
         "PosteriorH2": 1.0047133466885475e-11,
-        "Duration": 190911905
+        "Duration": 167288317
       }
     ],
     "TrustedRate": 1,
@@ -1762,7 +1762,7 @@
         "PosteriorH0": 0.9999999999486944,
         "PosteriorH1": 2.565273039839144e-11,
         "PosteriorH2": 2.565273039839144e-11,
-        "Duration": 191949108
+        "Duration": 168655263
       },
       {
         "TrialNum": 1,
@@ -1773,7 +1773,7 @@
         "PosteriorH0": 0.9999999999486944,
         "PosteriorH1": 2.565273039839144e-11,
         "PosteriorH2": 2.565273039839144e-11,
-        "Duration": 189642581
+        "Duration": 174720590
       },
       {
         "TrialNum": 2,
@@ -1784,7 +1784,7 @@
         "PosteriorH0": 0.9999999999486944,
         "PosteriorH1": 2.565273039839144e-11,
         "PosteriorH2": 2.565273039839144e-11,
-        "Duration": 190881610
+        "Duration": 181955412
       },
       {
         "TrialNum": 3,
@@ -1795,7 +1795,7 @@
         "PosteriorH0": 0.9999999999486944,
         "PosteriorH1": 2.565273039839144e-11,
         "PosteriorH2": 2.565273039839144e-11,
-        "Duration": 192264510
+        "Duration": 170725970
       },
       {
         "TrialNum": 4,
@@ -1806,7 +1806,7 @@
         "PosteriorH0": 0.9999999999486944,
         "PosteriorH1": 2.565273039839144e-11,
         "PosteriorH2": 2.565273039839144e-11,
-        "Duration": 192175371
+        "Duration": 178601546
       }
     ],
     "TrustedRate": 1,
@@ -1858,7 +1858,7 @@
         "PosteriorH0": 0.9999999998693636,
         "PosteriorH1": 6.531824643332239e-11,
         "PosteriorH2": 6.531824643332239e-11,
-        "Duration": 207621432
+        "Duration": 169767110
       },
       {
         "TrialNum": 1,
@@ -1869,7 +1869,7 @@
         "PosteriorH0": 0.9999999998693636,
         "PosteriorH1": 6.531824643332239e-11,
         "PosteriorH2": 6.531824643332239e-11,
-        "Duration": 189841321
+        "Duration": 167599822
       },
       {
         "TrialNum": 2,
@@ -1880,7 +1880,7 @@
         "PosteriorH0": 0.9999999998693636,
         "PosteriorH1": 6.531824643332239e-11,
         "PosteriorH2": 6.531824643332239e-11,
-        "Duration": 192626481
+        "Duration": 168136229
       },
       {
         "TrialNum": 3,
@@ -1891,7 +1891,7 @@
         "PosteriorH0": 0.9999999998693636,
         "PosteriorH1": 6.531824643332239e-11,
         "PosteriorH2": 6.531824643332239e-11,
-        "Duration": 192457190
+        "Duration": 173962206
       },
       {
         "TrialNum": 4,
@@ -1902,7 +1902,7 @@
         "PosteriorH0": 0.9999999998693636,
         "PosteriorH1": 6.531824643332239e-11,
         "PosteriorH2": 6.531824643332239e-11,
-        "Duration": 198427146
+        "Duration": 169954954
       }
     ],
     "TrustedRate": 1,
@@ -1954,7 +1954,7 @@
         "PosteriorH0": 0.9999999996684408,
         "PosteriorH1": 1.657797088768728e-10,
         "PosteriorH2": 1.657797088768728e-10,
-        "Duration": 203452053
+        "Duration": 169545114
       },
       {
         "TrialNum": 1,
@@ -1965,7 +1965,7 @@
         "PosteriorH0": 0.9999999996684408,
         "PosteriorH1": 1.657797088768728e-10,
         "PosteriorH2": 1.657797088768728e-10,
-        "Duration": 202548385
+        "Duration": 175742008
       },
       {
         "TrialNum": 2,
@@ -1976,7 +1976,7 @@
         "PosteriorH0": 0.9999999996684408,
         "PosteriorH1": 1.657797088768728e-10,
         "PosteriorH2": 1.657797088768728e-10,
-        "Duration": 188226995
+        "Duration": 167071420
       },
       {
         "TrialNum": 3,
@@ -1987,7 +1987,7 @@
         "PosteriorH0": 0.9999999996684408,
         "PosteriorH1": 1.657797088768728e-10,
         "PosteriorH2": 1.657797088768728e-10,
-        "Duration": 191534207
+        "Duration": 167249354
       },
       {
         "TrialNum": 4,
@@ -1998,7 +1998,7 @@
         "PosteriorH0": 0.9999999996684408,
         "PosteriorH1": 1.657797088768728e-10,
         "PosteriorH2": 1.657797088768728e-10,
-        "Duration": 190028874
+        "Duration": 169097093
       }
     ],
     "TrustedRate": 1,
@@ -2050,7 +2050,7 @@
         "PosteriorH0": 0.9999999991616981,
         "PosteriorH1": 4.191509911336334e-10,
         "PosteriorH2": 4.191509911336334e-10,
-        "Duration": 191932675
+        "Duration": 166163726
       },
       {
         "TrialNum": 1,
@@ -2061,7 +2061,7 @@
         "PosteriorH0": 0.9999999991616981,
         "PosteriorH1": 4.191509911336334e-10,
         "PosteriorH2": 4.191509911336334e-10,
-        "Duration": 191418146
+        "Duration": 167777425
       },
       {
         "TrialNum": 2,
@@ -2072,7 +2072,7 @@
         "PosteriorH0": 0.9999999991616981,
         "PosteriorH1": 4.191509911336334e-10,
         "PosteriorH2": 4.191509911336334e-10,
-        "Duration": 189950777
+        "Duration": 174483836
       },
       {
         "TrialNum": 3,
@@ -2083,7 +2083,7 @@
         "PosteriorH0": 0.9999999991616981,
         "PosteriorH1": 4.191509911336334e-10,
         "PosteriorH2": 4.191509911336334e-10,
-        "Duration": 186322597
+        "Duration": 182850915
       },
       {
         "TrialNum": 4,
@@ -2094,7 +2094,7 @@
         "PosteriorH0": 0.9999999991616981,
         "PosteriorH1": 4.191509911336334e-10,
         "PosteriorH2": 4.191509911336334e-10,
-        "Duration": 186155349
+        "Duration": 166770245
       }
     ],
     "TrustedRate": 1,
@@ -2146,7 +2146,7 @@
         "PosteriorH0": 0.9999999999326783,
         "PosteriorH1": 3.3660833656937355e-11,
         "PosteriorH2": 3.3660833656937355e-11,
-        "Duration": 186234689
+        "Duration": 172240194
       },
       {
         "TrialNum": 1,
@@ -2157,7 +2157,7 @@
         "PosteriorH0": 0.9999999999326783,
         "PosteriorH1": 3.3660833656937355e-11,
         "PosteriorH2": 3.3660833656937355e-11,
-        "Duration": 185913298
+        "Duration": 171919061
       },
       {
         "TrialNum": 2,
@@ -2168,7 +2168,7 @@
         "PosteriorH0": 0.9999999999326783,
         "PosteriorH1": 3.3660833656937355e-11,
         "PosteriorH2": 3.3660833656937355e-11,
-        "Duration": 188813926
+        "Duration": 173996992
       },
       {
         "TrialNum": 3,
@@ -2179,7 +2179,7 @@
         "PosteriorH0": 0.9999999999326783,
         "PosteriorH1": 3.3660833656937355e-11,
         "PosteriorH2": 3.3660833656937355e-11,
-        "Duration": 187709127
+        "Duration": 175309526
       },
       {
         "TrialNum": 4,
@@ -2190,7 +2190,7 @@
         "PosteriorH0": 0.9999999999326783,
         "PosteriorH1": 3.3660833656937355e-11,
         "PosteriorH2": 3.3660833656937355e-11,
-        "Duration": 188979965
+        "Duration": 172901145
       }
     ],
     "TrustedRate": 1,
@@ -2242,7 +2242,7 @@
         "PosteriorH0": 0.9999999998036007,
         "PosteriorH1": 9.819977688291667e-11,
         "PosteriorH2": 9.819977688291667e-11,
-        "Duration": 186417050
+        "Duration": 172876659
       },
       {
         "TrialNum": 1,
@@ -2253,7 +2253,7 @@
         "PosteriorH0": 0.9999999998036007,
         "PosteriorH1": 9.819977688291667e-11,
         "PosteriorH2": 9.819977688291667e-11,
-        "Duration": 185707890
+        "Duration": 187226399
       },
       {
         "TrialNum": 2,
@@ -2264,7 +2264,7 @@
         "PosteriorH0": 0.9999999998036007,
         "PosteriorH1": 9.819977688291667e-11,
         "PosteriorH2": 9.819977688291667e-11,
-        "Duration": 188494471
+        "Duration": 176578469
       },
       {
         "TrialNum": 3,
@@ -2275,7 +2275,7 @@
         "PosteriorH0": 0.9999999998036007,
         "PosteriorH1": 9.819977688291667e-11,
         "PosteriorH2": 9.819977688291667e-11,
-        "Duration": 186184189
+        "Duration": 176860309
       },
       {
         "TrialNum": 4,
@@ -2286,7 +2286,7 @@
         "PosteriorH0": 0.9999999998036007,
         "PosteriorH1": 9.819977688291667e-11,
         "PosteriorH2": 9.819977688291667e-11,
-        "Duration": 185875352
+        "Duration": 168187145
       }
     ],
     "TrustedRate": 1,
@@ -2338,7 +2338,7 @@
         "PosteriorH0": 0.9999999994312581,
         "PosteriorH1": 2.843710481430162e-10,
         "PosteriorH2": 2.843710481430162e-10,
-        "Duration": 187280635
+        "Duration": 172933266
       },
       {
         "TrialNum": 1,
@@ -2349,7 +2349,7 @@
         "PosteriorH0": 0.9999999994312581,
         "PosteriorH1": 2.843710481430162e-10,
         "PosteriorH2": 2.843710481430162e-10,
-        "Duration": 187123476
+        "Duration": 170289683
       },
       {
         "TrialNum": 2,
@@ -2360,7 +2360,7 @@
         "PosteriorH0": 0.9999999994312581,
         "PosteriorH1": 2.843710481430162e-10,
         "PosteriorH2": 2.843710481430162e-10,
-        "Duration": 187818227
+        "Duration": 189380384
       },
       {
         "TrialNum": 3,
@@ -2371,7 +2371,7 @@
         "PosteriorH0": 0.9999999994312581,
         "PosteriorH1": 2.843710481430162e-10,
         "PosteriorH2": 2.843710481430162e-10,
-        "Duration": 190115219
+        "Duration": 168974654
       },
       {
         "TrialNum": 4,
@@ -2382,7 +2382,7 @@
         "PosteriorH0": 0.9999999994312581,
         "PosteriorH1": 2.843710481430162e-10,
         "PosteriorH2": 2.843710481430162e-10,
-        "Duration": 188035955
+        "Duration": 168078692
       }
     ],
     "TrustedRate": 1,
@@ -2434,7 +2434,7 @@
         "PosteriorH0": 0.9999999999178577,
         "PosteriorH1": 4.107105373919433e-11,
         "PosteriorH2": 4.107105373919433e-11,
-        "Duration": 189162528
+        "Duration": 179012680
       },
       {
         "TrialNum": 1,
@@ -2445,7 +2445,7 @@
         "PosteriorH0": 0.9999999999178577,
         "PosteriorH1": 4.107105373919433e-11,
         "PosteriorH2": 4.107105373919433e-11,
-        "Duration": 186572330
+        "Duration": 169565413
       },
       {
         "TrialNum": 2,
@@ -2456,7 +2456,7 @@
         "PosteriorH0": 0.9999999999178577,
         "PosteriorH1": 4.107105373919433e-11,
         "PosteriorH2": 4.107105373919433e-11,
-        "Duration": 188549332
+        "Duration": 180210478
       },
       {
         "TrialNum": 3,
@@ -2467,7 +2467,7 @@
         "PosteriorH0": 0.9999999999178577,
         "PosteriorH1": 4.107105373919433e-11,
         "PosteriorH2": 4.107105373919433e-11,
-        "Duration": 187406878
+        "Duration": 178741911
       },
       {
         "TrialNum": 4,
@@ -2478,7 +2478,7 @@
         "PosteriorH0": 0.9999999999178577,
         "PosteriorH1": 4.107105373919433e-11,
         "PosteriorH2": 4.107105373919433e-11,
-        "Duration": 187539754
+        "Duration": 179349482
       }
     ],
     "TrustedRate": 1,
@@ -2530,7 +2530,7 @@
         "PosteriorH0": 0.9999999997291371,
         "PosteriorH1": 1.354314491419696e-10,
         "PosteriorH2": 1.354314491419696e-10,
-        "Duration": 189986368
+        "Duration": 187241238
       },
       {
         "TrialNum": 1,
@@ -2541,7 +2541,7 @@
         "PosteriorH0": 0.9999999997291371,
         "PosteriorH1": 1.354314491419696e-10,
         "PosteriorH2": 1.354314491419696e-10,
-        "Duration": 186429201
+        "Duration": 173116640
       },
       {
         "TrialNum": 2,
@@ -2552,7 +2552,7 @@
         "PosteriorH0": 0.9999999997291371,
         "PosteriorH1": 1.354314491419696e-10,
         "PosteriorH2": 1.354314491419696e-10,
-        "Duration": 185650260
+        "Duration": 169138291
       },
       {
         "TrialNum": 3,
@@ -2563,7 +2563,7 @@
         "PosteriorH0": 0.9999999997291371,
         "PosteriorH1": 1.354314491419696e-10,
         "PosteriorH2": 1.354314491419696e-10,
-        "Duration": 186412830
+        "Duration": 169389813
       },
       {
         "TrialNum": 4,
@@ -2574,7 +2574,7 @@
         "PosteriorH0": 0.9999999997291371,
         "PosteriorH1": 1.354314491419696e-10,
         "PosteriorH2": 1.354314491419696e-10,
-        "Duration": 189586770
+        "Duration": 176672456
       }
     ],
     "TrustedRate": 1,
@@ -2626,7 +2626,7 @@
         "PosteriorH0": 0.9999999991195168,
         "PosteriorH1": 4.4024152262118225e-10,
         "PosteriorH2": 4.4024152262118225e-10,
-        "Duration": 187692967
+        "Duration": 169923315
       },
       {
         "TrialNum": 1,
@@ -2637,7 +2637,7 @@
         "PosteriorH0": 0.9999999991195168,
         "PosteriorH1": 4.4024152262118225e-10,
         "PosteriorH2": 4.4024152262118225e-10,
-        "Duration": 186605469
+        "Duration": 177670951
       },
       {
         "TrialNum": 2,
@@ -2648,7 +2648,7 @@
         "PosteriorH0": 0.9999999991195168,
         "PosteriorH1": 4.4024152262118225e-10,
         "PosteriorH2": 4.4024152262118225e-10,
-        "Duration": 187710491
+        "Duration": 172996264
       },
       {
         "TrialNum": 3,
@@ -2659,7 +2659,7 @@
         "PosteriorH0": 0.9999999991195168,
         "PosteriorH1": 4.4024152262118225e-10,
         "PosteriorH2": 4.4024152262118225e-10,
-        "Duration": 188291717
+        "Duration": 175331759
       },
       {
         "TrialNum": 4,
@@ -2670,7 +2670,7 @@
         "PosteriorH0": 0.9999999991195168,
         "PosteriorH1": 4.4024152262118225e-10,
         "PosteriorH2": 4.4024152262118225e-10,
-        "Duration": 197157463
+        "Duration": 170508955
       }
     ],
     "TrustedRate": 1,
@@ -2722,7 +2722,7 @@
         "PosteriorH0": 0.9999999997798255,
         "PosteriorH1": 1.1008721219467845e-10,
         "PosteriorH2": 1.1008721219467845e-10,
-        "Duration": 194789481
+        "Duration": 171900097
       },
       {
         "TrialNum": 1,
@@ -2733,7 +2733,7 @@
         "PosteriorH0": 0.9999999997798255,
         "PosteriorH1": 1.1008721219467845e-10,
         "PosteriorH2": 1.1008721219467845e-10,
-        "Duration": 187060828
+        "Duration": 167479698
       },
       {
         "TrialNum": 2,
@@ -2744,7 +2744,7 @@
         "PosteriorH0": 0.9999999997798255,
         "PosteriorH1": 1.1008721219467845e-10,
         "PosteriorH2": 1.1008721219467845e-10,
-        "Duration": 186021902
+        "Duration": 165545316
       },
       {
         "TrialNum": 3,
@@ -2755,7 +2755,7 @@
         "PosteriorH0": 0.9999999997798255,
         "PosteriorH1": 1.1008721219467845e-10,
         "PosteriorH2": 1.1008721219467845e-10,
-        "Duration": 188934592
+        "Duration": 173385235
       },
       {
         "TrialNum": 4,
@@ -2766,7 +2766,7 @@
         "PosteriorH0": 0.9999999997798255,
         "PosteriorH1": 1.1008721219467845e-10,
         "PosteriorH2": 1.1008721219467845e-10,
-        "Duration": 199534577
+        "Duration": 170242154
       }
     ],
     "TrustedRate": 1,
@@ -2818,7 +2818,7 @@
         "PosteriorH0": 0.9999999992052122,
         "PosteriorH1": 3.9739399146031086e-10,
         "PosteriorH2": 3.9739399146031086e-10,
-        "Duration": 186288843
+        "Duration": 168066620
       },
       {
         "TrialNum": 1,
@@ -2829,7 +2829,7 @@
         "PosteriorH0": 0.9999999992052122,
         "PosteriorH1": 3.9739399146031086e-10,
         "PosteriorH2": 3.9739399146031086e-10,
-        "Duration": 185769044
+        "Duration": 191577038
       },
       {
         "TrialNum": 2,
@@ -2840,7 +2840,7 @@
         "PosteriorH0": 0.9999999992052122,
         "PosteriorH1": 3.9739399146031086e-10,
         "PosteriorH2": 3.9739399146031086e-10,
-        "Duration": 186195926
+        "Duration": 164814344
       },
       {
         "TrialNum": 3,
@@ -2851,7 +2851,7 @@
         "PosteriorH0": 0.9999999992052122,
         "PosteriorH1": 3.9739399146031086e-10,
         "PosteriorH2": 3.9739399146031086e-10,
-        "Duration": 186148165
+        "Duration": 194207808
       },
       {
         "TrialNum": 4,
@@ -2862,7 +2862,7 @@
         "PosteriorH0": 0.9999999992052122,
         "PosteriorH1": 3.9739399146031086e-10,
         "PosteriorH2": 3.9739399146031086e-10,
-        "Duration": 187424333
+        "Duration": 164201703
       }
     ],
     "TrustedRate": 1,
@@ -2914,7 +2914,7 @@
         "PosteriorH0": 0.9999999997105613,
         "PosteriorH1": 1.4471928602710317e-10,
         "PosteriorH2": 1.4471928602710317e-10,
-        "Duration": 188878040
+        "Duration": 167848070
       },
       {
         "TrialNum": 1,
@@ -2925,7 +2925,7 @@
         "PosteriorH0": 0.9999999997105613,
         "PosteriorH1": 1.4471928602710317e-10,
         "PosteriorH2": 1.4471928602710317e-10,
-        "Duration": 194950723
+        "Duration": 169264820
       },
       {
         "TrialNum": 2,
@@ -2936,7 +2936,7 @@
         "PosteriorH0": 0.9999999997105613,
         "PosteriorH1": 1.4471928602710317e-10,
         "PosteriorH2": 1.4471928602710317e-10,
-        "Duration": 186082072
+        "Duration": 167749445
       },
       {
         "TrialNum": 3,
@@ -2947,7 +2947,7 @@
         "PosteriorH0": 0.9999999997105613,
         "PosteriorH1": 1.4471928602710317e-10,
         "PosteriorH2": 1.4471928602710317e-10,
-        "Duration": 188838446
+        "Duration": 166169478
       },
       {
         "TrialNum": 4,
@@ -2958,7 +2958,7 @@
         "PosteriorH0": 0.9999999997105613,
         "PosteriorH1": 1.4471928602710317e-10,
         "PosteriorH2": 1.4471928602710317e-10,
-        "Duration": 188273560
+        "Duration": 167320149
       }
     ],
     "TrustedRate": 1,
@@ -3010,7 +3010,7 @@
         "PosteriorH0": 0.9999999998663993,
         "PosteriorH1": 6.68002410582615e-11,
         "PosteriorH2": 6.68002410582615e-11,
-        "Duration": 190060112
+        "Duration": 167124041
       },
       {
         "TrialNum": 1,
@@ -3021,7 +3021,7 @@
         "PosteriorH0": 0.9999999998663993,
         "PosteriorH1": 6.68002410582615e-11,
         "PosteriorH2": 6.68002410582615e-11,
-        "Duration": 189711880
+        "Duration": 171656109
       },
       {
         "TrialNum": 2,
@@ -3032,7 +3032,7 @@
         "PosteriorH0": 0.9999999998663993,
         "PosteriorH1": 6.68002410582615e-11,
         "PosteriorH2": 6.68002410582615e-11,
-        "Duration": 188596778
+        "Duration": 168304096
       },
       {
         "TrialNum": 3,
@@ -3043,7 +3043,7 @@
         "PosteriorH0": 0.9999999998663993,
         "PosteriorH1": 6.68002410582615e-11,
         "PosteriorH2": 6.68002410582615e-11,
-        "Duration": 186410150
+        "Duration": 180393342
       },
       {
         "TrialNum": 4,
@@ -3054,7 +3054,7 @@
         "PosteriorH0": 0.9999999998663993,
         "PosteriorH1": 6.68002410582615e-11,
         "PosteriorH2": 6.68002410582615e-11,
-        "Duration": 187509320
+        "Duration": 167291164
       }
     ],
     "TrustedRate": 1,
@@ -3106,7 +3106,7 @@
         "PosteriorH0": 0.9999999994355466,
         "PosteriorH1": 2.82226729383794e-10,
         "PosteriorH2": 2.82226729383794e-10,
-        "Duration": 188670260
+        "Duration": 171067735
       },
       {
         "TrialNum": 1,
@@ -3117,7 +3117,7 @@
         "PosteriorH0": 0.9999999994355466,
         "PosteriorH1": 2.82226729383794e-10,
         "PosteriorH2": 2.82226729383794e-10,
-        "Duration": 188228210
+        "Duration": 167929543
       },
       {
         "TrialNum": 2,
@@ -3128,7 +3128,7 @@
         "PosteriorH0": 0.9999999994355466,
         "PosteriorH1": 2.82226729383794e-10,
         "PosteriorH2": 2.82226729383794e-10,
-        "Duration": 192184747
+        "Duration": 184113687
       },
       {
         "TrialNum": 3,
@@ -3139,7 +3139,7 @@
         "PosteriorH0": 0.9999999994355466,
         "PosteriorH1": 2.82226729383794e-10,
         "PosteriorH2": 2.82226729383794e-10,
-        "Duration": 193070983
+        "Duration": 172102247
       },
       {
         "TrialNum": 4,
@@ -3150,7 +3150,7 @@
         "PosteriorH0": 0.9999999994355466,
         "PosteriorH1": 2.82226729383794e-10,
         "PosteriorH2": 2.82226729383794e-10,
-        "Duration": 195584494
+        "Duration": 187577430
       }
     ],
     "TrustedRate": 1,
@@ -3202,7 +3202,7 @@
         "PosteriorH0": 0.9999999996564872,
         "PosteriorH1": 1.7175635160164367e-10,
         "PosteriorH2": 1.7175635160164367e-10,
-        "Duration": 192848390
+        "Duration": 173817288
       },
       {
         "TrialNum": 1,
@@ -3213,7 +3213,7 @@
         "PosteriorH0": 0.9999999996564872,
         "PosteriorH1": 1.7175635160164367e-10,
         "PosteriorH2": 1.7175635160164367e-10,
-        "Duration": 210631752
+        "Duration": 170646193
       },
       {
         "TrialNum": 2,
@@ -3224,7 +3224,7 @@
         "PosteriorH0": 0.9999999996564872,
         "PosteriorH1": 1.7175635160164367e-10,
         "PosteriorH2": 1.7175635160164367e-10,
-        "Duration": 191337709
+        "Duration": 173331525
       },
       {
         "TrialNum": 3,
@@ -3235,7 +3235,7 @@
         "PosteriorH0": 0.9999999996564872,
         "PosteriorH1": 1.7175635160164367e-10,
         "PosteriorH2": 1.7175635160164367e-10,
-        "Duration": 192237200
+        "Duration": 168369248
       },
       {
         "TrialNum": 4,
@@ -3246,7 +3246,7 @@
         "PosteriorH0": 0.9999999996564872,
         "PosteriorH1": 1.7175635160164367e-10,
         "PosteriorH2": 1.7175635160164367e-10,
-        "Duration": 195741206
+        "Duration": 176103890
       }
     ],
     "TrustedRate": 1,
@@ -3298,7 +3298,7 @@
         "PosteriorH0": 0.9999999997557389,
         "PosteriorH1": 1.2213048215291458e-10,
         "PosteriorH2": 1.2213048215291458e-10,
-        "Duration": 193275685
+        "Duration": 170815692
       },
       {
         "TrialNum": 1,
@@ -3309,7 +3309,7 @@
         "PosteriorH0": 0.9999999997557389,
         "PosteriorH1": 1.2213048215291458e-10,
         "PosteriorH2": 1.2213048215291458e-10,
-        "Duration": 198273175
+        "Duration": 168197327
       },
       {
         "TrialNum": 2,
@@ -3320,7 +3320,7 @@
         "PosteriorH0": 0.9999999997557389,
         "PosteriorH1": 1.2213048215291458e-10,
         "PosteriorH2": 1.2213048215291458e-10,
-        "Duration": 195998669
+        "Duration": 169945559
       },
       {
         "TrialNum": 3,
@@ -3331,7 +3331,7 @@
         "PosteriorH0": 0.9999999997557389,
         "PosteriorH1": 1.2213048215291458e-10,
         "PosteriorH2": 1.2213048215291458e-10,
-        "Duration": 200199570
+        "Duration": 168624729
       },
       {
         "TrialNum": 4,
@@ -3342,7 +3342,7 @@
         "PosteriorH0": 0.9999999997557389,
         "PosteriorH1": 1.2213048215291458e-10,
         "PosteriorH2": 1.2213048215291458e-10,
-        "Duration": 192409591
+        "Duration": 166935176
       }
     ],
     "TrustedRate": 1,
@@ -3394,7 +3394,7 @@
         "PosteriorH0": 0.9999999998069127,
         "PosteriorH1": 9.654369542482841e-11,
         "PosteriorH2": 9.654369542482841e-11,
-        "Duration": 186351345
+        "Duration": 167258153
       },
       {
         "TrialNum": 1,
@@ -3405,7 +3405,7 @@
         "PosteriorH0": 0.9999999998069127,
         "PosteriorH1": 9.654369542482841e-11,
         "PosteriorH2": 9.654369542482841e-11,
-        "Duration": 188910998
+        "Duration": 172877653
       },
       {
         "TrialNum": 2,
@@ -3416,7 +3416,7 @@
         "PosteriorH0": 0.9999999998069127,
         "PosteriorH1": 9.654369542482841e-11,
         "PosteriorH2": 9.654369542482841e-11,
-        "Duration": 186028935
+        "Duration": 165989982
       },
       {
         "TrialNum": 3,
@@ -3427,7 +3427,7 @@
         "PosteriorH0": 0.9999999998069127,
         "PosteriorH1": 9.654369542482841e-11,
         "PosteriorH2": 9.654369542482841e-11,
-        "Duration": 185945096
+        "Duration": 165071177
       },
       {
         "TrialNum": 4,
@@ -3438,7 +3438,7 @@
         "PosteriorH0": 0.9999999998069127,
         "PosteriorH1": 9.654369542482841e-11,
         "PosteriorH2": 9.654369542482841e-11,
-        "Duration": 190488749
+        "Duration": 165434660
       }
     ],
     "TrustedRate": 1,
@@ -3490,7 +3490,7 @@
         "PosteriorH0": 0.9999999992535771,
         "PosteriorH1": 3.732113768741709e-10,
         "PosteriorH2": 3.732113768741709e-10,
-        "Duration": 188948229
+        "Duration": 187303166
       },
       {
         "TrialNum": 1,
@@ -3501,7 +3501,7 @@
         "PosteriorH0": 0.9999999992535771,
         "PosteriorH1": 3.732113768741709e-10,
         "PosteriorH2": 3.732113768741709e-10,
-        "Duration": 199961221
+        "Duration": 187367667
       },
       {
         "TrialNum": 2,
@@ -3512,7 +3512,7 @@
         "PosteriorH0": 0.9999999992535771,
         "PosteriorH1": 3.732113768741709e-10,
         "PosteriorH2": 3.732113768741709e-10,
-        "Duration": 187650133
+        "Duration": 190276769
       },
       {
         "TrialNum": 3,
@@ -3523,7 +3523,7 @@
         "PosteriorH0": 0.9999999992535771,
         "PosteriorH1": 3.732113768741709e-10,
         "PosteriorH2": 3.732113768741709e-10,
-        "Duration": 188471304
+        "Duration": 173299766
       },
       {
         "TrialNum": 4,
@@ -3534,7 +3534,7 @@
         "PosteriorH0": 0.9999999992535771,
         "PosteriorH1": 3.732113768741709e-10,
         "PosteriorH2": 3.732113768741709e-10,
-        "Duration": 202332935
+        "Duration": 170632599
       }
     ],
     "TrustedRate": 1,
@@ -3586,7 +3586,7 @@
         "PosteriorH0": 0.9999999994698783,
         "PosteriorH1": 2.6506077188097953e-10,
         "PosteriorH2": 2.6506077188097953e-10,
-        "Duration": 198689824
+        "Duration": 187140491
       },
       {
         "TrialNum": 1,
@@ -3597,7 +3597,7 @@
         "PosteriorH0": 0.9999999994698783,
         "PosteriorH1": 2.6506077188097953e-10,
         "PosteriorH2": 2.6506077188097953e-10,
-        "Duration": 191010846
+        "Duration": 170893459
       },
       {
         "TrialNum": 2,
@@ -3608,7 +3608,7 @@
         "PosteriorH0": 0.9999999994698783,
         "PosteriorH1": 2.6506077188097953e-10,
         "PosteriorH2": 2.6506077188097953e-10,
-        "Duration": 188234747
+        "Duration": 172015826
       },
       {
         "TrialNum": 3,
@@ -3619,7 +3619,7 @@
         "PosteriorH0": 0.9999999994698783,
         "PosteriorH1": 2.6506077188097953e-10,
         "PosteriorH2": 2.6506077188097953e-10,
-        "Duration": 196302034
+        "Duration": 167538900
       },
       {
         "TrialNum": 4,
@@ -3630,7 +3630,7 @@
         "PosteriorH0": 0.9999999994698783,
         "PosteriorH1": 2.6506077188097953e-10,
         "PosteriorH2": 2.6506077188097953e-10,
-        "Duration": 203785952
+        "Duration": 166595390
       }
     ],
     "TrustedRate": 1,
@@ -3682,7 +3682,7 @@
         "PosteriorH0": 0.9999999996890399,
         "PosteriorH1": 1.554800965409085e-10,
         "PosteriorH2": 1.554800965409085e-10,
-        "Duration": 192177137
+        "Duration": 171072835
       },
       {
         "TrialNum": 1,
@@ -3693,7 +3693,7 @@
         "PosteriorH0": 0.9999999996890399,
         "PosteriorH1": 1.554800965409085e-10,
         "PosteriorH2": 1.554800965409085e-10,
-        "Duration": 197527547
+        "Duration": 168330386
       },
       {
         "TrialNum": 2,
@@ -3704,7 +3704,7 @@
         "PosteriorH0": 0.9999999996890399,
         "PosteriorH1": 1.554800965409085e-10,
         "PosteriorH2": 1.554800965409085e-10,
-        "Duration": 200281868
+        "Duration": 174854816
       },
       {
         "TrialNum": 3,
@@ -3715,7 +3715,7 @@
         "PosteriorH0": 0.9999999996890399,
         "PosteriorH1": 1.554800965409085e-10,
         "PosteriorH2": 1.554800965409085e-10,
-        "Duration": 188108009
+        "Duration": 168166769
       },
       {
         "TrialNum": 4,
@@ -3726,7 +3726,7 @@
         "PosteriorH0": 0.9999999996890399,
         "PosteriorH1": 1.554800965409085e-10,
         "PosteriorH2": 1.554800965409085e-10,
-        "Duration": 191068111
+        "Duration": 168208829
       }
     ],
     "TrustedRate": 1,
@@ -3778,7 +3778,7 @@
         "PosteriorH0": 0.9999999995222568,
         "PosteriorH1": 2.3887157582435844e-10,
         "PosteriorH2": 2.3887157582435844e-10,
-        "Duration": 190291202
+        "Duration": 170669559
       },
       {
         "TrialNum": 1,
@@ -3789,7 +3789,7 @@
         "PosteriorH0": 0.9999999995222568,
         "PosteriorH1": 2.3887157582435844e-10,
         "PosteriorH2": 2.3887157582435844e-10,
-        "Duration": 187435820
+        "Duration": 170373983
       },
       {
         "TrialNum": 2,
@@ -3800,7 +3800,7 @@
         "PosteriorH0": 0.9999999995222568,
         "PosteriorH1": 2.3887157582435844e-10,
         "PosteriorH2": 2.3887157582435844e-10,
-        "Duration": 193112723
+        "Duration": 176035653
       },
       {
         "TrialNum": 3,
@@ -3811,7 +3811,7 @@
         "PosteriorH0": 0.9999999995222568,
         "PosteriorH1": 2.3887157582435844e-10,
         "PosteriorH2": 2.3887157582435844e-10,
-        "Duration": 192329703
+        "Duration": 170196420
       },
       {
         "TrialNum": 4,
@@ -3822,7 +3822,7 @@
         "PosteriorH0": 0.9999999995222568,
         "PosteriorH1": 2.3887157582435844e-10,
         "PosteriorH2": 2.3887157582435844e-10,
-        "Duration": 186576909
+        "Duration": 168634878
       }
     ],
     "TrustedRate": 1,
