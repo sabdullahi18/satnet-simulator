@@ -41,7 +41,7 @@ type PacketRecord struct {
 func (pr PacketRecord) String() string {
 	extra := ""
 	if pr.IsFlagged {
-		extra += fmt.Sprintf(", FLAGGED")
+		extra += ", FLAGGED"
 	}
 	if pr.HasIncompetence {
 		extra += fmt.Sprintf(", INCOMPETENCE=%.4f", pr.IncompetenceDelay)

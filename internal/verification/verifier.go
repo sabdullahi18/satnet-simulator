@@ -16,7 +16,7 @@ type VerificationConfig struct {
 func DefaultVerificationConfig() VerificationConfig {
 	return VerificationConfig{
 		ErrorTolerance:        0.05,
-		ConfidenceThreshold:   0.95,
+		ConfidenceThreshold:   0.99,
 		FlaggingRateThreshold: 0.30,
 		Epsilon:               1e-3,
 		QueriesPerBatch:       1,
