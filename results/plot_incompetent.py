@@ -122,20 +122,20 @@ def plot_multiseed_sweep(
     ref_label = next(iter(per_seed))
     xs_ref = per_seed[ref_label]["x"]
 
-    # --- PLOT A: verdict rates --------------------------------------------
-    metrics = [
+    # --- PLOT A: verdict rates (one PNG per metric) -----------------------
+    all_metrics = [
         "TrustedRate",
         "CaughtIncompetentRate",
         "CaughtMaliciousRate",
         "SLABreachedRate",
         "InconclusiveRate",
+        "CorrectDetectionRate",
     ]
-    fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True)
-    axes = axes.flatten()
-    for ax, metric in zip(axes, metrics):
+    for metric in all_metrics:
+        fig, ax = plt.subplots(figsize=(7, 4.5))
         stacked = []
         for label, bundle in per_seed.items():
-            ys = extract(bundle["data"], lambda d: d[metric])
+            ys = extract(bundle["data"], lambda d, m=metric: d[m])
             ax.plot(
                 bundle["x"],
                 ys,
@@ -150,13 +150,7 @@ def plot_multiseed_sweep(
         if stacked:
             stack = np.vstack(stacked)
             mean = stack.mean(axis=0)
-            ax.plot(
-                xs_ref,
-                mean,
-                color="black",
-                linewidth=2.0,
-                label="seed mean",
-            )
+            ax.plot(xs_ref, mean, color="black", linewidth=2.0, label="seed mean")
             if stack.shape[0] >= 2:
                 lo = stack.min(axis=0)
                 hi = stack.max(axis=0)
@@ -167,47 +161,9 @@ def plot_multiseed_sweep(
         if log_x:
             ax.set_xscale("log")
         ax.set_xlabel(x_label)
-
-    # CorrectDetectionRate in last slot
-    ax = axes[5]
-    stacked = []
-    for label, bundle in per_seed.items():
-        ys = extract(bundle["data"], lambda d: d["CorrectDetectionRate"])
-        ax.plot(
-            bundle["x"],
-            ys,
-            marker="o",
-            markersize=3,
-            linewidth=0.9,
-            alpha=0.45,
-            label=label,
-        )
-        if len(bundle["x"]) == len(xs_ref) and np.allclose(bundle["x"], xs_ref):
-            stacked.append(ys)
-    if stacked:
-        mean = np.vstack(stacked).mean(axis=0)
-        ax.plot(xs_ref, mean, color="black", linewidth=2.0, label="seed mean")
-    ax.set_title(VERDICT_LABELS["CorrectDetectionRate"], color=VERDICT_COLORS["CorrectDetectionRate"])
-    ax.set_ylim(-0.03, 1.03)
-    ax.set_ylabel("rate")
-    if log_x:
-        ax.set_xscale("log")
-    ax.set_xlabel(x_label)
-
-    # Legend: put on last axis
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(
-        handles,
-        labels,
-        loc="lower center",
-        ncol=min(len(labels), 6),
-        frameon=False,
-        bbox_to_anchor=(0.5, -0.02),
-        fontsize=9,
-    )
-    fig.suptitle(f"{title} — verdict rates", y=1.00)
-    fig.tight_layout(rect=[0, 0.04, 1, 0.98])
-    save(fig, f"{out_prefix}_verdicts.png")
+        ax.legend(fontsize=8, ncol=2, loc="best")
+        fig.suptitle(f"{title} — {VERDICT_LABELS[metric]}", y=1.02)
+        save(fig, f"{out_prefix}_verdict_{metric}.png")
 
     # --- PLOT B: queries (mean + median + p90) ----------------------------
     fig, ax = plt.subplots(figsize=(8, 5))
@@ -231,17 +187,16 @@ def plot_multiseed_sweep(
     ax.legend(fontsize=8, ncol=2, loc="best")
     save(fig, f"{out_prefix}_queries.png")
 
-    # --- PLOT C: posterior mass -------------------------------------------
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4.5), sharex=True)
-    for ax, key, col, name in zip(
-        axes,
+    # --- PLOT C: posterior mass (one PNG per hypothesis) ------------------
+    for key, col, name in zip(
         ["MeanPosteriorH0", "MeanPosteriorH1", "MeanPosteriorH2"],
         [GREEN, ORANGE, RED],
         [r"$\bar{P}(H_0)$ honest", r"$\bar{P}(H_1)$ incompetent", r"$\bar{P}(H_2)$ malicious"],
     ):
+        fig, ax = plt.subplots(figsize=(7, 4.5))
         stacked = []
         for label, bundle in per_seed.items():
-            ys = extract(bundle["data"], lambda d: d[key])
+            ys = extract(bundle["data"], lambda d, k=key: d[k])
             ax.plot(bundle["x"], ys, marker="o", markersize=3, linewidth=0.9, alpha=0.45, label=label)
             if len(bundle["x"]) == len(xs_ref) and np.allclose(bundle["x"], xs_ref):
                 stacked.append(ys)
@@ -253,11 +208,10 @@ def plot_multiseed_sweep(
         ax.set_ylabel(name)
         ax.set_title(name, color=col)
         ax.set_ylim(-0.03, 1.03)
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=min(len(labels), 6), frameon=False, bbox_to_anchor=(0.5, -0.02), fontsize=9)
-    fig.suptitle(f"{title} — terminal posterior mass", y=1.00)
-    fig.tight_layout(rect=[0, 0.04, 1, 0.98])
-    save(fig, f"{out_prefix}_posteriors.png")
+        ax.legend(fontsize=8, ncol=2, loc="best")
+        fig.suptitle(f"{title} — terminal posterior mass", y=1.02)
+        safe_key = key.replace("MeanPosterior", "posterior_")
+        save(fig, f"{out_prefix}_{safe_key}.png")
 
 
 # ---------------------------------------------------------------------------
@@ -616,27 +570,20 @@ def plot_numpackets_pincomp_overlay():
         print("  [skip] no numpackets_sweep_pincomp*.json found")
         return
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.8))
-    ax_cdr, ax_trust, ax_inc = axes
-
-    for pincomp, color, xs, data in loaded:
-        label = rf"$p_{{\mathrm{{incomp}}}}={pincomp:.3g}$"
-        for ax, metric in [(ax_cdr, "CorrectDetectionRate"), (ax_trust, "TrustedRate"), (ax_inc, "CaughtIncompetentRate")]:
-            ys = extract(data, lambda d: d[metric])
+    for metric in ["CorrectDetectionRate", "TrustedRate", "CaughtIncompetentRate"]:
+        fig, ax = plt.subplots(figsize=(7, 4.8))
+        for pincomp, color, xs, data in loaded:
+            label = rf"$p_{{\mathrm{{incomp}}}}={pincomp:.3g}$"
+            ys = extract(data, lambda d, m=metric: d[m])
             ax.plot(xs, ys, marker="o", markersize=4, color=color, label=label, linewidth=1.3)
-
-    for ax, metric in [(ax_cdr, "CorrectDetectionRate"), (ax_trust, "TrustedRate"), (ax_inc, "CaughtIncompetentRate")]:
         ax.set_xscale("log")
         ax.set_xlabel("Number of packets")
         ax.set_ylabel("rate")
         ax.set_ylim(-0.03, 1.03)
         ax.set_title(VERDICT_LABELS[metric], color=VERDICT_COLORS[metric])
-
-    handles, labels = ax_cdr.get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.04), fontsize=10)
-    fig.suptitle(r"Num-packets sweep across $p_{\mathrm{incomp}}$ levels", y=1.02)
-    fig.tight_layout(rect=[0, 0.05, 1, 0.98])
-    save(fig, "numpackets_sweep_pincomp_overlay.png")
+        ax.legend(fontsize=9, loc="best")
+        fig.suptitle(r"Num-packets sweep across $p_{\mathrm{incomp}}$ levels", y=1.02)
+        save(fig, f"numpackets_sweep_pincomp_{metric}.png")
 
 
 # ---------------------------------------------------------------------------
