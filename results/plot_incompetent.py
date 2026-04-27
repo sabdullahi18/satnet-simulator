@@ -560,6 +560,7 @@ def plot_cross_sweep_summary():
         ("eta_sweep.json", lambda d: d["Config"]["Verification"]["ErrorTolerance"], r"$\eta$", True),
         ("answer_error_sweep.json", lambda d: d["Config"]["AnswerErrorRate"], "answer error rate", False),
         ("flag_reliability_sweep.json", lambda d: d["Config"]["FlagReliability"], "flag reliability", False),
+        ("flag_reliability_sweep_high_pincomp.json", lambda d: d["Config"]["FlagReliability"], "flag rel. (high pincomp)", False),
     ]
     fig, axes = plt.subplots(1, len(entries), figsize=(4 * len(entries), 4.2))
     for ax, (fname, getter, xlab, logx) in zip(axes, entries):
@@ -590,6 +591,52 @@ def plot_cross_sweep_summary():
     fig.suptitle("Cross-sweep overview (seed_2)", y=1.02)
     fig.tight_layout(rect=[0, 0.04, 1, 0.98])
     save(fig, "cross_sweep_overview_seed2.png")
+
+
+# ---------------------------------------------------------------------------
+# Numpackets sweep across pincomp levels (overlay)
+# ---------------------------------------------------------------------------
+def plot_numpackets_pincomp_overlay():
+    """Overlay numpackets sweeps for different pincomp levels on a single figure."""
+    variants = [
+        ("numpackets_sweep_pincomp0.050.json", 0.05, BLUE),
+        ("numpackets_sweep_pincomp0.100.json", 0.10, ORANGE),
+        ("numpackets_sweep_pincomp0.200.json", 0.20, RED),
+    ]
+    loaded = []
+    for fname, pincomp, color in variants:
+        p = INCOMP / fname
+        if p.exists():
+            data = load(p)
+            xs = extract(data, lambda d: d["Config"]["NumPackets"])
+            order = np.argsort(xs)
+            loaded.append((pincomp, color, xs[order], [data[i] for i in order]))
+
+    if not loaded:
+        print("  [skip] no numpackets_sweep_pincomp*.json found")
+        return
+
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.8))
+    ax_cdr, ax_trust, ax_inc = axes
+
+    for pincomp, color, xs, data in loaded:
+        label = rf"$p_{{\mathrm{{incomp}}}}={pincomp:.3g}$"
+        for ax, metric in [(ax_cdr, "CorrectDetectionRate"), (ax_trust, "TrustedRate"), (ax_inc, "CaughtIncompetentRate")]:
+            ys = extract(data, lambda d: d[metric])
+            ax.plot(xs, ys, marker="o", markersize=4, color=color, label=label, linewidth=1.3)
+
+    for ax, metric in [(ax_cdr, "CorrectDetectionRate"), (ax_trust, "TrustedRate"), (ax_inc, "CaughtIncompetentRate")]:
+        ax.set_xscale("log")
+        ax.set_xlabel("Number of packets")
+        ax.set_ylabel("rate")
+        ax.set_ylim(-0.03, 1.03)
+        ax.set_title(VERDICT_LABELS[metric], color=VERDICT_COLORS[metric])
+
+    handles, labels = ax_cdr.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.04), fontsize=10)
+    fig.suptitle(r"Num-packets sweep across $p_{\mathrm{incomp}}$ levels", y=1.02)
+    fig.tight_layout(rect=[0, 0.05, 1, 0.98])
+    save(fig, "numpackets_sweep_pincomp_overlay.png")
 
 
 # ---------------------------------------------------------------------------
@@ -646,8 +693,44 @@ def main():
         "Flag-reliability sweep",
         log_x=False,
     )
+    print("[multi-seed] flag_reliability_sweep_high_pincomp")
+    plot_multiseed_sweep(
+        "flag_reliability_sweep_high_pincomp.json",
+        lambda d: d["Config"]["FlagReliability"],
+        "Flag reliability  $P(\\mathrm{flag}\\mid\\mathrm{incompetent})$",
+        "flag_reliability_sweep_high_pincomp",
+        r"Flag-reliability sweep (high $p_{\mathrm{incomp}}$)",
+        log_x=False,
+    )
 
     # --- Top-level single-seed sweeps -------------------------------------
+    print("[single] alpha_sweep (top-level)")
+    plot_single_sweep(
+        "alpha_sweep.json",
+        lambda d: 1.0 - d["Config"]["Verification"]["ConfidenceThreshold"],
+        r"$1-\alpha$  (stricter $\rightarrow$)",
+        "alpha_sweep_single",
+        r"Confidence-threshold sweep ($\alpha$, single seed)",
+        log_x=True,
+    )
+    print("[single] eta_sweep (top-level)")
+    plot_single_sweep(
+        "eta_sweep.json",
+        lambda d: d["Config"]["Verification"]["ErrorTolerance"],
+        r"Error tolerance $\eta$",
+        "eta_sweep_single",
+        r"Error-tolerance sweep ($\eta$, single seed)",
+        log_x=True,
+    )
+    print("[single] answer_error_sweep (top-level)")
+    plot_single_sweep(
+        "answer_error_sweep.json",
+        lambda d: d["Config"]["AnswerErrorRate"],
+        "Answer error rate",
+        "answer_error_sweep_single",
+        "Answer-error sweep (single seed)",
+        log_x=False,
+    )
     print("[single] batch_size_sweep")
     plot_single_sweep(
         "batch_size_sweep.json",
@@ -702,6 +785,10 @@ def main():
         r"Flag-reliability sweep (low $p_{\mathrm{incomp}}$)",
         log_x=False,
     )
+
+    # --- Numpackets pincomp overlay ----------------------------------------
+    print("[overlay] numpackets sweep across pincomp levels")
+    plot_numpackets_pincomp_overlay()
 
     # --- Phase map --------------------------------------------------------
     print("[phase] pincomp x flag_reliability")
