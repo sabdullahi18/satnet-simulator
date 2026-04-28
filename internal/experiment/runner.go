@@ -592,6 +592,17 @@ func incompetentFlagging(reliability float64) network.FlaggingFn {
 	}
 }
 
+// adversarialFlagging flags a deliberately-delayed packet with probability pFlag.
+// Untargeted packets are never flagged.
+func adversarialFlagging(pFlag float64) network.FlaggingFn {
+	return func(hasIncompetence, wasDelayed bool) bool {
+		if !wasDelayed {
+			return false
+		}
+		return rand.Float64() < pFlag
+	}
+}
+
 func (r *Runner) runSingleIncompetentTrial(cfg IncompetentBaselineConfig, trialNum int) IncompetentTrialResult {
 	sim := engine.NewSimulation()
 

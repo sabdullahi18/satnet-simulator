@@ -14,12 +14,14 @@ const (
 	AnswerLiesThatMinimal   AnsweringStrategy = "ANSWER_LIES_THAT_MINIMAL"
 	AnswerLiesAboutTargeted AnsweringStrategy = "ANSWER_LIES_ABOUT_TARGETED"
 	AnswerUnreliable        AnsweringStrategy = "ANSWER_UNRELIABLE"
+	AnswerParametric        AnsweringStrategy = "ANSWER_PARAMETRIC"
 )
 
 type AdversaryConfig struct {
 	AnsweringStr        AnsweringStrategy
 	FlaggingHonestyRate float64
 	AnswerErrorRate     float64
+	LieRate             float64 // p_lie: P(claim minimal | targeted, unflagged, queried)
 }
 
 type Prover struct {
@@ -91,6 +93,18 @@ func (p *Prover) decideAnswer(rec *PacketRecord) Answer {
 			return Answer{IsMinimal: true}
 		}
 		return Answer{IsMinimal: !hasIncompetence && !hasDeliberate}
+
+	case AnswerParametric:
+		if hasDeliberate {
+			if rec.IsFlagged {
+				return Answer{IsMinimal: false}
+			}
+			if rand.Float64() < p.Config.LieRate {
+				return Answer{IsMinimal: true}
+			}
+			return Answer{IsMinimal: false}
+		}
+		return Answer{IsMinimal: !hasIncompetence}
 	}
 
 	return Answer{IsMinimal: true}
