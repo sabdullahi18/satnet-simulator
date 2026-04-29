@@ -420,102 +420,144 @@ func main() {
 		runMal_targetingModes = true
 	)
 
-	runner.SetBaseSeed(baseSeed)
 	malDir := "results/malicious"
 
-	// ----------------------------------------------------------------
-	// §5.3.1 Naive Liar — p_flag=0, p_lie=1
-	// ----------------------------------------------------------------
-	if runMal_naive {
-		naiveBase := baseM
-		naiveBase.Name = "naive_liar"
-		naiveBase.DelayModel.DeliberateMin = 0.050
-		naiveBase.DelayModel.DeliberateMax = 0.050
-		pTargets := logspace(1e-3, 0.5, 30)
-		r := runner.SweepMaliciousPTarget(experiment.NaiveLiarConfig(naiveBase, 0.1), pTargets)
-		if err := runner.SaveMaliciousAggregates(malDir+"/naive_liar_ptarget_sweep.json", r); err != nil {
-			fmt.Printf("warning: %v\n", err)
-		}
-	}
+	// ================================================================
+	//   Headline sweeps — multi-seed
+	// ================================================================
+	// Sweep-type experiments (naive, silent, smart, parametric, aggressive)
+	// run for five seeds so the plotter can show families of curves with
+	// seed-mean overlays, matching the incompetent evaluation structure.
 
-	// ----------------------------------------------------------------
-	// §5.3.2 Silent Dropper — p_flag=0, p_lie=0
-	// ----------------------------------------------------------------
-	if runMal_silent {
-		silentBase := baseM
-		silentBase.Name = "silent_dropper"
-		silentBase.DelayModel.DeliberateMin = 0.050
-		silentBase.DelayModel.DeliberateMax = 0.050
-		pTargets := logspace(1e-3, 0.5, 30)
-		r := runner.SweepMaliciousPTarget(experiment.SilentDropperConfig(silentBase, 0.1), pTargets)
-		if err := runner.SaveMaliciousAggregates(malDir+"/silent_dropper_ptarget_sweep.json", r); err != nil {
-			fmt.Printf("warning: %v\n", err)
-		}
-	}
+	maliciousSeeds := []int64{baseSeed, 2, 3, 4, 5}
 
-	// ----------------------------------------------------------------
-	// §5.4 Smart Strategy — p_flag=1, p_lie=0, p_target ≤ τ_flag
-	// Sweeps both the compliant range [0, τ_flag] (should stay TRUSTED)
-	// and the boundary overshoot [τ_flag, 2·τ_flag] (should trigger SLA).
-	// ----------------------------------------------------------------
-	if runMal_smart {
-		smartBase := baseM
-		smartBase.Name = "smart"
-		smartBase.DelayModel.DeliberateMin = 0.050
-		smartBase.DelayModel.DeliberateMax = 0.050
-		// Compliant range
-		pCompliant := linspace(0, tauFlag, 15)
-		rCompliant := runner.SweepMaliciousPTarget(experiment.SmartStrategyConfig(smartBase, tauFlag*0.5), pCompliant)
-		if err := runner.SaveMaliciousAggregates(malDir+"/smart_compliant_sweep.json", rCompliant); err != nil {
-			fmt.Printf("warning: %v\n", err)
-		}
-		// Overshoot range
-		pOvershoot := linspace(tauFlag, 2*tauFlag, 15)
-		rOvershoot := runner.SweepMaliciousPTarget(experiment.SmartStrategyConfig(smartBase, tauFlag*1.5), pOvershoot)
-		if err := runner.SaveMaliciousAggregates(malDir+"/smart_overshoot_sweep.json", rOvershoot); err != nil {
-			fmt.Printf("warning: %v\n", err)
-		}
-	}
+	for _, seed := range maliciousSeeds {
+		seedDir := fmt.Sprintf("%s/seed_%d", malDir, seed)
+		fmt.Printf("\n--- seed %d (malicious sweeps) ---\n", seed)
+		runner.SetBaseSeed(seed)
 
-	// ----------------------------------------------------------------
-	// §5.5 Generalised Parametric — vary p_target at fixed p_lie values
-	// ----------------------------------------------------------------
-	if runMal_paramPTarget {
-		paramBase := baseM
-		paramBase.Name = "parametric"
-		paramBase.DelayModel.DeliberateMin = 0.050
-		paramBase.DelayModel.DeliberateMax = 0.050
-		pTargets := logspace(1e-3, 0.5, 30)
-		for _, pLie := range []float64{0.0, 0.25, 0.5, 0.75, 1.0} {
-			cfg := experiment.ParametricConfig(paramBase, 0.1, 0.0, pLie)
-			cfg.Name = fmt.Sprintf("parametric_plie%.2f", pLie)
-			r := runner.SweepMaliciousPTarget(cfg, pTargets)
-			path := fmt.Sprintf("%s/parametric_ptarget_plie%.2f.json", malDir, pLie)
-			if err := runner.SaveMaliciousAggregates(path, r); err != nil {
+		// ----------------------------------------------------------------
+		// §5.3.1 Naive Liar — p_flag=0, p_lie=1
+		// ----------------------------------------------------------------
+		if runMal_naive {
+			naiveBase := baseM
+			naiveBase.Name = "naive_liar"
+			naiveBase.DelayModel.DeliberateMin = 0.050
+			naiveBase.DelayModel.DeliberateMax = 0.050
+			pTargets := logspace(1e-3, 0.5, 30)
+			r := runner.SweepMaliciousPTarget(experiment.NaiveLiarConfig(naiveBase, 0.1), pTargets)
+			if err := runner.SaveMaliciousAggregates(seedDir+"/naive_liar_ptarget_sweep.json", r); err != nil {
 				fmt.Printf("warning: %v\n", err)
+			}
+		}
+
+		// ----------------------------------------------------------------
+		// §5.3.2 Silent Dropper — p_flag=0, p_lie=0
+		// ----------------------------------------------------------------
+		if runMal_silent {
+			silentBase := baseM
+			silentBase.Name = "silent_dropper"
+			silentBase.DelayModel.DeliberateMin = 0.050
+			silentBase.DelayModel.DeliberateMax = 0.050
+			pTargets := logspace(1e-3, 0.5, 30)
+			r := runner.SweepMaliciousPTarget(experiment.SilentDropperConfig(silentBase, 0.1), pTargets)
+			if err := runner.SaveMaliciousAggregates(seedDir+"/silent_dropper_ptarget_sweep.json", r); err != nil {
+				fmt.Printf("warning: %v\n", err)
+			}
+		}
+
+		// ----------------------------------------------------------------
+		// §5.4 Smart Strategy — p_flag=1, p_lie=0, p_target ≤ τ_flag
+		// Sweeps both the compliant range [0, τ_flag] (should stay TRUSTED)
+		// and the boundary overshoot [τ_flag, 2·τ_flag] (should trigger SLA).
+		// ----------------------------------------------------------------
+		if runMal_smart {
+			smartBase := baseM
+			smartBase.Name = "smart"
+			smartBase.DelayModel.DeliberateMin = 0.050
+			smartBase.DelayModel.DeliberateMax = 0.050
+			// Compliant range
+			pCompliant := linspace(0, tauFlag, 15)
+			rCompliant := runner.SweepMaliciousPTarget(experiment.SmartStrategyConfig(smartBase, tauFlag*0.5), pCompliant)
+			if err := runner.SaveMaliciousAggregates(seedDir+"/smart_compliant_sweep.json", rCompliant); err != nil {
+				fmt.Printf("warning: %v\n", err)
+			}
+			// Overshoot range
+			pOvershoot := linspace(tauFlag, 2*tauFlag, 15)
+			rOvershoot := runner.SweepMaliciousPTarget(experiment.SmartStrategyConfig(smartBase, tauFlag*1.5), pOvershoot)
+			if err := runner.SaveMaliciousAggregates(seedDir+"/smart_overshoot_sweep.json", rOvershoot); err != nil {
+				fmt.Printf("warning: %v\n", err)
+			}
+		}
+
+		// ----------------------------------------------------------------
+		// §5.5 Generalised Parametric — vary p_target at fixed p_lie values
+		// ----------------------------------------------------------------
+		if runMal_paramPTarget {
+			paramBase := baseM
+			paramBase.Name = "parametric"
+			paramBase.DelayModel.DeliberateMin = 0.050
+			paramBase.DelayModel.DeliberateMax = 0.050
+			pTargets := logspace(1e-3, 0.5, 30)
+			for _, pLie := range []float64{0.0, 0.25, 0.5, 0.75, 1.0} {
+				cfg := experiment.ParametricConfig(paramBase, 0.1, 0.0, pLie)
+				cfg.Name = fmt.Sprintf("parametric_plie%.2f", pLie)
+				r := runner.SweepMaliciousPTarget(cfg, pTargets)
+				path := fmt.Sprintf("%s/parametric_ptarget_plie%.2f.json", seedDir, pLie)
+				if err := runner.SaveMaliciousAggregates(path, r); err != nil {
+					fmt.Printf("warning: %v\n", err)
+				}
+			}
+		}
+
+		// ----------------------------------------------------------------
+		// §5.5 Generalised Parametric — vary p_lie at fixed p_target
+		// ----------------------------------------------------------------
+		if runMal_paramPLie {
+			paramBase := baseM
+			paramBase.Name = "parametric_plie_sweep"
+			paramBase.DelayModel.DeliberateMin = 0.050
+			paramBase.DelayModel.DeliberateMax = 0.050
+			pLies := linspace(0, 1, 25)
+			for _, pTarget := range []float64{2 * tauFlag, 5 * tauFlag, 10 * tauFlag} {
+				cfg := experiment.ParametricConfig(paramBase, pTarget, experiment.AggressivePFlag(pTarget, tauFlag), 0.5)
+				cfg.Name = fmt.Sprintf("parametric_ptarget_x%.0f_tauflag", pTarget/tauFlag)
+				r := runner.SweepMaliciousPLie(cfg, pLies)
+				path := fmt.Sprintf("%s/parametric_plie_ptarget_x%.0ftau.json", seedDir, pTarget/tauFlag)
+				if err := runner.SaveMaliciousAggregates(path, r); err != nil {
+					fmt.Printf("warning: %v\n", err)
+				}
+			}
+		}
+
+		// ----------------------------------------------------------------
+		// §5.5 Aggressive optimum — p_lie sweep at three p_target multiples
+		// p_flag is set to AggressivePFlag so the SLA budget is exactly consumed.
+		// ----------------------------------------------------------------
+		if runMal_aggressive {
+			aggBase := baseM
+			aggBase.Name = "aggressive"
+			aggBase.DelayModel.DeliberateMin = 0.050
+			aggBase.DelayModel.DeliberateMax = 0.050
+			pLies := linspace(0, 1, 25)
+			for _, mult := range []float64{2, 5, 10} {
+				pTarget := mult * tauFlag
+				pFlag := experiment.AggressivePFlag(pTarget, tauFlag)
+				cfg := experiment.ParametricConfig(aggBase, pTarget, pFlag, 0.5)
+				cfg.Name = fmt.Sprintf("aggressive_x%.0ftau", mult)
+				r := runner.SweepMaliciousPLie(cfg, pLies)
+				path := fmt.Sprintf("%s/aggressive_plie_x%.0ftau.json", seedDir, mult)
+				if err := runner.SaveMaliciousAggregates(path, r); err != nil {
+					fmt.Printf("warning: %v\n", err)
+				}
 			}
 		}
 	}
 
-	// ----------------------------------------------------------------
-	// §5.5 Generalised Parametric — vary p_lie at fixed p_target
-	// ----------------------------------------------------------------
-	if runMal_paramPLie {
-		paramBase := baseM
-		paramBase.Name = "parametric_plie_sweep"
-		paramBase.DelayModel.DeliberateMin = 0.050
-		paramBase.DelayModel.DeliberateMax = 0.050
-		pLies := linspace(0, 1, 25)
-		for _, pTarget := range []float64{2 * tauFlag, 5 * tauFlag, 10 * tauFlag} {
-			cfg := experiment.ParametricConfig(paramBase, pTarget, experiment.AggressivePFlag(pTarget, tauFlag), 0.5)
-			cfg.Name = fmt.Sprintf("parametric_ptarget_x%.0f_tauflag", pTarget/tauFlag)
-			r := runner.SweepMaliciousPLie(cfg, pLies)
-			path := fmt.Sprintf("%s/parametric_plie_ptarget_x%.0ftau.json", malDir, pTarget/tauFlag)
-			if err := runner.SaveMaliciousAggregates(path, r); err != nil {
-				fmt.Printf("warning: %v\n", err)
-			}
-		}
-	}
+	// ================================================================
+	//   Single-seed experiments (phase map, targeting modes)
+	// ================================================================
+	runner.SetBaseSeed(baseSeed)
 
 	// ----------------------------------------------------------------
 	// §5.5 Phase map — 2D sweep (p_target × p_lie) with aggressive p_flag
@@ -531,29 +573,6 @@ func main() {
 		r := runner.SweepMaliciousPhaseMap(phaseBase, pTargets, pLies)
 		if err := runner.SaveMaliciousAggregates(malDir+"/parametric_phase_map.json", r); err != nil {
 			fmt.Printf("warning: %v\n", err)
-		}
-	}
-
-	// ----------------------------------------------------------------
-	// §5.5 Aggressive optimum — p_lie sweep at three p_target multiples
-	// p_flag is set to AggressivePFlag so the SLA budget is exactly consumed.
-	// ----------------------------------------------------------------
-	if runMal_aggressive {
-		aggBase := baseM
-		aggBase.Name = "aggressive"
-		aggBase.DelayModel.DeliberateMin = 0.050
-		aggBase.DelayModel.DeliberateMax = 0.050
-		pLies := linspace(0, 1, 25)
-		for _, mult := range []float64{2, 5, 10} {
-			pTarget := mult * tauFlag
-			pFlag := experiment.AggressivePFlag(pTarget, tauFlag)
-			cfg := experiment.ParametricConfig(aggBase, pTarget, pFlag, 0.5)
-			cfg.Name = fmt.Sprintf("aggressive_x%.0ftau", mult)
-			r := runner.SweepMaliciousPLie(cfg, pLies)
-			path := fmt.Sprintf("%s/aggressive_plie_x%.0ftau.json", malDir, mult)
-			if err := runner.SaveMaliciousAggregates(path, r); err != nil {
-				fmt.Printf("warning: %v\n", err)
-			}
 		}
 	}
 
