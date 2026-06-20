@@ -3,6 +3,7 @@ package verification
 import (
 	"math"
 	"math/rand"
+	"slices"
 )
 
 type VerificationConfig struct {
@@ -82,7 +83,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 		}
 	}
 
-	logPost := [3]float64{math.Log(1.0 / 3), math.Log(1.0 / 3), math.Log(1.0 / 3)}
+	logPost := []float64{math.Log(1.0 / 3), math.Log(1.0 / 3), math.Log(1.0 / 3)}
 	contradictions := 0
 	queries := 0
 	hiddenDelaysFound := 0
@@ -167,7 +168,7 @@ func (v *Verifier) RunVerification() VerificationResult {
 			}
 
 			ll := lt.JointLogLikelihoods(contradiction, flagInc)
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				logPost[i] += ll[i]
 			}
 
@@ -225,14 +226,8 @@ func (v *Verifier) RunVerification() VerificationResult {
 	}
 }
 
-func normaliseLogPosterior(logPost [3]float64) [3]float64 {
-	m := logPost[0]
-	if logPost[1] > m {
-		m = logPost[1]
-	}
-	if logPost[2] > m {
-		m = logPost[2]
-	}
+func normaliseLogPosterior(logPost []float64) [3]float64 {
+	m := slices.Max(logPost)
 	sumExp := math.Exp(logPost[0]-m) + math.Exp(logPost[1]-m) + math.Exp(logPost[2]-m)
 	logZ := m + math.Log(sumExp)
 	return [3]float64{
@@ -242,7 +237,7 @@ func normaliseLogPosterior(logPost [3]float64) [3]float64 {
 	}
 }
 
-func maxLogExceeds(logPost [3]float64, logAlpha float64) bool {
+func maxLogExceeds(logPost []float64, logAlpha float64) bool {
 	post := normaliseLogPosterior(logPost)
 	return maxf(post[0], post[1], post[2]) > math.Exp(logAlpha)
 }
