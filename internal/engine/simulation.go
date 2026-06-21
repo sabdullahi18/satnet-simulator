@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"sort"
+	"container/heap"
 )
 
 type Event struct {
@@ -9,16 +9,35 @@ type Event struct {
 	Action func()
 }
 
+// EventHeap is a min-heap of events prioritised by time.
+type EventHeap []Event
+
+func (h EventHeap) Len() int           { return len(h) }
+func (h EventHeap) Less(i, j int) bool { return h[i].Time < h[j].Time }
+func (h EventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h *EventHeap) Push(x any) {
+	*h = append(*h, x.(Event))
+}
+func (h *EventHeap) Pop() any {
+	old := *h
+	n := len(old)
+	item := old[n-1]
+	*h = old[0 : n-1]
+	return item
+}
+
 type Simulation struct {
 	Now    float64
-	events []Event
+	events EventHeap
 }
 
 func NewSimulation() *Simulation {
-	return &Simulation{
+	s := &Simulation{
 		Now:    0.0,
-		events: []Event{},
+		events: make(EventHeap, 0),
 	}
+	heap.Init(&s.events)
+	return s
 }
 
 func (s *Simulation) Schedule(delay float64, action func()) {
@@ -27,33 +46,25 @@ func (s *Simulation) Schedule(delay float64, action func()) {
 		Time:   executionTime,
 		Action: action,
 	}
-
-	s.events = append(s.events, newEvent)
-
-	sort.Slice(s.events, func(i, j int) bool {
-		return s.events[i].Time < s.events[j].Time
-	})
+	heap.Push(&s.events, newEvent)
 }
 
 func (s *Simulation) Run(until float64) {
 	for len(s.events) > 0 {
-		event := s.events[0]
-
-		if event.Time > until {
+		if s.events[0].Time > until {
 			break
 		}
-
-		s.events = s.events[1:]
+		event := heap.Pop(&s.events).(Event)
 		s.Now = event.Time
 		event.Action()
 	}
 }
 
 func (s *Simulation) Clear() {
-	s.events = []Event{}
+	s.events = make(EventHeap, 0)
 }
 
 func (s *Simulation) Reset() {
 	s.Now = 0.0
-	s.events = []Event{}
+	s.events = make(EventHeap, 0)
 }
