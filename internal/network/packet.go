@@ -8,7 +8,7 @@ type Packet struct {
 
 	DelayComponents
 
-	WasDelayed      bool
+	IsTargeted      bool
 	HasIncompetence bool
 	IsFlagged       bool
 }

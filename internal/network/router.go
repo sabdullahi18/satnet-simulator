@@ -15,21 +15,19 @@ const (
 	TargetAll
 )
 
+var targetingModeNames = [...]string{
+	"HONEST",
+	"RANDOM",
+	"PERIODIC",
+	"QUOTA",
+	"ALL",
+}
+
 func (m TargetingMode) String() string {
-	switch m {
-	case TargetNone:
-		return "HONEST"
-	case TargetRandom:
-		return "RANDOM"
-	case TargetPeriodic:
-		return "PERIODIC"
-	case TargetQuota:
-		return "QUOTA"
-	case TargetAll:
-		return "ALL"
-	default:
+	if m < TargetNone || m > TargetAll {
 		return "UNKNOWN"
 	}
+	return targetingModeNames[m]
 }
 
 type TargetingConfig struct {
@@ -75,21 +73,8 @@ func DefaultAllTargeting() TargetingConfig {
 	}
 }
 
-type TransmissionCallback func(info TransmissionInfo)
-type FlaggingFn func(hasIncompetence, wasDelayed bool) bool
-
-type TransmissionInfo struct {
-	PacketID          int
-	BatchID           int
-	SentTime          float64
-	BaseDelay         float64
-	IncompetenceDelay float64
-	DeliberateDelay   float64
-	TotalDelay        float64
-	WasDelayed        bool
-	HasIncompetence   bool
-	IsFlagged         bool
-}
+type TransmissionCallback func(pkt Packet)
+type FlaggingFn func(hasIncompetence, isTargeted bool) bool
 
 type batchQuotaState struct {
 	Seen     int
@@ -138,6 +123,13 @@ func (r *Router) isTargetedQuota(batchID int) bool {
 	if k >= B {
 		return true
 	}
+	// clean up older batch states to prevent memory leaks
+	for id := range r.quotaState {
+		if id < batchID-10 {
+			delete(r.quotaState, id)
+		}
+	}
+
 	st, ok := r.quotaState[batchID]
 	if !ok {
 		st = &batchQuotaState{}
@@ -168,29 +160,21 @@ func (r *Router) Forward(sim *engine.Simulation, pkt Packet, dest Destination) {
 		r.PacketsTargeted++
 	}
 
-	hasIncompetence := rand.Float64() < r.DelayModel.IncompetenceRate
+	hasIncompetence := rand.Float64() < r.DelayModel.config.IncompetenceRate
 
 	isFlagged := false
 	if r.Flagging != nil {
 		isFlagged = r.Flagging(hasIncompetence, isTargeted)
 	}
 	pkt.IsFlagged = isFlagged
-
 	delays := r.DelayModel.ComputeTotalDelay(sendTime, hasIncompetence, isTargeted)
+	pkt.DelayComponents = delays
+	pkt.IsTargeted = isTargeted
+	pkt.HasIncompetence = hasIncompetence
+
 	sim.Schedule(delays.TotalDelay, func() {
 		if r.OnTransmission != nil {
-			r.OnTransmission(TransmissionInfo{
-				PacketID:          pkt.ID,
-				BatchID:           pkt.BatchID,
-				SentTime:          sendTime,
-				BaseDelay:         delays.BaseDelay,
-				IncompetenceDelay: delays.IncompetenceDelay,
-				DeliberateDelay:   delays.DeliberateDelay,
-				TotalDelay:        delays.TotalDelay,
-				WasDelayed:        isTargeted,
-				HasIncompetence:   hasIncompetence,
-				IsFlagged:         isFlagged,
-			})
+			r.OnTransmission(pkt)
 		}
 
 		dest.Receive(sim, pkt, "")

@@ -13,8 +13,8 @@ type DelayModelConfig struct {
 	IncompetenceRate  float64
 	IncompetenceMu    float64
 	IncompetenceSigma float64
-	DeliberateMin     float64
-	DeliberateMax     float64
+	TargetedMin       float64
+	TargetedMax       float64
 }
 
 type PathTransition struct {
@@ -31,7 +31,7 @@ type DelayModel struct {
 type DelayComponents struct {
 	BaseDelay         float64
 	IncompetenceDelay float64
-	DeliberateDelay   float64
+	TargetedDelay     float64
 	TotalDelay        float64
 }
 
@@ -92,11 +92,11 @@ func (dm *DelayModel) getIncompetenceDelay() float64 {
 	return math.Exp(dm.config.IncompetenceMu + dm.config.IncompetenceSigma*z)
 }
 
-func (dm *DelayModel) getDeliberateDelay() float64 {
-	return dm.config.DeliberateMin + rand.Float64()*(dm.config.DeliberateMax-dm.config.DeliberateMin)
+func (dm *DelayModel) getTargetedDelay() float64 {
+	return dm.config.TargetedMin + rand.Float64()*(dm.config.TargetedMax-dm.config.TargetedMin)
 }
 
-func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasIncompetence bool, isDeliberate bool) DelayComponents {
+func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasIncompetence bool, isTargeted bool) DelayComponents {
 	baseDelay := dm.getBaseDelay(sendTime)
 
 	incompetenceDelay := 0.0
@@ -104,15 +104,15 @@ func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasIncompetence bool, 
 		incompetenceDelay = dm.getIncompetenceDelay()
 	}
 
-	deliberateDelay := 0.0
-	if isDeliberate {
-		deliberateDelay = dm.getDeliberateDelay()
+	targetedDelay := 0.0
+	if isTargeted {
+		targetedDelay = dm.getTargetedDelay()
 	}
 
 	return DelayComponents{
 		BaseDelay:         baseDelay,
 		IncompetenceDelay: incompetenceDelay,
-		DeliberateDelay:   deliberateDelay,
-		TotalDelay:        baseDelay + incompetenceDelay + deliberateDelay,
+		TargetedDelay:     targetedDelay,
+		TotalDelay:        baseDelay + incompetenceDelay + targetedDelay,
 	}
 }
