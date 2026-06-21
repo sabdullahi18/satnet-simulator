@@ -6,10 +6,7 @@ type Packet struct {
 	Src      string
 	SentTime float64
 
-	BaseDelay         float64
-	IncompetenceDelay float64
-	DeliberateDelay   float64
-	ActualDelay       float64
+	DelayComponents
 
 	WasDelayed      bool
 	HasIncompetence bool
