@@ -2,38 +2,53 @@ package verification
 
 import "math"
 
-type LikelihoodTable struct {
-	Epsilon float64
-	Eta     float64
+// likelihoodTable caches precomputed log-likelihoods for all combinations of
+// (contradiction, flagInconsistent) to avoid calling math.Log repeatedly in the hot path.
+// Using log-likelihoods prevents numerical underflow when multiplying many small
+// probabilities together, and addition is computationally faster and more numerically stable.
+type likelihoodTable struct {
+	// logLikelihoods[contradiction][flagInconsistent][hypothesis]
+	logLikelihoods [2][2][3]float64
 }
 
-func DefaultLikelihoodTable() LikelihoodTable {
-	return LikelihoodTable{
-		Epsilon: 1e-3,
-		Eta:     0.05,
+func newLikelihoodTable(epsilon, eta float64) *likelihoodTable {
+	lt := &likelihoodTable{}
+	for c := 0; c < 2; c++ {
+		for f := 0; f < 2; f++ {
+			contradiction := c == 1
+			flagInconsistent := f == 1
+
+			var contraProb [3]float64
+			if contradiction {
+				contraProb = [3]float64{epsilon, eta, 1 - eta}
+			} else {
+				contraProb = [3]float64{1 - epsilon, 1 - eta, eta}
+			}
+
+			var flagProb [3]float64
+			if flagInconsistent {
+				flagProb = [3]float64{epsilon, 1 - eta, eta}
+			} else {
+				flagProb = [3]float64{1 - epsilon, eta, 1 - eta}
+			}
+
+			for i := range 3 {
+				// multiplying before taking the log is equivalent to adding logs but saves a math.Log call.
+				lt.logLikelihoods[c][f][i] = math.Log(contraProb[i] * flagProb[i])
+			}
+		}
 	}
+	return lt
 }
 
-func (lt LikelihoodTable) contraLikelihoods(contradiction bool) [3]float64 {
+func (lt *likelihoodTable) jointLogLikelihoods(contradiction, flagInconsistent bool) [3]float64 {
+	cIdx := 0
 	if contradiction {
-		return [3]float64{lt.Epsilon, lt.Eta, 1 - lt.Eta}
+		cIdx = 1
 	}
-	return [3]float64{1 - lt.Epsilon, 1 - lt.Eta, lt.Eta}
-}
-
-func (lt LikelihoodTable) flagLikelihoods(flagInc bool) [3]float64 {
-	if flagInc {
-		return [3]float64{lt.Epsilon, 1 - lt.Eta, lt.Eta}
+	fIdx := 0
+	if flagInconsistent {
+		fIdx = 1
 	}
-	return [3]float64{1 - lt.Epsilon, lt.Eta, 1 - lt.Eta}
-}
-
-func (lt LikelihoodTable) JointLogLikelihoods(contradiction, flagInc bool) [3]float64 {
-	c := lt.contraLikelihoods(contradiction)
-	f := lt.flagLikelihoods(flagInc)
-	var out [3]float64
-	for i := 0; i < 3; i++ {
-		out[i] = math.Log(c[i]) + math.Log(f[i])
-	}
-	return out
+	return lt.logLikelihoods[cIdx][fIdx]
 }
