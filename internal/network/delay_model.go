@@ -6,46 +6,6 @@ import (
 	"sort"
 )
 
-type DelayModel struct {
-	BaseDelayMin      float64
-	BaseDelayMax      float64
-	TransitionRate    float64
-	IncompetenceRate  float64
-	IncompetenceMu    float64
-	IncompetenceSigma float64
-	DeliberateMin     float64
-	DeliberateMax     float64
-	transitions       []PathTransition
-	initialised       bool
-}
-
-type PathTransition struct {
-	Time      float64
-	BaseDelay float64
-}
-
-type DelayComponents struct {
-	BaseDelay         float64
-	IncompetenceDelay float64
-	DeliberateDelay   float64
-	TotalDelay        float64
-}
-
-func NewDelayModelConfig(cfg DelayModelConfig) *DelayModel {
-	return &DelayModel{
-		BaseDelayMin:      cfg.BaseDelayMin,
-		BaseDelayMax:      cfg.BaseDelayMax,
-		TransitionRate:    cfg.TransitionRate,
-		IncompetenceRate:  cfg.IncompetenceRate,
-		IncompetenceMu:    cfg.IncompetenceMu,
-		IncompetenceSigma: cfg.IncompetenceSigma,
-		DeliberateMin:     cfg.DeliberateMin,
-		DeliberateMax:     cfg.DeliberateMax,
-		transitions:       make([]PathTransition, 0),
-		initialised:       false,
-	}
-}
-
 type DelayModelConfig struct {
 	BaseDelayMin      float64
 	BaseDelayMax      float64
@@ -57,22 +17,49 @@ type DelayModelConfig struct {
 	DeliberateMax     float64
 }
 
+type PathTransition struct {
+	time      float64
+	baseDelay float64
+}
+
+type DelayModel struct {
+	config      DelayModelConfig
+	transitions []PathTransition
+	initialised bool
+}
+
+type DelayComponents struct {
+	BaseDelay         float64
+	IncompetenceDelay float64
+	DeliberateDelay   float64
+	TotalDelay        float64
+}
+
+func NewDelayModelConfig(cfg DelayModelConfig) *DelayModel {
+	return &DelayModel{
+		config:      cfg,
+		transitions: make([]PathTransition, 0),
+		initialised: false,
+	}
+}
+
 func (dm *DelayModel) Initialise(duration float64) {
 	dm.transitions = make([]PathTransition, 0)
 	currentTime := 0.0
 	dm.transitions = append(dm.transitions, PathTransition{
-		Time:      0,
-		BaseDelay: dm.sampleBaseDelay(),
+		time:      0,
+		baseDelay: dm.sampleBaseDelay(),
 	})
 
 	for currentTime < duration {
-		interArrival := -math.Log(1.0-rand.Float64()) / dm.TransitionRate
+		// interArrival = -ln(1-U)/lambda
+		interArrival := rand.ExpFloat64() / dm.config.TransitionRate
 		currentTime += interArrival
 
 		if currentTime < duration {
 			dm.transitions = append(dm.transitions, PathTransition{
-				Time:      currentTime,
-				BaseDelay: dm.sampleBaseDelay(),
+				time:      currentTime,
+				baseDelay: dm.sampleBaseDelay(),
 			})
 		}
 	}
@@ -81,44 +68,45 @@ func (dm *DelayModel) Initialise(duration float64) {
 }
 
 func (dm *DelayModel) sampleBaseDelay() float64 {
-	return dm.BaseDelayMin + rand.Float64()*(dm.BaseDelayMax-dm.BaseDelayMin)
+	return dm.config.BaseDelayMin + rand.Float64()*(dm.config.BaseDelayMax-dm.config.BaseDelayMin)
 }
 
-func (dm *DelayModel) GetBaseDelay(t float64) float64 {
+func (dm *DelayModel) getBaseDelay(t float64) float64 {
 	if !dm.initialised || len(dm.transitions) == 0 {
 		return dm.sampleBaseDelay()
 	}
 
 	idx := sort.Search(len(dm.transitions), func(i int) bool {
-		return dm.transitions[i].Time > t
+		return dm.transitions[i].time > t
 	})
 
 	if idx == 0 {
-		return dm.transitions[0].BaseDelay
+		return dm.transitions[0].baseDelay
 	}
-	return dm.transitions[idx-1].BaseDelay
+	return dm.transitions[idx-1].baseDelay
 }
 
-func (dm *DelayModel) GetIncompetenceDelay() float64 {
+func (dm *DelayModel) getIncompetenceDelay() float64 {
+	// lognormal distribution
 	z := rand.NormFloat64()
-	return math.Exp(dm.IncompetenceMu + dm.IncompetenceSigma*z)
+	return math.Exp(dm.config.IncompetenceMu + dm.config.IncompetenceSigma*z)
 }
 
-func (dm *DelayModel) GetDeliberateDelay() float64 {
-	return dm.DeliberateMin + rand.Float64()*(dm.DeliberateMax-dm.DeliberateMin)
+func (dm *DelayModel) getDeliberateDelay() float64 {
+	return dm.config.DeliberateMin + rand.Float64()*(dm.config.DeliberateMax-dm.config.DeliberateMin)
 }
 
 func (dm *DelayModel) ComputeTotalDelay(sendTime float64, hasIncompetence bool, isDeliberate bool) DelayComponents {
-	baseDelay := dm.GetBaseDelay(sendTime)
+	baseDelay := dm.getBaseDelay(sendTime)
 
 	incompetenceDelay := 0.0
 	if hasIncompetence {
-		incompetenceDelay = dm.GetIncompetenceDelay()
+		incompetenceDelay = dm.getIncompetenceDelay()
 	}
 
 	deliberateDelay := 0.0
 	if isDeliberate {
-		deliberateDelay = dm.GetDeliberateDelay()
+		deliberateDelay = dm.getDeliberateDelay()
 	}
 
 	return DelayComponents{

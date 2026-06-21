@@ -5,15 +5,15 @@ import (
 )
 
 type Event struct {
-	Time   float64
-	Action func()
+	time   float64
+	action func()
 }
 
 // EventHeap is a min-heap of events prioritised by time.
 type EventHeap []Event
 
 func (h EventHeap) Len() int           { return len(h) }
-func (h EventHeap) Less(i, j int) bool { return h[i].Time < h[j].Time }
+func (h EventHeap) Less(i, j int) bool { return h[i].time < h[j].time }
 func (h EventHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 func (h *EventHeap) Push(x any) {
 	*h = append(*h, x.(Event))
@@ -43,20 +43,20 @@ func NewSimulation() *Simulation {
 func (s *Simulation) Schedule(delay float64, action func()) {
 	executionTime := s.Now + delay
 	newEvent := Event{
-		Time:   executionTime,
-		Action: action,
+		time:   executionTime,
+		action: action,
 	}
 	heap.Push(&s.events, newEvent)
 }
 
 func (s *Simulation) Run(until float64) {
-	for len(s.events) > 0 {
-		if s.events[0].Time > until {
+	for s.events.Len() > 0 {
+		if s.events[0].time > until {
 			break
 		}
 		event := heap.Pop(&s.events).(Event)
-		s.Now = event.Time
-		event.Action()
+		s.Now = event.time
+		event.action()
 	}
 }
 
