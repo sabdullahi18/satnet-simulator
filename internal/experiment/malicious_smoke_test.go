@@ -6,6 +6,7 @@ import (
 	"satnet-simulator/internal/verification"
 )
 
+// testing framework is messy clean shit up rn
 func TestMaliciousStrategiesSmoke(t *testing.T) {
 	runner := NewRunner()
 	runner.Verbose = false
@@ -99,10 +100,10 @@ func TestMaliciousStrategiesSmoke(t *testing.T) {
 
 	t.Run("AggressivePFlag", func(t *testing.T) {
 		cases := [][3]float64{
-			{0.10, 0.30, 1.0},  // p_target < tau_flag → min(1, 0.30/0.10) = 1
-			{0.30, 0.30, 1.0},  // equal → 1
-			{0.60, 0.30, 0.5},  // p_target > tau_flag → 0.30/0.60 = 0.5
-			{0.00, 0.30, 0.0},  // zero target → 0
+			{0.10, 0.30, 1.0}, // p_target < tau_flag → min(1, 0.30/0.10) = 1
+			{0.30, 0.30, 1.0}, // equal → 1
+			{0.60, 0.30, 0.5}, // p_target > tau_flag → 0.30/0.60 = 0.5
+			{0.00, 0.30, 0.0}, // zero target → 0
 		}
 		for _, c := range cases {
 			got := AggressivePFlag(c[0], c[1])

@@ -17,9 +17,10 @@ import (
 	"satnet-simulator/internal/verification"
 )
 
+// this entire file can be split up into multiple files: honest runner, etc.
+
 // HonestBaselineConfig pins the network to H0 (honest, no incompetence, no
-// targeting) and exposes only the knobs relevant to characterising verifier
-// behaviour on a perfectly honest network.
+// targeting)
 type HonestBaselineConfig struct {
 	Name         string
 	NumTrials    int
@@ -44,15 +45,17 @@ func DefaultHonestBaseline() HonestBaselineConfig {
 			IncompetenceRate:  0.0,
 			IncompetenceMu:    0.0,
 			IncompetenceSigma: 0.0,
-			DeliberateMin:     0.0,
-			DeliberateMax:     0.0,
+			TargetedMin:     0.0,
+			TargetedMax:     0.0,
 		},
 		Verification: verification.DefaultVerificationConfig(),
 	}
 }
 
+// repeated struct? check verifier
 type HonestTrialResult struct {
-	TrialNum            int
+	TrialNum int
+	// use verification result struct here instead?
 	Verdict             string
 	Confidence          float64
 	QueriesUsed         int
@@ -106,8 +109,10 @@ func NewRunner() *Runner {
 	return &Runner{Verbose: true}
 }
 
+// mention this is for bernoulli bullshit
 const rateCI95Z = 1.959963984540054
 
+// maybe don't need to explain math actually...
 func wilsonRateCI(successes, total int) RateCI {
 	if total <= 0 {
 		return RateCI{}
@@ -137,6 +142,8 @@ func formatRateWithCI(rate float64, ci RateCI) string {
 // With a fixed base seed, each (scenario, config, trial) maps to a stable
 // random stream, so rerunning a single sweep is independent of what other
 // sweeps were enabled.
+
+// there MUST be a math lib func for this... ask gemini
 func (r *Runner) SetBaseSeed(seed int64) {
 	r.baseSeed = seed
 	r.deterministicSeeding = true
@@ -148,6 +155,7 @@ func (r *Runner) maybeSeedTrial(scope, cfgName string, trialNum int) {
 	}
 	h := fnv.New64a()
 	_, _ = fmt.Fprintf(h, "%s|%s|%d", scope, cfgName, trialNum)
+	// REMOVE THIS ASAP , REFACTOR THIS
 	rand.Seed(int64(h.Sum64() ^ uint64(r.baseSeed)))
 }
 
@@ -181,6 +189,8 @@ func (r *Runner) RunHonest(cfg HonestBaselineConfig) HonestAggregate {
 	}
 	return agg
 }
+
+// this whole section should be rewritten i think, it's too long, or maybe move to another file idfk
 
 // SweepHonestEta varies η (ErrorTolerance) under the honest baseline.
 func (r *Runner) SweepHonestEta(base HonestBaselineConfig, etas []float64) []HonestAggregate {
@@ -284,19 +294,8 @@ func (r *Runner) runSingleHonestTrial(cfg HonestBaselineConfig, trialNum int) Ho
 		func(hasIncompetence, wasDelayed bool) bool { return false },
 	)
 
-	router.OnTransmission = func(info network.TransmissionInfo) {
-		prover.RecordTransmission(verification.TransmissionRecord{
-			ID:                info.PacketID,
-			BatchID:           info.BatchID,
-			SentTime:          info.SentTime,
-			BaseDelay:         info.BaseDelay,
-			IncompetenceDelay: info.IncompetenceDelay,
-			DeliberateDelay:   info.DeliberateDelay,
-			ActualDelay:       info.TotalDelay,
-			WasDelayed:        info.WasDelayed,
-			HasIncompetence:   info.HasIncompetence,
-			IsFlagged:         info.IsFlagged,
-		})
+	router.OnTransmission = func(pkt network.Packet) {
+		prover.RecordTransmission(pkt)
 	}
 
 	dest := &honestDest{}
@@ -325,13 +324,8 @@ func (r *Runner) runSingleHonestTrial(cfg HonestBaselineConfig, trialNum int) Ho
 	}
 	sim.Run(cfg.SimDuration + 10.0)
 
-	observations := make([]verification.Observation, 0, len(prover.Packets))
-	for _, p := range prover.Packets {
-		observations = append(observations, verification.ObservationFrom(*p))
-	}
-
 	verifier := verification.NewVerifier(prover, cfg.Verification)
-	verifier.IngestObservations(observations)
+	verifier.IngestPackets(prover.Packets)
 	res := verifier.RunVerification()
 
 	return HonestTrialResult{
@@ -492,8 +486,8 @@ func DefaultIncompetentBaseline() IncompetentBaselineConfig {
 			IncompetenceRate:  0.05,
 			IncompetenceMu:    -3.9, // e^{-3.9} ≈ 20 ms geometric-mean congestion delay
 			IncompetenceSigma: 0.5,
-			DeliberateMin:     0.0,
-			DeliberateMax:     0.0,
+			TargetedMin:     0.0,
+			TargetedMax:     0.0,
 		},
 		FlagReliability:   0.0, // worst-case classical incompetence: never flags
 		AnsweringStrategy: verification.AnswerHonest,
@@ -619,19 +613,8 @@ func (r *Runner) runSingleIncompetentTrial(cfg IncompetentBaselineConfig, trialN
 		network.DefaultHonestTargeting(), // TargetNone; incompetence fires via DelayModel.IncompetenceRate
 		incompetentFlagging(cfg.FlagReliability),
 	)
-	router.OnTransmission = func(info network.TransmissionInfo) {
-		prover.RecordTransmission(verification.TransmissionRecord{
-			ID:                info.PacketID,
-			BatchID:           info.BatchID,
-			SentTime:          info.SentTime,
-			BaseDelay:         info.BaseDelay,
-			IncompetenceDelay: info.IncompetenceDelay,
-			DeliberateDelay:   info.DeliberateDelay,
-			ActualDelay:       info.TotalDelay,
-			WasDelayed:        info.WasDelayed,
-			HasIncompetence:   info.HasIncompetence,
-			IsFlagged:         info.IsFlagged,
-		})
+	router.OnTransmission = func(pkt network.Packet) {
+		prover.RecordTransmission(pkt)
 	}
 
 	dest := &honestDest{}
@@ -660,13 +643,8 @@ func (r *Runner) runSingleIncompetentTrial(cfg IncompetentBaselineConfig, trialN
 	}
 	sim.Run(cfg.SimDuration + 10.0)
 
-	observations := make([]verification.Observation, 0, len(prover.Packets))
-	for _, p := range prover.Packets {
-		observations = append(observations, verification.ObservationFrom(*p))
-	}
-
 	verifier := verification.NewVerifier(prover, cfg.Verification)
-	verifier.IngestObservations(observations)
+	verifier.IngestPackets(prover.Packets)
 	res := verifier.RunVerification()
 
 	return IncompetentTrialResult{

@@ -36,7 +36,7 @@ type MaliciousBaselineConfig struct {
 	BatchSize   int
 	SimDuration float64
 
-	DelayModel network.DelayModelConfig // DeliberateMin/Max carry d_mal
+	DelayModel network.DelayModelConfig // TargetedMin/Max carry d_mal
 
 	Targeting network.TargetingConfig
 
@@ -61,8 +61,8 @@ func DefaultMaliciousBaseline() MaliciousBaselineConfig {
 			IncompetenceRate:  0.0,
 			IncompetenceMu:    0.0,
 			IncompetenceSigma: 0.0,
-			DeliberateMin:     0.050,
-			DeliberateMax:     0.050,
+			TargetedMin:     0.050,
+			TargetedMax:     0.050,
 		},
 		Targeting:         network.DefaultAdversarialTargeting(0.10),
 		PFlag:             0.0,
@@ -138,7 +138,7 @@ func (r *Runner) RunMalicious(cfg MaliciousBaselineConfig) MaliciousAggregate {
 		fmt.Printf(">>> %s: N=%d, pkts=%d, B=%d, p_target=%.4f, p_flag=%.3f, p_lie=%.3f, d_mal=[%.3f,%.3f], η=%.4f, α=%.4f\n",
 			cfg.Name, cfg.NumTrials, cfg.NumPackets, cfg.BatchSize,
 			cfg.Targeting.TargetFraction, cfg.PFlag, cfg.PLie,
-			cfg.DelayModel.DeliberateMin, cfg.DelayModel.DeliberateMax,
+			cfg.DelayModel.TargetedMin, cfg.DelayModel.TargetedMax,
 			cfg.Verification.ErrorTolerance,
 			cfg.Verification.ConfidenceThreshold)
 	}
@@ -176,19 +176,8 @@ func (r *Runner) runSingleMaliciousTrial(cfg MaliciousBaselineConfig, trialNum i
 	})
 
 	router := network.NewRouter(dm, cfg.Targeting, adversarialFlagging(cfg.PFlag))
-	router.OnTransmission = func(info network.TransmissionInfo) {
-		prover.RecordTransmission(verification.TransmissionRecord{
-			ID:                info.PacketID,
-			BatchID:           info.BatchID,
-			SentTime:          info.SentTime,
-			BaseDelay:         info.BaseDelay,
-			IncompetenceDelay: info.IncompetenceDelay,
-			DeliberateDelay:   info.DeliberateDelay,
-			ActualDelay:       info.TotalDelay,
-			WasDelayed:        info.WasDelayed,
-			HasIncompetence:   info.HasIncompetence,
-			IsFlagged:         info.IsFlagged,
-		})
+	router.OnTransmission = func(pkt network.Packet) {
+		prover.RecordTransmission(pkt)
 	}
 
 	dest := &honestDest{}
@@ -217,13 +206,8 @@ func (r *Runner) runSingleMaliciousTrial(cfg MaliciousBaselineConfig, trialNum i
 	}
 	sim.Run(cfg.SimDuration + 10.0)
 
-	observations := make([]verification.Observation, 0, len(prover.Packets))
-	for _, p := range prover.Packets {
-		observations = append(observations, verification.ObservationFrom(*p))
-	}
-
 	verifier := verification.NewVerifier(prover, cfg.Verification)
-	verifier.IngestObservations(observations)
+	verifier.IngestPackets(prover.Packets)
 	res := verifier.RunVerification()
 
 	return MaliciousTrialResult{

@@ -442,8 +442,8 @@ func main() {
 		if runMal_naive {
 			naiveBase := baseM
 			naiveBase.Name = "naive_liar"
-			naiveBase.DelayModel.DeliberateMin = 0.050
-			naiveBase.DelayModel.DeliberateMax = 0.050
+			naiveBase.DelayModel.TargetedMin = 0.050
+			naiveBase.DelayModel.TargetedMax = 0.050
 			pTargets := logspace(1e-3, 0.5, 30)
 			r := runner.SweepMaliciousPTarget(experiment.NaiveLiarConfig(naiveBase, 0.1), pTargets)
 			if err := runner.SaveMaliciousAggregates(seedDir+"/naive_liar_ptarget_sweep.json", r); err != nil {
@@ -457,8 +457,8 @@ func main() {
 		if runMal_silent {
 			silentBase := baseM
 			silentBase.Name = "silent_dropper"
-			silentBase.DelayModel.DeliberateMin = 0.050
-			silentBase.DelayModel.DeliberateMax = 0.050
+			silentBase.DelayModel.TargetedMin = 0.050
+			silentBase.DelayModel.TargetedMax = 0.050
 			pTargets := logspace(1e-3, 0.5, 30)
 			r := runner.SweepMaliciousPTarget(experiment.SilentDropperConfig(silentBase, 0.1), pTargets)
 			if err := runner.SaveMaliciousAggregates(seedDir+"/silent_dropper_ptarget_sweep.json", r); err != nil {
@@ -474,8 +474,8 @@ func main() {
 		if runMal_smart {
 			smartBase := baseM
 			smartBase.Name = "smart"
-			smartBase.DelayModel.DeliberateMin = 0.050
-			smartBase.DelayModel.DeliberateMax = 0.050
+			smartBase.DelayModel.TargetedMin = 0.050
+			smartBase.DelayModel.TargetedMax = 0.050
 			// Compliant range
 			pCompliant := linspace(0, tauFlag, 15)
 			rCompliant := runner.SweepMaliciousPTarget(experiment.SmartStrategyConfig(smartBase, tauFlag*0.5), pCompliant)
@@ -496,8 +496,8 @@ func main() {
 		if runMal_paramPTarget {
 			paramBase := baseM
 			paramBase.Name = "parametric"
-			paramBase.DelayModel.DeliberateMin = 0.050
-			paramBase.DelayModel.DeliberateMax = 0.050
+			paramBase.DelayModel.TargetedMin = 0.050
+			paramBase.DelayModel.TargetedMax = 0.050
 			pTargets := logspace(1e-3, 0.5, 30)
 			for _, pLie := range []float64{0.0, 0.25, 0.5, 0.75, 1.0} {
 				cfg := experiment.ParametricConfig(paramBase, 0.1, 0.0, pLie)
@@ -516,8 +516,8 @@ func main() {
 		if runMal_paramPLie {
 			paramBase := baseM
 			paramBase.Name = "parametric_plie_sweep"
-			paramBase.DelayModel.DeliberateMin = 0.050
-			paramBase.DelayModel.DeliberateMax = 0.050
+			paramBase.DelayModel.TargetedMin = 0.050
+			paramBase.DelayModel.TargetedMax = 0.050
 			pLies := linspace(0, 1, 25)
 			for _, pTarget := range []float64{2 * tauFlag, 5 * tauFlag, 10 * tauFlag} {
 				cfg := experiment.ParametricConfig(paramBase, pTarget, experiment.AggressivePFlag(pTarget, tauFlag), 0.5)
@@ -537,8 +537,8 @@ func main() {
 		if runMal_aggressive {
 			aggBase := baseM
 			aggBase.Name = "aggressive"
-			aggBase.DelayModel.DeliberateMin = 0.050
-			aggBase.DelayModel.DeliberateMax = 0.050
+			aggBase.DelayModel.TargetedMin = 0.050
+			aggBase.DelayModel.TargetedMax = 0.050
 			pLies := linspace(0, 1, 25)
 			for _, mult := range []float64{2, 5, 10} {
 				pTarget := mult * tauFlag
@@ -566,8 +566,8 @@ func main() {
 		phaseBase := baseM
 		phaseBase.Name = "parametric_phase_map"
 		phaseBase.NumTrials = 100
-		phaseBase.DelayModel.DeliberateMin = 0.050
-		phaseBase.DelayModel.DeliberateMax = 0.050
+		phaseBase.DelayModel.TargetedMin = 0.050
+		phaseBase.DelayModel.TargetedMax = 0.050
 		pTargets := logspace(1e-3, 0.5, 16)
 		pLies := linspace(0, 1, 16)
 		r := runner.SweepMaliciousPhaseMap(phaseBase, pTargets, pLies)
@@ -582,8 +582,8 @@ func main() {
 	if runMal_targetingModes {
 		modesBase := baseM
 		modesBase.Name = "targeting_modes"
-		modesBase.DelayModel.DeliberateMin = 0.050
-		modesBase.DelayModel.DeliberateMax = 0.050
+		modesBase.DelayModel.TargetedMin = 0.050
+		modesBase.DelayModel.TargetedMax = 0.050
 		r := runner.SweepMaliciousTargetingModes(modesBase)
 		if err := runner.SaveMaliciousAggregates(malDir+"/targeting_modes.json", r); err != nil {
 			fmt.Printf("warning: %v\n", err)

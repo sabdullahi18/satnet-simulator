@@ -1,3 +1,2 @@
-results/group2a_monitoring_frontier_qpb.json
-dissertation.pdf
-COMP0138_SZCP9.pdf
+results/
+!results/*.py
