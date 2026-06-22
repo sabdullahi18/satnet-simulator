@@ -45,8 +45,8 @@ func DefaultHonestBaseline() HonestBaselineConfig {
 			IncompetenceRate:  0.0,
 			IncompetenceMu:    0.0,
 			IncompetenceSigma: 0.0,
-			TargetedMin:     0.0,
-			TargetedMax:     0.0,
+			TargetedMin:       0.0,
+			TargetedMax:       0.0,
 		},
 		Verification: verification.DefaultVerificationConfig(),
 	}
@@ -300,17 +300,11 @@ func (r *Runner) runSingleHonestTrial(cfg HonestBaselineConfig, trialNum int) Ho
 
 	dest := &honestDest{}
 
-	batchSize := cfg.BatchSize
-	if batchSize < 2 {
-		batchSize = 2
-	}
-	numBatches := cfg.NumPackets / batchSize
-	if numBatches < 1 {
-		numBatches = 1
-	}
+	batchSize := max(2, cfg.BatchSize)
+	numBatches := max(1, cfg.NumPackets/batchSize)
 
 	pktID := 0
-	for b := 0; b < numBatches; b++ {
+	for b := range numBatches {
 		sendTime := float64(b) * (cfg.SimDuration / float64(numBatches))
 		batchID := b
 		for j := 0; j < batchSize; j++ {
@@ -486,8 +480,8 @@ func DefaultIncompetentBaseline() IncompetentBaselineConfig {
 			IncompetenceRate:  0.05,
 			IncompetenceMu:    -3.9, // e^{-3.9} ≈ 20 ms geometric-mean congestion delay
 			IncompetenceSigma: 0.5,
-			TargetedMin:     0.0,
-			TargetedMax:     0.0,
+			TargetedMin:       0.0,
+			TargetedMax:       0.0,
 		},
 		FlagReliability:   0.0, // worst-case classical incompetence: never flags
 		AnsweringStrategy: verification.AnswerHonest,
