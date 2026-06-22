@@ -13,8 +13,8 @@ type likelihoodTable struct {
 
 func newLikelihoodTable(epsilon, eta float64) *likelihoodTable {
 	lt := &likelihoodTable{}
-	for c := 0; c < 2; c++ {
-		for f := 0; f < 2; f++ {
+	for c := range 2 {
+		for f := range 2 {
 			contradiction := c == 1
 			flagInconsistent := f == 1
 
